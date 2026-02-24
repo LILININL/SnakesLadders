@@ -20,19 +20,19 @@
 
   function renderLobbyOnline() {
     const list = Array.isArray(state.lobbyOnlineUsers) ? state.lobbyOnlineUsers : [];
-    el.onlineUsersCount.textContent = `${list.length} online`;
+    el.onlineUsersCount.textContent = `ออนไลน์ ${list.length} คน`;
 
     if (list.length === 0) {
-      el.onlineUsersList.innerHTML = "<li class='room-item'><div class='meta'>No users online.</div></li>";
+      el.onlineUsersList.innerHTML = "<li class='room-item'><div class='meta'>ตอนนี้ยังไม่มีใครออนไลน์</div></li>";
       return;
     }
 
     const rows = list.map((user) => {
-      const location = user.roomCode ? `Room: ${escapeHtml(user.roomCode)}` : "In Lobby";
+      const location = user.roomCode ? `อยู่ในห้อง: ${escapeHtml(user.roomCode)}` : "อยู่ที่ล็อบบี้";
       return `
         <li class="room-item">
           <strong>${escapeHtml(user.displayName)}</strong>
-          <div class="meta">Connection: ${escapeHtml(shortId(user.connectionId))} | ${location}</div>
+          <div class="meta">การเชื่อมต่อ: ${escapeHtml(shortId(user.connectionId))} | ${location}</div>
         </li>
       `;
     });
@@ -43,7 +43,7 @@
   function renderWaitingRooms() {
     const rooms = Array.isArray(state.waitingRooms) ? state.waitingRooms : [];
     if (rooms.length === 0) {
-      el.waitingRoomList.innerHTML = "<li class='room-item'><div class='meta'>No open rooms.</div></li>";
+      el.waitingRoomList.innerHTML = "<li class='room-item'><div class='meta'>ยังไม่มีห้องที่เปิดรอ</div></li>";
       return;
     }
 
@@ -52,10 +52,10 @@
       const isCurrent = room.roomCode === currentRoomCode;
       return `
         <li class="room-item">
-          <strong>${escapeHtml(room.roomCode)}</strong> by ${escapeHtml(room.hostName)}
-          <div class="meta">Players: ${room.playerCount} | Board: ${room.boardSize} | Density: ${densityLabel(room.densityMode)}</div>
+          <strong>${escapeHtml(room.roomCode)}</strong> โดย ${escapeHtml(room.hostName)}
+          <div class="meta">ผู้เล่น: ${room.playerCount} | กระดาน: ${room.boardSize} | ความหนาแน่น: ${densityLabel(room.densityMode)}</div>
           <button class="btn join-room-btn" data-room-code="${escapeHtml(room.roomCode)}" ${isCurrent ? "disabled" : ""}>
-            ${isCurrent ? "Current Room" : "Join This Room"}
+            ${isCurrent ? "ห้องที่คุณอยู่" : "เข้าห้องนี้"}
           </button>
         </li>
       `;

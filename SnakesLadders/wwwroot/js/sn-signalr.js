@@ -10,11 +10,11 @@
       .build();
 
     state.connection.onreconnecting(() => {
-      root.renderLobby.setConnectionStatus("Reconnecting...", "warning");
+      root.renderLobby.setConnectionStatus("กำลังเชื่อมต่อใหม่...", "warning");
     });
 
     state.connection.onreconnected(async () => {
-      root.renderLobby.setConnectionStatus("Connected", "online");
+      root.renderLobby.setConnectionStatus("เชื่อมต่อแล้ว", "online");
       await publishLobbyName();
       if (!state.roomCode) {
         await root.api.refreshLobbyOnline();
@@ -30,16 +30,16 @@
     });
 
     state.connection.onclose(() => {
-      root.renderLobby.setConnectionStatus("Disconnected", "error");
+      root.renderLobby.setConnectionStatus("หลุดการเชื่อมต่อ", "error");
     });
 
     state.connection.on("Error", (message) => {
-      root.feedback.logEvent(`Server: ${message}`, true);
+      root.feedback.logEvent(`เซิร์ฟเวอร์: ${message}`, true);
     });
 
-    state.connection.on("RoomCreated", (payload) => bindRoomPayload(payload, "Room created"));
-    state.connection.on("RoomJoined", (payload) => bindRoomPayload(payload, "Joined room"));
-    state.connection.on("RoomResumed", (payload) => bindRoomPayload(payload, "Resumed room"));
+    state.connection.on("RoomCreated", (payload) => bindRoomPayload(payload, "สร้างห้องสำเร็จ"));
+    state.connection.on("RoomJoined", (payload) => bindRoomPayload(payload, "เข้าห้องสำเร็จ"));
+    state.connection.on("RoomResumed", (payload) => bindRoomPayload(payload, "กลับเข้าห้องเดิมแล้ว"));
 
     state.connection.on("RoomUpdated", (room) => {
       if (state.animating) {
@@ -53,7 +53,7 @@
 
     state.connection.on("GameStarted", (room) => {
       state.room = room;
-      root.feedback.logEvent("Game started.");
+      root.feedback.logEvent("เกมเริ่มแล้ว ลุยได้เลย");
       root.feedback.renderAll();
     });
 
@@ -63,7 +63,7 @@
       }
 
       const player = state.room?.players?.find((x) => x.playerId === playerId);
-      root.feedback.logEvent(`Turn: ${player ? player.displayName : playerId}`);
+      root.feedback.logEvent(`ตอนนี้เป็นตาของ ${player ? player.displayName : playerId}`);
       root.feedback.renderAll();
     });
 
@@ -73,7 +73,9 @@
     });
 
     state.connection.on("GameFinished", (payload) => {
-      root.feedback.logEvent(`Game finished: winner ${payload.turn.winnerPlayerId ?? "-"}`);
+      const winnerId = payload.turn.winnerPlayerId ?? "";
+      const winnerName = payload.room?.players?.find((x) => x.playerId === winnerId)?.displayName ?? winnerId ?? "-";
+      root.feedback.logEvent(`จบเกมแล้ว ผู้ชนะคือ ${winnerName || "-"}`);
       if (state.animating) {
         state.deferredRoom = payload.room;
       } else {
@@ -91,7 +93,7 @@
     });
 
     await state.connection.start();
-    root.renderLobby.setConnectionStatus("Connected", "online");
+    root.renderLobby.setConnectionStatus("เชื่อมต่อแล้ว", "online");
     await publishLobbyName();
   }
 
@@ -101,7 +103,7 @@
       return true;
     } catch (error) {
       if (!suppressError) {
-        root.feedback.logEvent(`${methodName} failed: ${error.message ?? String(error)}`, true);
+        root.feedback.logEvent(`คำสั่งไม่สำเร็จ: ${error.message ?? String(error)}`, true);
       }
       return false;
     }

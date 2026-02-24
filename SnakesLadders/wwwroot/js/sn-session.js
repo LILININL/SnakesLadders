@@ -18,7 +18,7 @@
     event.preventDefault();
     const name = normalizeName(el.profileNameInput.value);
     if (!name) {
-      root.feedback.logEvent("Please set your name first.", true);
+      root.feedback.logEvent("กรุณาตั้งชื่อก่อนเริ่มเล่น", true);
       return;
     }
 

@@ -34,8 +34,8 @@
         if (player.playerId === state.playerId) token.classList.add("me");
         if (player.playerId === turnPlayerId) token.classList.add("turn");
         if (!player.connected) token.classList.add("offline");
-        token.textContent = (player.displayName?.[0] ?? "P").toUpperCase();
-        token.title = `${player.displayName}${!player.connected ? " (Offline)" : ""}`;
+        token.textContent = (player.displayName?.[0] ?? "ผ").toUpperCase();
+        token.title = `${player.displayName}${!player.connected ? " (ออฟไลน์)" : ""}`;
 
         const offset = offsets[index] ?? { x: 0, y: 0 };
         placeToken(token, cellEl, offset);

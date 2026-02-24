@@ -93,8 +93,8 @@ public sealed class BoardOptions
     {
         return BoardSize switch
         {
-            < MinBoardSize => $"BoardSize must be at least {MinBoardSize}.",
-            > TechnicalCap => $"BoardSize exceeds technical cap ({TechnicalCap}).",
+            < MinBoardSize => $"ขนาดกระดานต้องไม่น้อยกว่า {MinBoardSize} ช่อง",
+            > TechnicalCap => $"ขนาดกระดานเกินขีดจำกัดระบบ ({TechnicalCap})",
             _ => null
         };
     }

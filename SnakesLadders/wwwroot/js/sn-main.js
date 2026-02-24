@@ -3,7 +3,7 @@
   const { state } = root;
 
   init().catch((error) => {
-    root.renderLobby.setConnectionStatus("Failed to initialize", "error");
+    root.renderLobby.setConnectionStatus("เริ่มระบบไม่สำเร็จ", "error");
     root.feedback.logEvent(error.message ?? String(error), true);
   });
 

@@ -13,12 +13,12 @@
     const hostId = state.room.hostPlayerId;
     const others = state.room.players.filter((x) => x.playerId !== hostId);
     const readyCount = others.filter((x) => x.connected && x.isReady).length;
-    el.readySummary.textContent = `${readyCount}/${others.length} ready`;
+    el.readySummary.textContent = `พร้อม ${readyCount}/${others.length} คน`;
 
     el.readyList.innerHTML = state.room.players.map((player) => {
       const host = player.playerId === hostId;
       const tone = host ? "host" : player.connected ? (player.isReady ? "ready" : "not-ready") : "offline";
-      const label = host ? "Host" : tone === "ready" ? "Ready" : tone === "offline" ? "Offline" : "Not ready";
+      const label = host ? "หัวห้อง" : tone === "ready" ? "พร้อม" : tone === "offline" ? "ออฟไลน์" : "ยังไม่พร้อม";
       return `
         <li class="ready-item ${tone}">
           <span class="name">${escapeHtml(player.displayName)}</span>
@@ -31,7 +31,7 @@
     const canToggle = Boolean(me && me.playerId !== hostId && me.connected);
     el.toggleReadyBtn.classList.toggle("hidden", !canToggle);
     if (canToggle) {
-      el.toggleReadyBtn.textContent = me.isReady ? "Set Not Ready" : "I'm Ready";
+      el.toggleReadyBtn.textContent = me.isReady ? "ขอยังไม่พร้อม" : "ฉันพร้อมแล้ว";
     }
   }
 

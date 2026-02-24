@@ -18,7 +18,7 @@ public sealed class GameHub : Hub
         var result = _roomService.CreateRoom(Context.ConnectionId, request);
         if (!result.Success || result.Value is null)
         {
-            await SendError(result.Error ?? "Failed to create room.");
+            await SendError(result.Error ?? "สร้างห้องไม่สำเร็จ");
             return;
         }
 
@@ -32,7 +32,7 @@ public sealed class GameHub : Hub
         var result = _roomService.JoinRoom(Context.ConnectionId, request);
         if (!result.Success || result.Value is null)
         {
-            await SendError(result.Error ?? "Failed to join room.");
+            await SendError(result.Error ?? "เข้าห้องไม่สำเร็จ");
             return;
         }
 
@@ -46,7 +46,7 @@ public sealed class GameHub : Hub
         var result = _roomService.ResumeRoom(Context.ConnectionId, request);
         if (!result.Success || result.Value is null)
         {
-            await SendError(result.Error ?? "Failed to resume room.");
+            await SendError(result.Error ?? "กลับเข้าห้องเดิมไม่สำเร็จ");
             return;
         }
 
@@ -60,7 +60,7 @@ public sealed class GameHub : Hub
         var result = _roomService.StartGame(Context.ConnectionId, request);
         if (!result.Success || result.Value is null)
         {
-            await SendError(result.Error ?? "Failed to start game.");
+            await SendError(result.Error ?? "เริ่มเกมไม่สำเร็จ");
             return;
         }
 
@@ -73,7 +73,7 @@ public sealed class GameHub : Hub
         var result = _roomService.RollDice(Context.ConnectionId, request);
         if (!result.Success || result.Value is null)
         {
-            await SendError(result.Error ?? "Failed to roll dice.");
+            await SendError(result.Error ?? "ทอยเต๋าไม่สำเร็จ");
             return;
         }
 
@@ -102,7 +102,7 @@ public sealed class GameHub : Hub
         var result = _roomService.SetReady(Context.ConnectionId, request);
         if (!result.Success || result.Value is null)
         {
-            await SendError(result.Error ?? "Failed to set ready state.");
+            await SendError(result.Error ?? "เปลี่ยนสถานะความพร้อมไม่สำเร็จ");
             return;
         }
 
@@ -114,7 +114,7 @@ public sealed class GameHub : Hub
         var result = _roomService.SendChat(Context.ConnectionId, request);
         if (!result.Success || result.Value is null)
         {
-            await SendError(result.Error ?? "Failed to send chat.");
+            await SendError(result.Error ?? "ส่งข้อความไม่สำเร็จ");
             return;
         }
 
@@ -126,7 +126,7 @@ public sealed class GameHub : Hub
         var result = _roomService.LeaveRoom(Context.ConnectionId, request.RoomCode);
         if (!result.Success || result.Value is null)
         {
-            await SendError(result.Error ?? "Failed to leave room.");
+            await SendError(result.Error ?? "ออกห้องไม่สำเร็จ");
             return;
         }
 
@@ -139,7 +139,7 @@ public sealed class GameHub : Hub
         var result = _roomService.GetRoom(roomCode);
         if (!result.Success || result.Value is null)
         {
-            await SendError(result.Error ?? "Room not found.");
+            await SendError(result.Error ?? "ไม่พบห้องที่ต้องการ");
             return;
         }
 

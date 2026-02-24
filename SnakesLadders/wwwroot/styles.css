@@ -797,14 +797,21 @@ select {
 
 .roll-fab {
   position: absolute;
-  z-index: 11;
+  left: 50%;
+  top: 50%;
+  z-index: 14;
   transform: translate(-50%, -50%);
-  min-width: 94px;
-  border-width: 2px;
+  width: clamp(180px, 30vw, 290px);
+  min-height: clamp(68px, 9vw, 94px);
+  padding: 14px 18px;
+  border-width: 3px;
+  border-radius: 16px;
   border-color: #f1b06f;
   background: linear-gradient(180deg, #f6a145, #d8742b);
   box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 214, 156, 0.28);
   font-weight: 700;
+  font-size: clamp(1.05rem, 2.4vw, 1.5rem);
+  text-shadow: 0 1px 0 rgba(86, 36, 10, 0.35);
   letter-spacing: 0.03em;
   animation: roll-fab-bob 1.6s ease-in-out infinite;
 }
@@ -1188,5 +1195,12 @@ hr {
   .layout.in-room .roll-toggle {
     top: 6px;
     right: 6px;
+  }
+
+  .layout.in-room .roll-fab {
+    width: clamp(140px, 34vw, 220px);
+    min-height: 58px;
+    padding: 10px 12px;
+    font-size: clamp(0.96rem, 2.6vw, 1.15rem);
   }
 }

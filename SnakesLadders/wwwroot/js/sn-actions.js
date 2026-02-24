@@ -55,7 +55,7 @@
 
     const boardSize = parseInt(el.boardSize.value, 10);
     if (!Number.isFinite(boardSize) || boardSize < 50) {
-      root.feedback.logEvent("Board size must be 50 or higher.", true);
+      root.feedback.logEvent("ขนาดกระดานต้องอย่างน้อย 50 ช่อง", true);
       return;
     }
 
@@ -73,7 +73,7 @@
 
     const roomCode = String(el.joinRoomCode.value ?? "").trim().toUpperCase();
     if (!roomCode) {
-      root.feedback.logEvent("Room code is required.", true);
+      root.feedback.logEvent("กรุณาใส่รหัสห้องก่อนเข้าร่วม", true);
       return;
     }
 

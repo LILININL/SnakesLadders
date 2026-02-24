@@ -45,18 +45,18 @@
     const options = state.room.boardOptions;
     const rules = options.ruleOptions ?? {};
     const lines = [
-      `Board: ${options.boardSize} cells`,
-      `Density: ${densityLabel(options.densityMode)}`,
-      `Overflow: ${options.overflowMode === 1 ? "Back by overflow x2" : "Stay put"}`
+      `ขนาดกระดาน: ${options.boardSize} ช่อง`,
+      `ความหนาแน่น: ${densityLabel(options.densityMode)}`,
+      `ทอยเกินเส้นชัย: ${options.overflowMode === 1 ? "ถอยหลังตามแต้มเกิน x2" : "อยู่ที่เดิม"}`
     ];
 
-    if (rules.turnTimerEnabled) lines.push(`Turn timer: ${rules.turnSeconds}s`);
-    if (rules.roundLimitEnabled) lines.push(`Round limit: ${rules.maxRounds}`);
-    if (rules.snakeFrenzyEnabled) lines.push(`Snake frenzy: Every ${rules.snakeFrenzyIntervalTurns} turns`);
-    if (rules.checkpointShieldEnabled) lines.push(`Checkpoint shield: Every ${rules.checkpointInterval} cells`);
-    if (rules.comebackBoostEnabled) lines.push("Comeback boost");
-    if (rules.mercyLadderEnabled) lines.push(`Mercy ladder: +${rules.mercyLadderBoost}`);
-    if (rules.marathonSpeedupEnabled) lines.push("Marathon speedup");
+    if (rules.turnTimerEnabled) lines.push(`จับเวลาเทิร์น: ${rules.turnSeconds} วินาที`);
+    if (rules.roundLimitEnabled) lines.push(`จำกัดรอบ: ${rules.maxRounds} รอบ`);
+    if (rules.snakeFrenzyEnabled) lines.push(`งูคลุ้มคลั่ง: ทุก ${rules.snakeFrenzyIntervalTurns} เทิร์น`);
+    if (rules.checkpointShieldEnabled) lines.push(`เกราะเช็กพอยต์: ทุก ${rules.checkpointInterval} ช่อง`);
+    if (rules.comebackBoostEnabled) lines.push("เร่งแซงคนตาม");
+    if (rules.mercyLadderEnabled) lines.push(`บันไดเมตตา: +${rules.mercyLadderBoost}`);
+    if (rules.marathonSpeedupEnabled) lines.push("เร่งเกมช่วงท้าย");
 
     el.roomRuleList.innerHTML = lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
   }
@@ -68,7 +68,7 @@
     }
 
     if (!isStarted()) {
-      el.turnBanner.textContent = "Waiting for host to start";
+      el.turnBanner.textContent = "รอหัวห้องกดเริ่มเกม";
       el.turnBanner.className = "turn-banner waiting";
       return;
     }
@@ -81,7 +81,7 @@
     }
 
     const mine = current.playerId === state.playerId;
-    el.turnBanner.textContent = mine ? "Your Turn" : `Turn: ${current.displayName}`;
+    el.turnBanner.textContent = mine ? "ถึงตาคุณแล้ว" : `ตาของ ${current.displayName}`;
     el.turnBanner.className = `turn-banner ${mine ? "mine" : "other"}`;
   }
 
@@ -91,9 +91,7 @@
   }
 
   function updateFloatingRollButton() {
-    const mePosition = root.viewState.getPlayerPosition(state.playerId);
     const myTurn = Boolean(
-      Number.isFinite(mePosition) &&
       isStarted() &&
       !state.animating &&
       root.viewState.getDisplayTurnPlayerId() === state.playerId
@@ -108,22 +106,15 @@
     el.toggleRollBtn.classList.remove("hidden");
     if (state.rollButtonHidden) {
       el.rollDiceFloatingBtn.classList.add("hidden");
-      el.toggleRollBtn.textContent = "Show Roll";
+      el.toggleRollBtn.textContent = "แสดงปุ่มทอย";
       return;
     }
 
-    const cell = el.board.querySelector(`[data-cell="${mePosition}"]`);
-    if (!cell) {
-      el.rollDiceFloatingBtn.classList.add("hidden");
-      return;
-    }
-
-    const left = cell.offsetLeft + (cell.offsetWidth / 2) - el.board.scrollLeft;
-    const top = cell.offsetTop + (cell.offsetHeight / 2) - el.board.scrollTop;
-    el.rollDiceFloatingBtn.style.left = `${Math.round(left)}px`;
-    el.rollDiceFloatingBtn.style.top = `${Math.round(top)}px`;
+    // Keep roll button in the center so it stays visible on large/long boards.
+    el.rollDiceFloatingBtn.style.left = "50%";
+    el.rollDiceFloatingBtn.style.top = "50%";
     el.rollDiceFloatingBtn.classList.remove("hidden");
-    el.toggleRollBtn.textContent = "Hide Roll";
+    el.toggleRollBtn.textContent = "ซ่อนปุ่มทอย";
   }
 
   function updateDeadlineAlert() {

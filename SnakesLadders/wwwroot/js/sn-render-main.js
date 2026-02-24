@@ -36,7 +36,7 @@
 
   function formatTurnLine(turn) {
     const name = findPlayerName(turn.playerId);
-    return `${name} rolled ${turn.diceValue} (${turn.startPosition} -> ${turn.endPosition})`;
+    return `${name} ทอยได้ ${turn.diceValue} (${turn.startPosition} -> ${turn.endPosition})`;
   }
 
   function findPlayerName(playerId) {

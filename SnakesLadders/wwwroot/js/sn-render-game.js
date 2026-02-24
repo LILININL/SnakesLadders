@@ -5,20 +5,20 @@
 
   function renderRoomHeader() {
     if (!state.room) {
-      el.roomTitle.textContent = "Room: -";
-      el.roomMeta.textContent = "Create or join a room first.";
+      el.roomTitle.textContent = "ห้อง: -";
+      el.roomMeta.textContent = "สร้างห้องหรือเข้าห้องก่อนเริ่มเล่น";
       return;
     }
 
-    const statusLabel = state.room.status === GAME_STATUS.WAITING ? "Waiting" :
-      state.room.status === GAME_STATUS.STARTED ? "Started" : "Finished";
+    const statusLabel = state.room.status === GAME_STATUS.WAITING ? "รอเริ่มเกม" :
+      state.room.status === GAME_STATUS.STARTED ? "กำลังเล่น" : "จบเกมแล้ว";
 
     const displayTurnPlayerId = root.viewState.getDisplayTurnPlayerId();
     const turnPlayer = state.room.players.find((x) => x.playerId === displayTurnPlayerId);
-    const deadline = state.room.turnDeadlineUtc ? ` | Deadline: ${formatClock(state.room.turnDeadlineUtc)}` : "";
+    const deadline = state.room.turnDeadlineUtc ? ` | หมดเวลา: ${formatClock(state.room.turnDeadlineUtc)}` : "";
 
-    el.roomTitle.textContent = `Room: ${state.room.roomCode}`;
-    el.roomMeta.textContent = `Status: ${statusLabel} | Turn: ${state.room.turnCounter} | Current: ${turnPlayer?.displayName ?? "-"}${deadline}`;
+    el.roomTitle.textContent = `ห้อง: ${state.room.roomCode}`;
+    el.roomMeta.textContent = `สถานะ: ${statusLabel} | เทิร์นที่: ${state.room.turnCounter} | ตาปัจจุบัน: ${turnPlayer?.displayName ?? "-"}${deadline}`;
   }
 
   function renderPlayers() {
@@ -44,20 +44,20 @@
       let label = "";
       if (waiting) {
         tone = player.playerId === hostId ? "host" : player.connected ? (player.isReady ? "ready" : "not-ready") : "offline";
-        label = tone === "host" ? "Host" : tone === "ready" ? "Ready" : tone === "offline" ? "Offline" : "Not Ready";
+        label = tone === "host" ? "หัวห้อง" : tone === "ready" ? "พร้อม" : tone === "offline" ? "ออฟไลน์" : "ยังไม่พร้อม";
         classes.push(`state-${tone}`);
       }
 
       const stats = waiting
-        ? `Status: <span class="inline-pill ${tone}">${escapeHtml(label)}</span>`
-        : `Position: ${player.position} | Shields: ${player.shields}`;
+        ? `สถานะ: <span class="inline-pill ${tone}">${escapeHtml(label)}</span>`
+        : `ตำแหน่ง: ${player.position} | โล่: ${player.shields}`;
 
       return `
         <li class="${classes.join(" ")}">
           <strong>${escapeHtml(player.displayName)}</strong>
           <br>
           ${stats}
-          ${player.connected ? "" : "<br><em>Disconnected</em>"}
+          ${player.connected ? "" : "<br><em>หลุดการเชื่อมต่อ</em>"}
         </li>
       `;
     });
@@ -69,7 +69,7 @@
     const board = state.room?.board;
     if (!board) {
       el.board.style.setProperty("--rows", "10");
-      el.board.innerHTML = "<div class='summary-card'>Board will appear after game starts.</div>";
+      el.board.innerHTML = "";
       el.boardLegend.textContent = "";
       root.boardOverlay?.clear();
       root.boardTokens?.clear();
@@ -108,15 +108,15 @@
       if (cell === currentPlayer?.position) classes.push("turn-cell");
 
       const marks = [];
-      if (isSnakeHead) marks.push("<span class='jump-tag snake'>S</span>");
-      if (isLadderStart) marks.push("<span class='jump-tag ladder'>L</span>");
-      if (isSnakeTail) marks.push("<span class='jump-tag snake-end'>s</span>");
-      if (isLadderEnd) marks.push("<span class='jump-tag ladder-end'>l</span>");
+      if (isSnakeHead) marks.push("<span class='jump-tag snake'>🐍</span>");
+      if (isLadderStart) marks.push("<span class='jump-tag ladder'>🪜</span>");
+      if (isSnakeTail) marks.push("<span class='jump-tag snake-end'>▾</span>");
+      if (isLadderEnd) marks.push("<span class='jump-tag ladder-end'>▴</span>");
       if (cell === finishCell) marks.push("<span class='jump-tag finish'>🏁</span>");
 
       const pos = getGridPosition(cell, cols, rows);
       parts.push(`
-        <div class="${classes.join(" ")}" data-cell="${cell}" style="grid-column:${pos.col};grid-row:${pos.row};" title="Cell ${cell}">
+        <div class="${classes.join(" ")}" data-cell="${cell}" style="grid-column:${pos.col};grid-row:${pos.row};" title="ช่อง ${cell}">
           <div class="num">${cell}</div>
           <div class="marks">${marks.join("")}</div>
         </div>
@@ -127,27 +127,27 @@
     root.boardOverlay?.render(board);
     root.boardTokens?.render(displayPlayers, displayTurnPlayerId);
     root.roomUi?.updateFloatingRollButton();
-    el.boardLegend.textContent = `Size: ${size} | Snakes: ${snakeHeads.size} | Ladders: ${ladderStarts.size} | Forks: ${forkCells.size} | S/L = jump starts`;
+    el.boardLegend.textContent = `ขนาด: ${size} | งู: ${snakeHeads.size} | บันได: ${ladderStarts.size} | ทางแยก: ${forkCells.size} | 🐍/🪜 = จุดเริ่มกระโดด`;
   }
 
   function renderLastTurn() {
     if (!state.lastTurn) {
-      el.turnSummary.textContent = "No turns yet.";
+      el.turnSummary.textContent = "ยังไม่มีการทอยในรอบนี้";
       return;
     }
 
     const t = state.lastTurn;
-    const lines = [`${playerName(t.playerId)} rolled ${t.diceValue}, moved ${t.startPosition} -> ${t.endPosition}.`];
+    const lines = [`${playerName(t.playerId)} ทอยได้ ${t.diceValue} เดินจาก ${t.startPosition} -> ${t.endPosition}`];
 
-    if (t.comebackBoostApplied) lines.push("Comeback boost applied.");
-    if (t.usedLuckyReroll) lines.push("Lucky reroll used.");
-    if (t.overflowAmount > 0) lines.push(`Overflow: ${t.overflowAmount}.`);
-    if (t.forkCell) lines.push(`Fork at ${t.forkCell.cell}: ${t.forkChoice === 1 ? "Risky" : "Safe"}.`);
-    if (t.triggeredJump) lines.push(`Jump: ${t.triggeredJump.type === 0 ? "Snake" : "Ladder"} ${t.triggeredJump.from} -> ${t.triggeredJump.to}.`);
-    if (t.shieldBlockedSnake) lines.push("Shield blocked snake hit.");
-    if (t.mercyLadderApplied) lines.push("Mercy ladder applied.");
-    if (t.shieldsEarned > 0) lines.push(`Shields gained: +${t.shieldsEarned}.`);
-    if (t.isGameFinished) lines.push(`Winner: ${playerName(t.winnerPlayerId)}`);
+    if (t.comebackBoostApplied) lines.push("ได้โบนัสเร่งแซงจากกติกา");
+    if (t.usedLuckyReroll) lines.push("ใช้สิทธิ์ทอยซ้ำ");
+    if (t.overflowAmount > 0) lines.push(`แต้มเกินเส้นชัย: ${t.overflowAmount}`);
+    if (t.forkCell) lines.push(`เจอทางแยกที่ช่อง ${t.forkCell.cell}: เลือกเส้น ${t.forkChoice === 1 ? "เสี่ยงดวง" : "ปลอดภัย"}`);
+    if (t.triggeredJump) lines.push(`โดนทางลัด: ${t.triggeredJump.type === 0 ? "งู" : "บันได"} ${t.triggeredJump.from} -> ${t.triggeredJump.to}`);
+    if (t.shieldBlockedSnake) lines.push("เกราะช่วยกันการโดนงูกัดได้สำเร็จ");
+    if (t.mercyLadderApplied) lines.push("บันไดเมตตาช่วยดันตำแหน่งขึ้น");
+    if (t.shieldsEarned > 0) lines.push(`ได้รับโล่เพิ่ม: +${t.shieldsEarned}`);
+    if (t.isGameFinished) lines.push(`ผู้ชนะ: ${playerName(t.winnerPlayerId)}`);
 
     el.turnSummary.innerHTML = lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("");
   }

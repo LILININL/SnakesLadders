@@ -62,7 +62,7 @@
 
   function resolvePlayerName(playerId, room) {
     if (!playerId) {
-      return "Player";
+      return "ผู้เล่น";
     }
 
     const players = room?.players ?? state.room?.players ?? [];
@@ -72,12 +72,12 @@
 
   function winnerMetaText(finishReason) {
     if (finishReason === "RoundLimit") {
-      return "wins by round limit";
+      return "ชนะด้วยกติกาจำกัดรอบ";
     }
     if (finishReason === "LastPlayerStanding") {
-      return "last player standing";
+      return "ยืนหยัดเป็นคนสุดท้าย";
     }
-    return "reached the finish";
+    return "เข้าเส้นชัยได้อย่างเฉียบขาด";
   }
 
   function wait(ms) {

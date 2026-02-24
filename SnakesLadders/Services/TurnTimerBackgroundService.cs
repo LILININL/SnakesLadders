@@ -45,7 +45,7 @@ public sealed class TurnTimerBackgroundService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to process expired turns.");
+                logger.LogError(ex, "ประมวลผลเทิร์นที่หมดเวลาไม่สำเร็จ");
             }
 
             await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);

@@ -13,7 +13,7 @@ public sealed class GameEngine : IGameEngine
     {
         if (room.Board is null)
         {
-            throw new InvalidOperationException("Board has not been generated.");
+            throw new InvalidOperationException("ยังไม่ได้สร้างกระดานเกม");
         }
 
         var board = room.Board;

@@ -6,7 +6,7 @@
   function renderChat() {
     const messages = Array.isArray(state.chatMessages) ? state.chatMessages : [];
     if (messages.length === 0) {
-      el.chatList.innerHTML = "<li class='chat-item'><div class='meta'>No chat yet.</div></li>";
+      el.chatList.innerHTML = "<li class='chat-item'><div class='meta'>ยังไม่มีข้อความแชต</div></li>";
       return;
     }
 

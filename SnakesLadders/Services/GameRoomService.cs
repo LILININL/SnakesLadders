@@ -63,7 +63,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             var roomCode = NormalizeRoomCode(request.RoomCode);
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
-                return ServiceResult<JoinRoomResponse>.Fail("Room not found.");
+                return ServiceResult<JoinRoomResponse>.Fail("ไม่พบห้องที่ระบุ");
             }
 
             if (!string.IsNullOrWhiteSpace(request.SessionId))
@@ -84,7 +84,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
 
             if (room.Status != GameStatus.Waiting)
             {
-                return ServiceResult<JoinRoomResponse>.Fail("Game already started. Joining is closed.");
+                return ServiceResult<JoinRoomResponse>.Fail("เกมเริ่มแล้ว ห้องนี้ปิดรับผู้เล่นเพิ่ม");
             }
 
             var playerId = NewPlayerId();
@@ -115,19 +115,19 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             var roomCode = NormalizeRoomCode(request.RoomCode);
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
-                return ServiceResult<ResumeRoomResponse>.Fail("Room not found.");
+                return ServiceResult<ResumeRoomResponse>.Fail("ไม่พบห้องที่ระบุ");
             }
 
             var sessionId = request.SessionId?.Trim();
             if (string.IsNullOrWhiteSpace(sessionId))
             {
-                return ServiceResult<ResumeRoomResponse>.Fail("SessionId is required.");
+                return ServiceResult<ResumeRoomResponse>.Fail("จำเป็นต้องมี SessionId");
             }
 
             var player = room.FindPlayerBySession(sessionId);
             if (player is null)
             {
-                return ServiceResult<ResumeRoomResponse>.Fail("Session not found in this room.");
+                return ServiceResult<ResumeRoomResponse>.Fail("ไม่พบ Session นี้ในห้อง");
             }
 
             BindConnectionToPlayerUnsafe(connectionId, room, player, request.PlayerName);
@@ -149,29 +149,29 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             var roomCode = NormalizeRoomCode(request.RoomCode);
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
-                return ServiceResult<RoomSnapshot>.Fail("Room not found.");
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบห้องที่ระบุ");
             }
 
             if (!_connections.TryGetValue(connectionId, out var binding) ||
                 !binding.RoomCode.Equals(roomCode, StringComparison.OrdinalIgnoreCase))
             {
-                return ServiceResult<RoomSnapshot>.Fail("You are not in this room.");
+                return ServiceResult<RoomSnapshot>.Fail("คุณไม่ได้อยู่ในห้องนี้");
             }
 
             if (!string.Equals(binding.PlayerId, room.HostPlayerId, StringComparison.Ordinal))
             {
-                return ServiceResult<RoomSnapshot>.Fail("Only host can start the game.");
+                return ServiceResult<RoomSnapshot>.Fail("เฉพาะหัวห้องเท่านั้นที่เริ่มเกมได้");
             }
 
             if (room.Players.Count < 2)
             {
-                return ServiceResult<RoomSnapshot>.Fail("At least 2 players are required.");
+                return ServiceResult<RoomSnapshot>.Fail("ต้องมีผู้เล่นอย่างน้อย 2 คน");
             }
 
             var waitingPlayers = room.Players.Where(x => x.PlayerId != room.HostPlayerId).ToArray();
             if (waitingPlayers.Any(x => !x.Connected || !x.IsReady))
             {
-                return ServiceResult<RoomSnapshot>.Fail("All non-host players must be connected and ready.");
+                return ServiceResult<RoomSnapshot>.Fail("ผู้เล่นที่ไม่ใช่หัวห้องต้องออนไลน์และกดพร้อมครบ");
             }
 
             room.BoardOptions.Normalize();
@@ -220,18 +220,18 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             var roomCode = NormalizeRoomCode(request.RoomCode);
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
-                return ServiceResult<TurnEnvelope>.Fail("Room not found.");
+                return ServiceResult<TurnEnvelope>.Fail("ไม่พบห้องที่ระบุ");
             }
 
             if (room.Status != GameStatus.Started)
             {
-                return ServiceResult<TurnEnvelope>.Fail("Game is not active.");
+                return ServiceResult<TurnEnvelope>.Fail("เกมยังไม่อยู่ในสถานะกำลังเล่น");
             }
 
             var currentPlayer = room.CurrentTurnPlayer;
             if (currentPlayer is null)
             {
-                return ServiceResult<TurnEnvelope>.Fail("No active player.");
+                return ServiceResult<TurnEnvelope>.Fail("ไม่พบผู้เล่นที่กำลังมีตา");
             }
 
             PlayerState actor;
@@ -244,13 +244,13 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                 if (!_connections.TryGetValue(connectionId, out var binding) ||
                     !binding.RoomCode.Equals(roomCode, StringComparison.OrdinalIgnoreCase))
                 {
-                    return ServiceResult<TurnEnvelope>.Fail("You are not in this room.");
+                    return ServiceResult<TurnEnvelope>.Fail("คุณไม่ได้อยู่ในห้องนี้");
                 }
 
                 var player = room.FindPlayer(binding.PlayerId);
                 if (player is null)
                 {
-                    return ServiceResult<TurnEnvelope>.Fail("Player not found.");
+                    return ServiceResult<TurnEnvelope>.Fail("ไม่พบผู้เล่น");
                 }
 
                 actor = player;
@@ -258,7 +258,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
 
             if (!ReferenceEquals(actor, currentPlayer))
             {
-                return ServiceResult<TurnEnvelope>.Fail("Not your turn.");
+                return ServiceResult<TurnEnvelope>.Fail("ยังไม่ถึงตาคุณ");
             }
 
             var result = gameEngine.ResolveTurn(
@@ -282,29 +282,29 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
         {
             if (!_connections.TryGetValue(connectionId, out var binding))
             {
-                return ServiceResult<RoomSnapshot>.Fail("You are not in a room.");
+                return ServiceResult<RoomSnapshot>.Fail("คุณยังไม่ได้เข้าห้อง");
             }
 
             var roomCode = NormalizeRoomCode(request.RoomCode);
             if (!binding.RoomCode.Equals(roomCode, StringComparison.OrdinalIgnoreCase))
             {
-                return ServiceResult<RoomSnapshot>.Fail("You are not in this room.");
+                return ServiceResult<RoomSnapshot>.Fail("คุณไม่ได้อยู่ในห้องนี้");
             }
 
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
-                return ServiceResult<RoomSnapshot>.Fail("Room not found.");
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบห้องที่ระบุ");
             }
 
             if (room.Status != GameStatus.Waiting)
             {
-                return ServiceResult<RoomSnapshot>.Fail("Ready state can be changed only before game starts.");
+                return ServiceResult<RoomSnapshot>.Fail("เปลี่ยนสถานะพร้อมได้เฉพาะก่อนเริ่มเกม");
             }
 
             var player = room.FindPlayer(binding.PlayerId);
             if (player is null)
             {
-                return ServiceResult<RoomSnapshot>.Fail("Player not found.");
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบผู้เล่น");
             }
 
             if (player.PlayerId == room.HostPlayerId)
@@ -325,12 +325,12 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             var normalized = NormalizeRoomCode(roomCode);
             if (!_rooms.TryGetValue(normalized, out var room))
             {
-                return ServiceResult<RoomSnapshot>.Fail("Room not found.");
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบห้องที่ระบุ");
             }
 
             if (room.Status != GameStatus.Finished)
             {
-                return ServiceResult<RoomSnapshot>.Fail("Room is not finished.");
+                return ServiceResult<RoomSnapshot>.Fail("ห้องนี้ยังไม่จบเกม");
             }
 
             room.Players.RemoveAll(x => !x.Connected);
@@ -338,7 +338,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             {
                 _rooms.Remove(normalized);
                 _chatByRoom.Remove(normalized);
-                return ServiceResult<RoomSnapshot>.Fail("Room removed because no connected players remain.");
+                return ServiceResult<RoomSnapshot>.Fail("ห้องถูกปิดเพราะไม่มีผู้เล่นออนไลน์อยู่แล้ว");
             }
 
             if (!room.Players.Any(x => x.PlayerId == room.HostPlayerId))
@@ -380,35 +380,35 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
         {
             if (!_connections.TryGetValue(connectionId, out var binding))
             {
-                return ServiceResult<ChatMessage>.Fail("You are not in a room.");
+                return ServiceResult<ChatMessage>.Fail("คุณยังไม่ได้เข้าห้อง");
             }
 
             var roomCode = NormalizeRoomCode(request.RoomCode);
             if (!binding.RoomCode.Equals(roomCode, StringComparison.OrdinalIgnoreCase))
             {
-                return ServiceResult<ChatMessage>.Fail("You are not in this room.");
+                return ServiceResult<ChatMessage>.Fail("คุณไม่ได้อยู่ในห้องนี้");
             }
 
             if (!_rooms.TryGetValue(roomCode, out var room))
             {
-                return ServiceResult<ChatMessage>.Fail("Room not found.");
+                return ServiceResult<ChatMessage>.Fail("ไม่พบห้องที่ระบุ");
             }
 
             var player = room.FindPlayer(binding.PlayerId);
             if (player is null)
             {
-                return ServiceResult<ChatMessage>.Fail("Player not found.");
+                return ServiceResult<ChatMessage>.Fail("ไม่พบผู้เล่น");
             }
 
             var message = (request.Message ?? string.Empty).Trim();
             if (message.Length == 0)
             {
-                return ServiceResult<ChatMessage>.Fail("Message is empty.");
+                return ServiceResult<ChatMessage>.Fail("ข้อความว่างเปล่า");
             }
 
             if (message.Length > 300)
             {
-                return ServiceResult<ChatMessage>.Fail("Message is too long.");
+                return ServiceResult<ChatMessage>.Fail("ข้อความยาวเกินไป");
             }
 
             var chat = new ChatMessage
@@ -443,13 +443,13 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
         {
             if (!_connections.TryGetValue(connectionId, out var binding))
             {
-                return ServiceResult<RoomSnapshot>.Fail("Connection not bound to a room.");
+                return ServiceResult<RoomSnapshot>.Fail("การเชื่อมต่อยังไม่ได้ผูกกับห้อง");
             }
 
             if (roomCode is not null &&
                 !binding.RoomCode.Equals(roomCode, StringComparison.OrdinalIgnoreCase))
             {
-                return ServiceResult<RoomSnapshot>.Fail("Connection does not belong to this room.");
+                return ServiceResult<RoomSnapshot>.Fail("การเชื่อมต่อนี้ไม่ได้อยู่ในห้องที่ระบุ");
             }
 
             var keepSeat = _rooms.TryGetValue(binding.RoomCode, out var room) &&
@@ -466,7 +466,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
 
             if (!_connections.TryGetValue(connectionId, out var binding))
             {
-                return ServiceResult<RoomSnapshot>.Fail("Connection not bound to a room.");
+                return ServiceResult<RoomSnapshot>.Fail("การเชื่อมต่อยังไม่ได้ผูกกับห้อง");
             }
 
             var keepSeat = _rooms.TryGetValue(binding.RoomCode, out var room) &&
@@ -482,7 +482,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             var normalized = NormalizeRoomCode(roomCode);
             if (!_rooms.TryGetValue(normalized, out var room))
             {
-                return ServiceResult<RoomSnapshot>.Fail("Room not found.");
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบห้องที่ระบุ");
             }
 
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
@@ -505,7 +505,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                     {
                         RoomCode = x.RoomCode,
                         Status = x.Status,
-                        HostName = host?.DisplayName ?? "Host",
+                        HostName = host?.DisplayName ?? "หัวห้อง",
                         PlayerCount = x.Players.Count,
                         BoardSize = x.BoardOptions.BoardSize,
                         DensityMode = x.BoardOptions.DensityMode
@@ -597,13 +597,13 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
 
         if (!_rooms.TryGetValue(roomCode, out var room))
         {
-            return ServiceResult<RoomSnapshot>.Fail("Room not found.");
+            return ServiceResult<RoomSnapshot>.Fail("ไม่พบห้องที่ระบุ");
         }
 
         var player = room.FindPlayer(playerId);
         if (player is null)
         {
-            return ServiceResult<RoomSnapshot>.Fail("Player not found.");
+            return ServiceResult<RoomSnapshot>.Fail("ไม่พบผู้เล่น");
         }
 
         var leavingTurnIndex = room.Players.IndexOf(player);
@@ -765,7 +765,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
         var name = (input ?? string.Empty).Trim();
         if (name.Length == 0)
         {
-            return "Player";
+            return "ผู้เล่น";
         }
 
         return name.Length <= 24 ? name : name[..24];

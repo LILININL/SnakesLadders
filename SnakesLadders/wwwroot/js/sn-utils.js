@@ -27,7 +27,7 @@
   }
 
   function densityLabel(value) {
-    return value === 0 ? "Low" : value === 1 ? "Medium" : "High";
+    return value === 0 ? "น้อย" : value === 1 ? "กลาง" : "เยอะ";
   }
 
   function formatClock(dateLike) {
