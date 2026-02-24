@@ -53,6 +53,15 @@ public sealed class BoardGenerator : IBoardGenerator
         HashSet<int> startCells,
         HashSet<int> destinationCells)
     {
+        var finishRowSnakeTarget = Math.Min(count, GetFinishRowSnakeTarget(boardSize));
+        AddFinishRowSnakes(
+            boardSize,
+            finishRowSnakeTarget,
+            random,
+            jumps,
+            startCells,
+            destinationCells);
+
         var attempts = 0;
         var maxAttempts = Math.Max(boardSize * 40, 1_500);
 
@@ -74,6 +83,81 @@ public sealed class BoardGenerator : IBoardGenerator
             jumps.Add(new Jump(head, tail, JumpType.Snake));
             startCells.Add(head);
             destinationCells.Add(tail);
+        }
+    }
+
+    private static int GetFinishRowSnakeTarget(int boardSize)
+    {
+        // Ensure late game remains tense on every density:
+        // small/medium boards target 2, larger boards target 3.
+        return boardSize >= 250 ? 3 : 2;
+    }
+
+    private static void AddFinishRowSnakes(
+        int boardSize,
+        int requiredCount,
+        Random random,
+        List<Jump> jumps,
+        HashSet<int> startCells,
+        HashSet<int> destinationCells)
+    {
+        if (requiredCount <= 0)
+        {
+            return;
+        }
+
+        var finishRowStart = boardSize - ((boardSize - 1) % 10);
+        var firstHead = Math.Max(4, finishRowStart);
+        var lastHead = boardSize - 1;
+        if (lastHead < firstHead)
+        {
+            return;
+        }
+
+        var heads = new List<int>(lastHead - firstHead + 1);
+        for (var cell = firstHead; cell <= lastHead; cell++)
+        {
+            heads.Add(cell);
+        }
+
+        Shuffle(heads, random);
+
+        var added = 0;
+        foreach (var head in heads)
+        {
+            if (added >= requiredCount)
+            {
+                break;
+            }
+
+            // Tails should land below the finish row so a miss near finish is still punishing.
+            var tailUpperBound = Math.Min(head - 3, finishRowStart - 1);
+            if (tailUpperBound < 2)
+            {
+                continue;
+            }
+
+            var placed = false;
+            for (var i = 0; i < 24; i++)
+            {
+                var tail = random.Next(2, tailUpperBound + 1);
+                if (!CanPlaceJump(head, tail, startCells, destinationCells, boardSize))
+                {
+                    continue;
+                }
+
+                jumps.Add(new Jump(head, tail, JumpType.Snake));
+                startCells.Add(head);
+                destinationCells.Add(tail);
+                placed = true;
+                added++;
+                break;
+            }
+
+            if (placed && added >= requiredCount)
+            {
+                break;
+            }
         }
     }
 
@@ -187,5 +271,14 @@ public sealed class BoardGenerator : IBoardGenerator
         }
 
         return forks;
+    }
+
+    private static void Shuffle<T>(IList<T> list, Random random)
+    {
+        for (var i = list.Count - 1; i > 0; i--)
+        {
+            var j = random.Next(i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
     }
 }

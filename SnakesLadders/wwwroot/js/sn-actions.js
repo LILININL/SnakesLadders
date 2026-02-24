@@ -38,13 +38,20 @@
     });
 
     el.rollDiceFloatingBtn.addEventListener("click", onRollDice);
-    el.toggleRollBtn.addEventListener("click", () => root.roomUi.toggleRollButton());
+    el.toggleRollBtn.addEventListener("click", () =>
+      root.roomUi.toggleRollButton(),
+    );
+    el.chatFabBtn.addEventListener("click", () =>
+      root.roomUi.toggleChatPanel(),
+    );
     el.toggleReadyBtn.addEventListener("click", onToggleReady);
 
     el.leaveRoomBtn.addEventListener("click", onLeaveRoom);
 
     el.chatForm.addEventListener("submit", onSendChat);
-    el.clearChatBtn.addEventListener("click", () => root.renderChat.clearChat());
+    el.clearChatBtn.addEventListener("click", () =>
+      root.renderChat.clearChat(),
+    );
   }
 
   async function onCreateRoom(event) {
@@ -64,14 +71,16 @@
 
     await root.realtime.invokeHub("CreateRoom", {
       playerName: name,
-      boardOptions: root.session.buildBoardOptions(boardSize)
+      boardOptions: root.session.buildBoardOptions(boardSize),
     });
   }
 
   async function onJoinRoom(event) {
     event.preventDefault();
 
-    const roomCode = String(el.joinRoomCode.value ?? "").trim().toUpperCase();
+    const roomCode = String(el.joinRoomCode.value ?? "")
+      .trim()
+      .toUpperCase();
     if (!roomCode) {
       root.feedback.logEvent("กรุณาใส่รหัสห้องก่อนเข้าร่วม", true);
       return;
@@ -84,7 +93,9 @@
     const button = event.target.closest(".join-room-btn");
     if (!button) return;
 
-    const roomCode = String(button.dataset.roomCode ?? "").trim().toUpperCase();
+    const roomCode = String(button.dataset.roomCode ?? "")
+      .trim()
+      .toUpperCase();
     if (!roomCode) return;
 
     el.joinRoomCode.value = roomCode;
@@ -99,7 +110,7 @@
     await root.realtime.invokeHub("JoinRoom", {
       roomCode,
       playerName: name,
-      sessionId: session?.sessionId ?? null
+      sessionId: session?.sessionId ?? null,
     });
   }
 
@@ -113,6 +124,7 @@
     state.room = null;
     state.lastTurn = null;
     state.rollButtonHidden = false;
+    state.chatPanelOpen = false;
     state.animating = false;
     state.animPlayerId = "";
     state.animPlayerPosition = 1;
@@ -138,7 +150,7 @@
 
     const sent = await root.realtime.invokeHub("SendChat", {
       roomCode: state.roomCode,
-      message
+      message,
     });
 
     if (sent) {
@@ -152,12 +164,16 @@
     await root.realtime.invokeHub("RollDice", {
       roomCode: state.roomCode,
       useLuckyReroll: false,
-      forkChoice: null
+      forkChoice: null,
     });
   }
 
   async function onToggleReady() {
-    if (!state.roomCode || !state.room || state.room.status !== root.GAME_STATUS.WAITING) {
+    if (
+      !state.roomCode ||
+      !state.room ||
+      state.room.status !== root.GAME_STATUS.WAITING
+    ) {
       return;
     }
 
@@ -168,7 +184,7 @@
 
     await root.realtime.invokeHub("SetReady", {
       roomCode: state.roomCode,
-      isReady: !me.isReady
+      isReady: !me.isReady,
     });
   }
 

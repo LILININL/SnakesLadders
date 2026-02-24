@@ -17,6 +17,7 @@
     const started = isStarted();
     const waiting = isWaiting();
     const host = root.readyUi?.amHost?.() ?? false;
+    const useFloatingChat = inRoom && started;
 
     document.body.classList.toggle("in-room", inRoom);
     document.body.classList.toggle("in-game", inRoom && started);
@@ -31,8 +32,15 @@
     el.waitingRoomActions.classList.toggle("hidden", !inRoom || started || !host);
     el.leaveRoomBtn.classList.toggle("hidden", !inRoom);
 
-    // Keep room page focused to board + rules as requested.
-    el.chatSection.classList.toggle("hidden", inRoom);
+    if (!useFloatingChat) {
+      state.chatPanelOpen = false;
+    }
+
+    // Keep room page focused to board + rules; chat becomes floating menu during game.
+    el.chatFabBtn.classList.toggle("hidden", !useFloatingChat);
+    el.chatFabBtn.classList.toggle("active", useFloatingChat && state.chatPanelOpen);
+    el.chatSection.classList.toggle("floating-chat", useFloatingChat);
+    el.chatSection.classList.toggle("hidden", useFloatingChat ? !state.chatPanelOpen : inRoom);
     el.eventSection.classList.toggle("hidden", inRoom);
   }
 
@@ -155,6 +163,18 @@
     updateFloatingRollButton();
   }
 
+  function toggleChatPanel() {
+    if (!isInRoom() || !isStarted()) {
+      return;
+    }
+
+    state.chatPanelOpen = !state.chatPanelOpen;
+    renderRoomShell();
+    if (state.chatPanelOpen) {
+      requestAnimationFrame(() => el.chatInput?.focus());
+    }
+  }
+
   function isInRoom() {
     return Boolean(state.roomCode && state.room);
   }
@@ -182,6 +202,7 @@
     renderAll,
     updateFloatingRollButton,
     toggleRollButton,
+    toggleChatPanel,
     updateDeadlineAlert
   };
 })();

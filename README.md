@@ -32,6 +32,7 @@ The project supports:
   - `BackByOverflowX2`: move back by `overflow * 2`
 - Snakes send player down from head to tail
 - Ladders move player up from start to end
+- Finish-row pressure: generated board enforces at least 2 snakes on the finish row (up to 3 on larger boards)
 - No snake/ladder endpoint chaining in generated board
 
 ### Ready / Start

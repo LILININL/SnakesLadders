@@ -125,6 +125,7 @@
     state.room = payload.room;
     state.lastTurn = null;
     state.chatMessages = [];
+    state.chatPanelOpen = false;
     state.rollButtonHidden = false;
     state.animating = false;
     state.animPlayerId = "";
