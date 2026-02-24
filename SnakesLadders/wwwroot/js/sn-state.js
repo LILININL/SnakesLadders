@@ -1,0 +1,114 @@
+(() => {
+  const root = window.SNL ?? {};
+
+  root.GAME_STATUS = {
+    WAITING: 0,
+    STARTED: 1,
+    FINISHED: 2
+  };
+
+  root.state = {
+    connection: null,
+    roomCode: "",
+    playerId: "",
+    sessionId: "",
+    room: null,
+    lastTurn: null,
+    waitingRooms: [],
+    lobbyOnlineUsers: [],
+    chatMessages: [],
+    createPanelVisible: false,
+    profileName: "",
+    requireNamePrompt: true,
+    rollButtonHidden: false,
+    animating: false,
+    animPlayerId: "",
+    animPlayerPosition: 1,
+    animTurnPlayerId: "",
+    animTransitActive: false,
+    animTransitPlayerId: "",
+    deferredRoom: null
+  };
+
+  root.el = {
+    connectionStatus: document.getElementById("connectionStatus"),
+    layoutRoot: document.getElementById("layoutRoot"),
+    lobbyPanel: document.getElementById("lobbyPanel"),
+    nameModal: document.getElementById("nameModal"),
+    nameForm: document.getElementById("nameForm"),
+    profileNameInput: document.getElementById("profileNameInput"),
+
+    createPanel: document.getElementById("createPanel"),
+    showCreatePanelBtn: document.getElementById("showCreatePanelBtn"),
+    hideCreatePanelBtn: document.getElementById("hideCreatePanelBtn"),
+    createForm: document.getElementById("createForm"),
+    joinForm: document.getElementById("joinForm"),
+
+    createName: document.getElementById("createName"),
+    joinName: document.getElementById("joinName"),
+    joinRoomCode: document.getElementById("joinRoomCode"),
+    boardSize: document.getElementById("boardSize"),
+    densityMode: document.getElementById("densityMode"),
+    overflowMode: document.getElementById("overflowMode"),
+
+    ruleCheckpointShield: document.getElementById("ruleCheckpointShield"),
+    ruleComebackBoost: document.getElementById("ruleComebackBoost"),
+    ruleSnakeFrenzy: document.getElementById("ruleSnakeFrenzy"),
+    ruleMercyLadder: document.getElementById("ruleMercyLadder"),
+    ruleTurnTimer: document.getElementById("ruleTurnTimer"),
+    ruleRoundLimit: document.getElementById("ruleRoundLimit"),
+    ruleMarathonSpeedup: document.getElementById("ruleMarathonSpeedup"),
+
+    turnSeconds: document.getElementById("turnSeconds"),
+    maxRounds: document.getElementById("maxRounds"),
+    frenzyInterval: document.getElementById("frenzyInterval"),
+    checkpointInterval: document.getElementById("checkpointInterval"),
+    mercyBoost: document.getElementById("mercyBoost"),
+
+    refreshRoomsBtn: document.getElementById("refreshRoomsBtn"),
+    waitingRoomList: document.getElementById("waitingRoomList"),
+    onlineUsersList: document.getElementById("onlineUsersList"),
+    onlineUsersCount: document.getElementById("onlineUsersCount"),
+
+    roomTitle: document.getElementById("roomTitle"),
+    roomMeta: document.getElementById("roomMeta"),
+    waitingRoomActions: document.getElementById("waitingRoomActions"),
+    roomRulesCard: document.getElementById("roomRulesCard"),
+    roomRuleList: document.getElementById("roomRuleList"),
+    readyPanel: document.getElementById("readyPanel"),
+    readySummary: document.getElementById("readySummary"),
+    readyList: document.getElementById("readyList"),
+    toggleReadyBtn: document.getElementById("toggleReadyBtn"),
+    statusSplit: document.getElementById("statusSplit"),
+    playersSection: document.getElementById("playersSection"),
+    turnSection: document.getElementById("turnSection"),
+    playerList: document.getElementById("playerList"),
+    boardLegend: document.getElementById("boardLegend"),
+    turnBanner: document.getElementById("turnBanner"),
+    board: document.getElementById("board"),
+    boardTokenLayer: document.getElementById("boardTokenLayer"),
+    turnDeadlineAlert: document.getElementById("turnDeadlineAlert"),
+    diceResultFx: document.getElementById("diceResultFx"),
+    turnSummary: document.getElementById("turnSummary"),
+    winnerOverlay: document.getElementById("winnerOverlay"),
+    winnerNameText: document.getElementById("winnerNameText"),
+    winnerMetaText: document.getElementById("winnerMetaText"),
+
+    startGameBtn: document.getElementById("startGameBtn"),
+    refreshRoomBtn: document.getElementById("refreshRoomBtn"),
+    leaveRoomBtn: document.getElementById("leaveRoomBtn"),
+    rollDiceFloatingBtn: document.getElementById("rollDiceFloatingBtn"),
+    toggleRollBtn: document.getElementById("toggleRollBtn"),
+
+    chatSection: document.getElementById("chatSection"),
+    chatForm: document.getElementById("chatForm"),
+    chatInput: document.getElementById("chatInput"),
+    chatList: document.getElementById("chatList"),
+    clearChatBtn: document.getElementById("clearChatBtn"),
+
+    eventSection: document.getElementById("eventSection"),
+    eventFeed: document.getElementById("eventFeed")
+  };
+
+  window.SNL = root;
+})();

@@ -1,0 +1,7 @@
+﻿services:
+  snakesladders:
+    image: snakesladders
+    build:
+      context: .
+      dockerfile: SnakesLadders/Dockerfile
+

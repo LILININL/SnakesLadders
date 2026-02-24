@@ -1,0 +1,74 @@
+using SnakesLadders.Hubs;
+using SnakesLadders.Services;
+
+var builder = WebApplication.CreateBuilder(args);
+var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
+int? httpsPort = null;
+
+if (!string.IsNullOrWhiteSpace(urls))
+{
+    foreach (var rawUrl in urls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    {
+        if (Uri.TryCreate(rawUrl, UriKind.Absolute, out var uri) &&
+            uri.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            httpsPort = uri.Port;
+            break;
+        }
+    }
+}
+
+builder.Services.AddOpenApi();
+builder.Services.AddSignalR();
+if (httpsPort.HasValue)
+{
+    builder.Services.AddHttpsRedirection(options => options.HttpsPort = httpsPort.Value);
+}
+
+builder.Services.AddSingleton<IBoardGenerator, BoardGenerator>();
+builder.Services.AddSingleton<IGameEngine, GameEngine>();
+builder.Services.AddSingleton<IGameRoomService, GameRoomService>();
+builder.Services.AddHostedService<TurnTimerBackgroundService>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DevCors", policy =>
+    {
+        policy
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .SetIsOriginAllowed(_ => true)
+            .AllowCredentials();
+    });
+});
+
+var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
+
+if (httpsPort.HasValue || !app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+app.UseCors("DevCors");
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.MapGet("/health", () => Results.Ok(new
+{
+    Status = "ok",
+    Utc = DateTimeOffset.UtcNow
+}));
+
+app.MapGet("/rooms/waiting", (IGameRoomService roomService) =>
+    Results.Ok(roomService.GetPublicRooms()));
+
+app.MapGet("/lobby/online", (IGameRoomService roomService) =>
+    Results.Ok(roomService.GetLobbyOnlineUsers()));
+
+app.MapHub<GameHub>("/hubs/game");
+
+app.Run();
