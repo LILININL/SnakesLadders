@@ -220,6 +220,12 @@ public sealed class GameEngine : IGameEngine
         }
 
         var minimum = room.Players.Min(x => x.Position);
+        var maximum = room.Players.Max(x => x.Position);
+        if (maximum == minimum)
+        {
+            return false;
+        }
+
         return player.Position == minimum;
     }
 

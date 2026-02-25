@@ -9,6 +9,7 @@
 
   async function init() {
     root.actions.wireForms();
+    root.ruleUi?.init?.();
     root.session.seedProfileFromStorage();
     root.feedback.renderAll();
 

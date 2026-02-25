@@ -1,7 +1,7 @@
 (() => {
   const root = window.SNL;
   const { state, el, GAME_STATUS } = root;
-  const { escapeHtml, densityLabel } = root.utils;
+  const { escapeHtml } = root.utils;
   let resizeTimer = 0;
 
   function renderAll() {
@@ -40,7 +40,7 @@
     el.chatFabBtn.classList.toggle("hidden", !useFloatingChat);
     el.chatFabBtn.classList.toggle("active", useFloatingChat && state.chatPanelOpen);
     el.chatSection.classList.toggle("floating-chat", useFloatingChat);
-    el.chatSection.classList.toggle("hidden", useFloatingChat ? !state.chatPanelOpen : inRoom);
+    el.chatSection.classList.toggle("hidden", !inRoom || (useFloatingChat && !state.chatPanelOpen));
     el.eventSection.classList.toggle("hidden", inRoom);
   }
 
@@ -51,20 +51,7 @@
     }
 
     const options = state.room.boardOptions;
-    const rules = options.ruleOptions ?? {};
-    const lines = [
-      `ขนาดกระดาน: ${options.boardSize} ช่อง`,
-      `ความหนาแน่น: ${densityLabel(options.densityMode)}`,
-      `ทอยเกินเส้นชัย: ${options.overflowMode === 1 ? "ถอยหลังตามแต้มเกิน x2" : "อยู่ที่เดิม"}`
-    ];
-
-    if (rules.turnTimerEnabled) lines.push(`จับเวลาเทิร์น: ${rules.turnSeconds} วินาที`);
-    if (rules.roundLimitEnabled) lines.push(`จำกัดรอบ: ${rules.maxRounds} รอบ`);
-    if (rules.snakeFrenzyEnabled) lines.push(`งูคลุ้มคลั่ง: ทุก ${rules.snakeFrenzyIntervalTurns} เทิร์น`);
-    if (rules.checkpointShieldEnabled) lines.push(`เกราะเช็กพอยต์: ทุก ${rules.checkpointInterval} ช่อง`);
-    if (rules.comebackBoostEnabled) lines.push("เร่งแซงคนตาม");
-    if (rules.mercyLadderEnabled) lines.push(`บันไดเมตตา: +${rules.mercyLadderBoost}`);
-    if (rules.marathonSpeedupEnabled) lines.push("เร่งเกมช่วงท้าย");
+    const lines = root.ruleSummary?.buildRoomRuleLines?.(options) ?? [];
 
     el.roomRuleList.innerHTML = lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
   }
