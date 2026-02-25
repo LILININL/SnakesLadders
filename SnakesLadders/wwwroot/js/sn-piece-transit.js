@@ -3,7 +3,7 @@
   const { state, el } = root;
 
   async function run(segment) {
-    if (!root.boardOverlay?.getJumpPathData || !root.boardOverlay?.pointAtPath || !el.board) {
+    if (!canRenderSegment(segment) || !root.boardOverlay?.getJumpPathData || !root.boardOverlay?.pointAtPath || !el.board) {
       return false;
     }
 
@@ -32,6 +32,16 @@
     hideToken();
     root.feedback.renderAll();
     return true;
+  }
+
+  function canRenderSegment(segment) {
+    const boardSize = state.room?.board?.size ?? state.deferredRoom?.board?.size ?? 0;
+    if (!boardSize || !segment) {
+      return false;
+    }
+
+    const range = root.boardPage.getVisibleRange(boardSize, state.visiblePageStart);
+    return root.boardPage.isCellVisible(segment.from, range) && root.boardPage.isCellVisible(segment.to, range);
   }
 
   function reset() {
@@ -65,7 +75,7 @@
   function getPathDurationMs(pathData) {
     const sampler = root.boardOverlay?.pointAtPath;
     if (!sampler) {
-      return 2400;
+      return 3000;
     }
 
     let length = 0;
@@ -76,8 +86,8 @@
       prev = next;
     }
 
-    const speedFactor = pathData.kind === "snake" ? 6.6 : 6.0;
-    return clamp(length * speedFactor, 1800, 6200);
+    const speedFactor = pathData.kind === "snake" ? 8.8 : 8.1;
+    return clamp(length * speedFactor, 2200, 7200);
   }
 
   function ensureToken() {
@@ -108,8 +118,16 @@
   }
 
   function placeToken(token, point, angle) {
-    const left = el.board.offsetLeft + point.x - el.board.scrollLeft;
-    const top = el.board.offsetTop + point.y - el.board.scrollTop;
+    const stageEl = el.boardStage ?? el.board.parentElement ?? el.board;
+    const stageRect = stageEl.getBoundingClientRect();
+
+    const left = point.x + (el.board.getBoundingClientRect().left - stageRect.left);
+    const top = point.y + (el.board.getBoundingClientRect().top - stageRect.top);
+
+    if (![left, top].every(Number.isFinite)) {
+      return;
+    }
+
     token.style.left = `${Math.round(left)}px`;
     token.style.top = `${Math.round(top)}px`;
     token.style.transform = `translate(-50%, -50%) rotate(${Math.round(angle)}deg)`;

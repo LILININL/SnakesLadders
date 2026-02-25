@@ -48,11 +48,13 @@
       }
 
       state.room = room;
+      root.boardFocus?.onRoomBound?.(false);
       root.feedback.renderAll();
     });
 
     state.connection.on("GameStarted", (room) => {
       state.room = room;
+      root.boardFocus?.onRoomBound?.(true);
       root.feedback.logEvent("เกมเริ่มแล้ว ลุยได้เลย");
       root.feedback.renderAll();
     });
@@ -63,12 +65,13 @@
       }
 
       const player = state.room?.players?.find((x) => x.playerId === playerId);
+      root.boardFocus?.refreshPendingBeaconTarget?.();
       root.feedback.logEvent(`ตอนนี้เป็นตาของ ${player ? player.displayName : playerId}`);
       root.feedback.renderAll();
     });
 
     state.connection.on("DiceRolled", async (payload) => {
-      root.feedback.logEvent(root.feedback.formatTurnLine(payload.turn));
+      root.feedback.logEvent(formatDiceEvent(payload.turn, payload.room));
       await root.turnAnimation.queue(payload);
     });
 
@@ -134,14 +137,39 @@
     state.animTransitActive = false;
     state.animTransitPlayerId = "";
     state.deferredRoom = null;
+    state.pendingBeaconTargetPlayerId = "";
+    state.pageTransitioning = false;
+    state.pageTransitionDirection = 0;
     root.turnAnimation?.reset?.();
     root.boardFx?.reset?.();
+    root.boardFocus?.onRoomBound?.(true);
 
     el.joinRoomCode.value = payload.roomCode;
     root.storage.saveRoomSession(payload.roomCode, payload.sessionId, payload.playerId);
     root.feedback.logEvent(`${label}: ${payload.roomCode}`);
 
     root.feedback.renderAll();
+  }
+
+  function formatDiceEvent(turn, room) {
+    const baseLine = root.feedback.formatTurnLine(turn);
+    if (!turn?.autoRollReason) {
+      return baseLine;
+    }
+
+    const playerName = room?.players?.find((x) => x.playerId === turn.playerId)?.displayName
+      ?? state.room?.players?.find((x) => x.playerId === turn.playerId)?.displayName
+      ?? turn.playerId;
+
+    if (turn.autoRollReason === "Disconnected") {
+      return `${playerName} ออฟไลน์ ระบบทอยให้อัตโนมัติ (${turn.diceValue})`;
+    }
+
+    if (turn.autoRollReason === "TimerExpired") {
+      return `${playerName} หมดเวลา ระบบทอยให้อัตโนมัติ (${turn.diceValue})`;
+    }
+
+    return baseLine;
   }
 
   root.realtime = {

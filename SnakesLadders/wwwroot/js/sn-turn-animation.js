@@ -1,8 +1,13 @@
 (() => {
   const root = window.SNL;
   const { state } = root;
-  const STAY_WAIT_MS = 260;
-  const SEGMENT_END_WAIT_MS = 300;
+
+  const STAY_WAIT_MS = 320;
+  const SEGMENT_END_WAIT_MS = 360;
+  const CROSS_PAGE_PAUSE_MS = 130;
+  const JUMP_HINT_MS = 600;
+  const PAGE_TRANSITION_MS = 550;
+
   let chain = Promise.resolve();
 
   function queue(payload) {
@@ -25,12 +30,19 @@
       return;
     }
 
+    const followPlayer = shouldFollowPlayer(turn.playerId, turn.startPosition, room);
+
     beginAnimation(turn.playerId, turn.startPosition, room, turn.playerId);
     try {
       await root.boardFx?.showDice?.(turn.playerId, turn.diceValue);
+
+      if (followPlayer) {
+        await ensureVisiblePage(turn.startPosition, false, room.board.size);
+      }
+
       const segments = buildSegments(turn, room);
       for (const segment of segments) {
-        await runSegment(segment);
+        await runSegment(segment, room.board.size, followPlayer);
       }
 
       if (turn.isGameFinished) {
@@ -40,6 +52,10 @@
       root.pieceTransit?.reset?.();
       endAnimation(room, turn);
     }
+  }
+
+  function shouldFollowPlayer(playerId, startPosition, room) {
+    return true;
   }
 
   function beginAnimation(playerId, startPosition, room, turnPlayerId) {
@@ -61,11 +77,26 @@
     state.room = state.deferredRoom ?? room;
     state.deferredRoom = null;
     state.lastTurn = turn;
+    root.boardFocus?.onRoomBound?.(false);
     root.feedback.renderAll();
   }
 
-  async function runSegment(segment) {
+  async function runSegment(segment, boardSize, followPlayer) {
+    if (!followPlayer) {
+      state.animPlayerPosition = segment.to;
+      root.feedback.renderAll();
+      await wait(90);
+      return;
+    }
+
     if (segment.mode === "path") {
+      const crossPage = root.boardPage.getPageStartForCell(segment.from) !== root.boardPage.getPageStartForCell(segment.to);
+      if (crossPage) {
+        await runCrossPageJump(segment, boardSize);
+        return;
+      }
+
+      await ensureVisiblePage(segment.from, false, boardSize);
       const completed = await root.pieceTransit?.run?.(segment);
       if (completed) {
         await wait(SEGMENT_END_WAIT_MS);
@@ -73,22 +104,42 @@
       }
     }
 
-    await runStepSegment(segment.from, segment.to);
+    await runStepSegment(segment.from, segment.to, boardSize);
   }
 
-  async function runStepSegment(from, to) {
+  async function runCrossPageJump(segment, boardSize) {
+    const icon = segment.jumpType === "snake" ? "🐍" : "🪜";
+    await root.boardFx?.showJumpHint?.(`${icon} ไปช่อง ${segment.to}`, JUMP_HINT_MS);
+    await ensureVisiblePage(segment.to, true, boardSize);
+    state.animPlayerPosition = segment.to;
+    root.feedback.renderAll();
+    await wait(SEGMENT_END_WAIT_MS);
+  }
+
+  async function runStepSegment(from, to, boardSize) {
     if (from === to) {
       await wait(STAY_WAIT_MS);
       return;
     }
 
     const direction = to > from ? 1 : -1;
-    const totalDistance = Math.abs(to - from);
-    const delay = stepDelay(totalDistance);
-    let current = from;
+    const distance = Math.abs(to - from);
+    const delay = stepDelay(distance);
 
+    let current = from;
     while (current !== to) {
-      current += direction;
+      const next = current + direction;
+      const nextPageStart = root.boardPage.getPageStartForCell(next);
+      if (nextPageStart !== state.visiblePageStart) {
+        await root.boardPage.setVisiblePageStart(nextPageStart, {
+          animate: true,
+          durationMs: PAGE_TRANSITION_MS,
+          boardSize
+        });
+        await wait(CROSS_PAGE_PAUSE_MS);
+      }
+
+      current = next;
       state.animPlayerPosition = current;
       root.feedback.renderAll();
       await wait(delay);
@@ -161,11 +212,24 @@
     return clamp(turn.startPosition, 1, size);
   }
 
+  async function ensureVisiblePage(cell, animate, boardSize) {
+    const targetPageStart = root.boardPage.getPageStartForCell(cell);
+    if (targetPageStart === state.visiblePageStart) {
+      return;
+    }
+
+    await root.boardPage.setVisiblePageStart(targetPageStart, {
+      animate,
+      durationMs: PAGE_TRANSITION_MS,
+      boardSize
+    });
+  }
+
   function stepDelay(distance) {
-    if (distance <= 6) return 380;
-    if (distance <= 20) return 280;
-    if (distance <= 60) return 190;
-    return 120;
+    if (distance <= 6) return 560;
+    if (distance <= 20) return 440;
+    if (distance <= 60) return 320;
+    return 250;
   }
 
   function wait(ms) {

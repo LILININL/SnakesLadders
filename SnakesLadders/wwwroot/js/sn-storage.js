@@ -5,7 +5,8 @@
   const keys = {
     profileName: "snl_profile_name",
     roomSessions: "snl_room_sessions",
-    lastRoomCode: "snl_last_room_code"
+    lastRoomCode: "snl_last_room_code",
+    focusMode: "snl_focus_mode"
   };
 
   function loadProfileName() {
@@ -98,12 +99,24 @@
     }
   }
 
+  function loadFocusMode() {
+    const value = String(localStorage.getItem(keys.focusMode) ?? "").trim().toLowerCase();
+    return value === "turn" ? "turn" : "me";
+  }
+
+  function saveFocusMode(mode) {
+    const value = mode === "turn" ? "turn" : "me";
+    localStorage.setItem(keys.focusMode, value);
+  }
+
   root.storage = {
     loadProfileName,
     saveProfileName,
     saveRoomSession,
     getRoomSession,
     getLastRoomSession,
-    clearRoomSession
+    clearRoomSession,
+    loadFocusMode,
+    saveFocusMode
   };
 })();

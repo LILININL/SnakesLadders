@@ -28,13 +28,21 @@
     animTurnPlayerId: "",
     animTransitActive: false,
     animTransitPlayerId: "",
-    deferredRoom: null
+    deferredRoom: null,
+    pageSize: 100,
+    visiblePageStart: 1,
+    focusMode: "me",
+    pendingBeaconTargetPlayerId: "",
+    pageTransitioning: false,
+    pageTransitionDirection: 0
   };
 
   root.el = {
     connectionStatus: document.getElementById("connectionStatus"),
     layoutRoot: document.getElementById("layoutRoot"),
     lobbyPanel: document.getElementById("lobbyPanel"),
+    mainLobbyRooms: document.getElementById("mainLobbyRooms"),
+    roomGameShell: document.getElementById("roomGameShell"),
     nameModal: document.getElementById("nameModal"),
     nameForm: document.getElementById("nameForm"),
     profileNameInput: document.getElementById("profileNameInput"),
@@ -69,7 +77,9 @@
     marathonMultiplier: document.getElementById("marathonMultiplier"),
 
     refreshRoomsBtn: document.getElementById("refreshRoomsBtn"),
+    refreshRoomsMainBtn: document.getElementById("refreshRoomsMainBtn"),
     waitingRoomList: document.getElementById("waitingRoomList"),
+    mainWaitingRoomList: document.getElementById("mainWaitingRoomList"),
     onlineUsersList: document.getElementById("onlineUsersList"),
     onlineUsersCount: document.getElementById("onlineUsersCount"),
 
@@ -87,9 +97,14 @@
     turnSection: document.getElementById("turnSection"),
     playerList: document.getElementById("playerList"),
     boardLegend: document.getElementById("boardLegend"),
+    focusModeMeBtn: document.getElementById("focusModeMeBtn"),
+    focusModeTurnBtn: document.getElementById("focusModeTurnBtn"),
     turnBanner: document.getElementById("turnBanner"),
+    boardStage: document.getElementById("boardStage"),
     board: document.getElementById("board"),
     boardTokenLayer: document.getElementById("boardTokenLayer"),
+    boardBeaconList: document.getElementById("boardBeaconList"),
+    jumpHintBadge: document.getElementById("jumpHintBadge"),
     turnDeadlineAlert: document.getElementById("turnDeadlineAlert"),
     diceResultFx: document.getElementById("diceResultFx"),
     chatFabBtn: document.getElementById("chatFabBtn"),

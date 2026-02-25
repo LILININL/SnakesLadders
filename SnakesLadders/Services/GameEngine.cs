@@ -4,6 +4,9 @@ namespace SnakesLadders.Services;
 
 public sealed class GameEngine : IGameEngine
 {
+    private const int OfflineAutoRollDelayMs = 700;
+    private const int TurnAnimationBufferSeconds = 14;
+
     public TurnResult ResolveTurn(
         GameRoom room,
         PlayerState player,
@@ -19,6 +22,9 @@ public sealed class GameEngine : IGameEngine
         var board = room.Board;
         var rules = room.BoardOptions.RuleOptions;
         var startPosition = player.Position;
+        var autoRollReason = isAutoRoll
+            ? (player.Connected ? "TimerExpired" : "Disconnected")
+            : null;
 
         var frenzySnake = ShouldSpawnFrenzySnake(room) ? GenerateFrenzySnake(board) : null;
         room.ActiveFrenzySnake = frenzySnake;
@@ -181,9 +187,21 @@ public sealed class GameEngine : IGameEngine
             room.Status = GameStatus.Started;
             room.WinnerPlayerId = null;
             room.FinishReason = null;
-            room.TurnDeadlineUtc = rules.TurnTimerEnabled
-                ? DateTimeOffset.UtcNow.AddSeconds(Math.Max(3, rules.TurnSeconds))
-                : null;
+            var nextTurnPlayer = room.CurrentTurnPlayer;
+            if (nextTurnPlayer is null)
+            {
+                room.TurnDeadlineUtc = null;
+            }
+            else if (!nextTurnPlayer.Connected)
+            {
+                room.TurnDeadlineUtc = DateTimeOffset.UtcNow.AddMilliseconds(OfflineAutoRollDelayMs);
+            }
+            else
+            {
+                room.TurnDeadlineUtc = rules.TurnTimerEnabled
+                    ? DateTimeOffset.UtcNow.AddSeconds(Math.Max(3, rules.TurnSeconds) + TurnAnimationBufferSeconds)
+                    : null;
+            }
         }
 
         room.ActiveFrenzySnake = null;
@@ -208,7 +226,8 @@ public sealed class GameEngine : IGameEngine
             RoundLimitTriggered = roundLimitTriggered,
             IsGameFinished = isGameFinished,
             WinnerPlayerId = winnerPlayerId,
-            FinishReason = finishReason
+            FinishReason = finishReason,
+            AutoRollReason = autoRollReason
         };
     }
 

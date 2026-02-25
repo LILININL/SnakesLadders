@@ -87,4 +87,5 @@ public sealed class TurnResult
     public bool IsGameFinished { get; init; }
     public string? WinnerPlayerId { get; init; }
     public string? FinishReason { get; init; }
+    public string? AutoRollReason { get; init; }
 }

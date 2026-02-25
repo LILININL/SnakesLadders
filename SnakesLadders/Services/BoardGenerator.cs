@@ -169,19 +169,97 @@ public sealed class BoardGenerator : IBoardGenerator
         HashSet<int> startCells,
         HashSet<int> destinationCells)
     {
+        if (count <= 0 || boardSize < 4)
+        {
+            return;
+        }
+
+        var longBoard = boardSize >= 200;
+        var maxClimbNormal = (int)Math.Ceiling(boardSize * 0.28d);
+        var maxClimbEpic = (int)Math.Ceiling(boardSize * 0.35d);
+
+        var earlyZoneUpper = (int)Math.Floor(boardSize * 0.20d);
+        var earlyZoneDestinationCap = (int)Math.Floor(boardSize * 0.45d);
+        var lateZoneLower = (int)Math.Ceiling(boardSize * 0.70d);
+        var lateZoneDestinationCap = (int)Math.Floor(boardSize * 0.92d);
+
+        var epicTarget = longBoard
+            ? Math.Clamp((int)Math.Round(count * 0.10d, MidpointRounding.AwayFromZero), 0, count)
+            : 0;
+        var epicPlaced = 0;
+
         var attempts = 0;
         var maxAttempts = Math.Max(boardSize * 40, 1_500);
 
         while (jumps.Count(x => x.Type == JumpType.Ladder) < count && attempts++ < maxAttempts)
         {
-            var start = random.Next(2, boardSize - 2);
-            var end = random.Next(start + 1, boardSize);
+            if (!longBoard)
+            {
+                var startClassic = random.Next(2, boardSize - 2);
+                var endClassic = random.Next(startClassic + 1, boardSize);
+                if (endClassic - startClassic < 3)
+                {
+                    continue;
+                }
 
-            if (end - start < 3)
+                if (!CanPlaceJump(startClassic, endClassic, startCells, destinationCells, boardSize))
+                {
+                    continue;
+                }
+
+                jumps.Add(new Jump(startClassic, endClassic, JumpType.Ladder));
+                startCells.Add(startClassic);
+                destinationCells.Add(endClassic);
+                continue;
+            }
+
+            var currentLadderCount = jumps.Count(x => x.Type == JumpType.Ladder);
+            var laddersRemaining = count - currentLadderCount;
+            var epicRemaining = epicTarget - epicPlaced;
+            var mustPlaceEpic = longBoard && epicRemaining > 0 && laddersRemaining <= epicRemaining;
+            var pickEpic = longBoard && epicRemaining > 0 && (mustPlaceEpic || random.NextDouble() < 0.10d);
+
+            int startMin;
+            int startMaxExclusive;
+
+            if (pickEpic)
+            {
+                startMin = Math.Max(2, (int)Math.Ceiling(boardSize * 0.25d));
+                startMaxExclusive = Math.Min(boardSize - 1, (int)Math.Floor(boardSize * 0.70d) + 1);
+            }
+            else
+            {
+                startMin = 2;
+                startMaxExclusive = boardSize - 1;
+            }
+
+            if (startMaxExclusive - startMin < 1)
             {
                 continue;
             }
 
+            var start = random.Next(startMin, startMaxExclusive);
+            var maxClimb = pickEpic ? maxClimbEpic : maxClimbNormal;
+
+            var endMin = start + 3;
+            var endMax = Math.Min(boardSize - 1, start + maxClimb);
+
+            if (longBoard && start <= earlyZoneUpper)
+            {
+                endMax = Math.Min(endMax, earlyZoneDestinationCap);
+            }
+
+            if (longBoard && start >= lateZoneLower)
+            {
+                endMax = Math.Min(endMax, lateZoneDestinationCap);
+            }
+
+            if (endMax < endMin)
+            {
+                continue;
+            }
+
+            var end = random.Next(endMin, endMax + 1);
             if (!CanPlaceJump(start, end, startCells, destinationCells, boardSize))
             {
                 continue;
@@ -190,6 +268,11 @@ public sealed class BoardGenerator : IBoardGenerator
             jumps.Add(new Jump(start, end, JumpType.Ladder));
             startCells.Add(start);
             destinationCells.Add(end);
+
+            if (pickEpic)
+            {
+                epicPlaced++;
+            }
         }
     }
 

@@ -31,6 +31,7 @@
     const hostId = state.room.hostPlayerId;
     const displayTurnPlayerId = root.viewState.getDisplayTurnPlayerId();
     const displayPlayers = root.viewState.getDisplayPlayers();
+
     const rows = displayPlayers.map((player) => {
       const classes = ["player-item"];
       if (player.playerId === state.playerId) {
@@ -71,63 +72,82 @@
       el.board.style.setProperty("--rows", "10");
       el.board.innerHTML = "";
       el.boardLegend.textContent = "";
+      clearBoardClasses();
       root.boardOverlay?.clear();
       root.boardTokens?.clear();
+      root.boardBeacon?.hide?.();
       return;
     }
 
-    const size = board.size;
-    const cols = 10;
-    const rows = Math.ceil(size / cols);
-    el.board.style.setProperty("--rows", String(rows));
+    const page = root.boardPage.getVisibleRange(board.size, state.visiblePageStart);
+    state.visiblePageStart = page.start;
+    root.boardFocus?.refreshPendingBeaconTarget?.();
 
-    const snakeHeads = new Set(board.jumps.filter((x) => x.type === 0).map((x) => x.from));
-    const snakeTails = new Set(board.jumps.filter((x) => x.type === 0).map((x) => x.to));
-    const ladderStarts = new Set(board.jumps.filter((x) => x.type === 1).map((x) => x.from));
-    const ladderEnds = new Set(board.jumps.filter((x) => x.type === 1).map((x) => x.to));
-    const forkCells = new Set(board.forkCells.map((x) => x.cell));
-    const finishCell = size;
+    const jumps = board.jumps ?? [];
+    const jumpsByFrom = new Map(jumps.map((jump) => [jump.from, jump]));
+    const snakeHeads = new Set(jumps.filter((x) => x.type === 0).map((x) => x.from));
+    const snakeTails = new Set(jumps.filter((x) => x.type === 0).map((x) => x.to));
+    const ladderStarts = new Set(jumps.filter((x) => x.type === 1).map((x) => x.from));
+    const ladderEnds = new Set(jumps.filter((x) => x.type === 1).map((x) => x.to));
+    const forkCells = new Set((board.forkCells ?? []).map((x) => x.cell));
+
     const displayTurnPlayerId = root.viewState.getDisplayTurnPlayerId();
-    const displayPlayers = root.viewState.getDisplayPlayers();
+    const turnPosition = root.viewState.getPlayerPosition(displayTurnPlayerId);
 
-    const currentPlayer = displayPlayers.find((x) => x.playerId === displayTurnPlayerId);
     const parts = [];
+    for (let visibleIndex = 1; visibleIndex <= page.pageSize; visibleIndex++) {
+      const absoluteCell = page.start + visibleIndex - 1;
+      const position = root.boardPage.getGridPositionByVisibleIndex(visibleIndex);
 
-    for (let cell = 1; cell <= size; cell++) {
-      const isSnakeHead = snakeHeads.has(cell);
-      const isSnakeTail = snakeTails.has(cell);
-      const isLadderStart = ladderStarts.has(cell);
-      const isLadderEnd = ladderEnds.has(cell);
+      if (absoluteCell > board.size) {
+        parts.push(`
+          <div class="cell void" style="grid-column:${position.col};grid-row:${position.row};" aria-hidden="true"></div>
+        `);
+        continue;
+      }
+
+      const jump = jumpsByFrom.get(absoluteCell);
+      const jumpCrossPage = Boolean(jump && !root.boardPage.isCellVisible(jump.to, page));
+      const isSnakeHead = snakeHeads.has(absoluteCell);
+      const isSnakeTail = snakeTails.has(absoluteCell);
+      const isLadderStart = ladderStarts.has(absoluteCell);
+      const isLadderEnd = ladderEnds.has(absoluteCell);
 
       const classes = ["cell"];
       if (isSnakeHead) classes.push("snake-head");
       if (isSnakeTail) classes.push("snake-tail");
       if (isLadderStart) classes.push("ladder-start");
       if (isLadderEnd) classes.push("ladder-end");
-      if (forkCells.has(cell)) classes.push("fork");
-      if (cell === currentPlayer?.position) classes.push("turn-cell");
+      if (forkCells.has(absoluteCell)) classes.push("fork");
+      if (turnPosition === absoluteCell) classes.push("turn-cell");
+      if (jumpCrossPage) classes.push("cross-jump");
 
       const marks = [];
       if (isSnakeHead) marks.push("<span class='jump-tag snake'>🐍</span>");
       if (isLadderStart) marks.push("<span class='jump-tag ladder'>🪜</span>");
       if (isSnakeTail) marks.push("<span class='jump-tag snake-end'>▾</span>");
       if (isLadderEnd) marks.push("<span class='jump-tag ladder-end'>▴</span>");
-      if (cell === finishCell) marks.push("<span class='jump-tag finish'>🏁</span>");
+      if (absoluteCell === board.size) marks.push("<span class='jump-tag finish'>🏁</span>");
+      if (jumpCrossPage) marks.push(`<span class='jump-tag jump-cross'>ไป ${jump.to}</span>`);
 
-      const pos = getGridPosition(cell, cols, rows);
       parts.push(`
-        <div class="${classes.join(" ")}" data-cell="${cell}" style="grid-column:${pos.col};grid-row:${pos.row};" title="ช่อง ${cell}">
-          <div class="num">${cell}</div>
+        <div class="${classes.join(" ")}" data-cell="${absoluteCell}" data-visible-index="${visibleIndex}" style="grid-column:${position.col};grid-row:${position.row};" title="ช่อง ${absoluteCell}">
+          <div class="num">${absoluteCell}</div>
           <div class="marks">${marks.join("")}</div>
         </div>
       `);
     }
 
+    el.board.style.setProperty("--rows", "10");
     el.board.innerHTML = parts.join("");
-    root.boardOverlay?.render(board);
-    root.boardTokens?.render(displayPlayers, displayTurnPlayerId);
+    applyBoardTransitionClasses();
+
+    root.boardOverlay?.render(board, page);
+    root.boardTokens?.render(root.viewState.getDisplayPlayers(), displayTurnPlayerId, page);
+    root.boardBeacon?.render?.();
     root.roomUi?.updateFloatingRollButton();
-    el.boardLegend.textContent = `ขนาด: ${size} | งู: ${snakeHeads.size} | บันได: ${ladderStarts.size} | ทางแยก: ${forkCells.size} | 🐍/🪜 = จุดเริ่มกระโดด`;
+
+    el.boardLegend.textContent = `ช่วง ${page.start}-${page.end} | เส้นชัย ${board.size} | งู ${snakeHeads.size} | บันได ${ladderStarts.size}`;
   }
 
   function renderLastTurn() {
@@ -139,6 +159,8 @@
     const t = state.lastTurn;
     const lines = [`${playerName(t.playerId)} ทอยได้ ${t.diceValue} เดินจาก ${t.startPosition} -> ${t.endPosition}`];
 
+    if (t.autoRollReason === "Disconnected") lines.push("ผู้เล่นออฟไลน์ ระบบทอยให้อัตโนมัติ");
+    if (t.autoRollReason === "TimerExpired") lines.push("หมดเวลาเทิร์น ระบบทอยให้อัตโนมัติ");
     if (t.comebackBoostApplied) lines.push("ได้โบนัสเร่งแซงจากกติกา");
     if (t.usedLuckyReroll) lines.push("ใช้สิทธิ์ทอยซ้ำ");
     if (t.overflowAmount > 0) lines.push(`แต้มเกินเส้นชัย: ${t.overflowAmount}`);
@@ -173,13 +195,18 @@
     el.rollDiceFloatingBtn.disabled = !myTurn;
   }
 
-  function getGridPosition(cell, cols, totalRows) {
-    const rowIndex = Math.floor((cell - 1) / cols);
-    const colInRow = (cell - 1) % cols;
-    const reverse = rowIndex % 2 === 1;
-    const col = reverse ? cols - colInRow : colInRow + 1;
-    const row = totalRows - rowIndex;
-    return { row, col };
+  function clearBoardClasses() {
+    el.board.classList.remove("page-transitioning", "page-forward", "page-backward");
+  }
+
+  function applyBoardTransitionClasses() {
+    const transitioning = Boolean(state.pageTransitioning);
+    const forward = transitioning && state.pageTransitionDirection > 0;
+    const backward = transitioning && state.pageTransitionDirection < 0;
+
+    el.board.classList.toggle("page-transitioning", transitioning);
+    el.board.classList.toggle("page-forward", forward);
+    el.board.classList.toggle("page-backward", backward);
   }
 
   function playerName(playerId) {

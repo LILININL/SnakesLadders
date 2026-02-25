@@ -4,31 +4,31 @@
   const SVG_NS = "http://www.w3.org/2000/svg";
   let resizeTimer = 0;
 
-  function render(board) {
-    if (!board || !Array.isArray(board.jumps) || board.jumps.length === 0) {
+  function render(board, range = null) {
+    if (!board || !Array.isArray(board.jumps) || board.jumps.length === 0 || !el.board) {
+      clear();
+      return;
+    }
+
+    const visibleRange = range ?? root.boardPage.getVisibleRange(board.size, state.visiblePageStart);
+    const visibleJumps = board.jumps.filter((jump) =>
+      root.boardPage.isCellVisible(jump.from, visibleRange) &&
+      root.boardPage.isCellVisible(jump.to, visibleRange));
+
+    if (visibleJumps.length === 0) {
       clear();
       return;
     }
 
     const boardEl = el.board;
-    if (!boardEl) {
+    const width = boardEl.clientWidth;
+    const height = boardEl.clientHeight;
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      clear();
       return;
     }
 
-    let svg = boardEl.querySelector(".board-overlay");
-    if (!svg) {
-      svg = document.createElementNS(SVG_NS, "svg");
-      svg.classList.add("board-overlay");
-      boardEl.prepend(svg);
-    }
-
-    const width = boardEl.scrollWidth;
-    const height = boardEl.scrollHeight;
-    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-    svg.setAttribute("width", String(width));
-    svg.setAttribute("height", String(height));
-    svg.style.width = `${width}px`;
-    svg.style.height = `${height}px`;
+    const svg = ensureSvg(boardEl, width, height);
     svg.replaceChildren();
 
     const ladderLayer = document.createElementNS(SVG_NS, "g");
@@ -36,7 +36,7 @@
     const snakeLayer = document.createElementNS(SVG_NS, "g");
     snakeLayer.setAttribute("class", "snake-layer");
 
-    for (const jump of board.jumps) {
+    for (const jump of visibleJumps) {
       const pathData = getJumpPathData(jump.from, jump.to, jump.type, jump.from + jump.to);
       if (!pathData) {
         continue;
@@ -53,6 +53,22 @@
     svg.appendChild(snakeLayer);
   }
 
+  function ensureSvg(boardEl, width, height) {
+    let svg = boardEl.querySelector(".board-overlay");
+    if (!svg) {
+      svg = document.createElementNS(SVG_NS, "svg");
+      svg.classList.add("board-overlay");
+      boardEl.prepend(svg);
+    }
+
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("width", String(width));
+    svg.setAttribute("height", String(height));
+    svg.style.width = `${width}px`;
+    svg.style.height = `${height}px`;
+    return svg;
+  }
+
   function clear() {
     const overlay = el.board?.querySelector(".board-overlay");
     if (overlay) {
@@ -67,19 +83,30 @@
       return;
     }
 
-    render(board);
+    render(board, root.boardPage.getVisibleRange(board.size, state.visiblePageStart));
   }
 
   function findCellCenter(cellNumber) {
-    const cellEl = el.board.querySelector(`[data-cell="${cellNumber}"]`);
+    const boardEl = el.board;
+    if (!boardEl) {
+      return null;
+    }
+
+    const cellEl = boardEl.querySelector(`[data-cell="${cellNumber}"]`);
     if (!cellEl) {
       return null;
     }
 
-    return {
-      x: cellEl.offsetLeft + cellEl.offsetWidth / 2,
-      y: cellEl.offsetTop + cellEl.offsetHeight / 2
-    };
+    const boardRect = boardEl.getBoundingClientRect();
+    const cellRect = cellEl.getBoundingClientRect();
+    const x = cellRect.left - boardRect.left + (cellRect.width / 2);
+    const y = cellRect.top - boardRect.top + (cellRect.height / 2);
+
+    if (![x, y, cellRect.width, cellRect.height].every(Number.isFinite)) {
+      return null;
+    }
+
+    return { x, y };
   }
 
   function getJumpPathData(fromCell, toCell, jumpType, seed = 0) {
@@ -110,18 +137,9 @@
 
   function drawSnake(layer, pathData) {
     const bodyWrap = svgNode("g", { class: "snake-wrap" });
-    bodyWrap.appendChild(svgNode("path", {
-      class: "snake-link-glow",
-      d: pathData.d
-    }));
-    bodyWrap.appendChild(svgNode("path", {
-      class: "snake-link",
-      d: pathData.d
-    }));
-    bodyWrap.appendChild(svgNode("path", {
-      class: "snake-link-stripe",
-      d: pathData.d
-    }));
+    bodyWrap.appendChild(svgNode("path", { class: "snake-link-glow", d: pathData.d }));
+    bodyWrap.appendChild(svgNode("path", { class: "snake-link", d: pathData.d }));
+    bodyWrap.appendChild(svgNode("path", { class: "snake-link-stripe", d: pathData.d }));
     bodyWrap.appendChild(svgNode("circle", {
       class: "snake-tail-dot",
       cx: pathData.to.x,
@@ -134,10 +152,10 @@
       class: "snake-head",
       transform: `translate(${pathData.from.x} ${pathData.from.y}) rotate(${heading})`
     });
-    head.appendChild(svgNode("ellipse", { class: "snake-head-body", cx: 0, cy: 0, rx: 6.8, ry: 5.2 }));
-    head.appendChild(svgNode("circle", { class: "snake-eye", cx: 2, cy: -1.9, r: 1.05 }));
-    head.appendChild(svgNode("circle", { class: "snake-eye", cx: 2, cy: 1.9, r: 1.05 }));
-    head.appendChild(svgNode("path", { class: "snake-tongue", d: "M 6 0 L 9 -1.4 M 6 0 L 9 1.4" }));
+    head.appendChild(svgNode("ellipse", { class: "snake-head-body", cx: 0, cy: 0, rx: 7.6, ry: 5.8 }));
+    head.appendChild(svgNode("circle", { class: "snake-eye", cx: 2, cy: -2, r: 1.1 }));
+    head.appendChild(svgNode("circle", { class: "snake-eye", cx: 2, cy: 2, r: 1.1 }));
+    head.appendChild(svgNode("path", { class: "snake-tongue", d: "M 6.8 0 L 10 -1.5 M 6.8 0 L 10 1.5" }));
 
     bodyWrap.appendChild(head);
     layer.appendChild(bodyWrap);
@@ -159,33 +177,15 @@
     const b1 = { x: to.x + nx * railOffset, y: to.y + ny * railOffset };
     const b2 = { x: to.x - nx * railOffset, y: to.y - ny * railOffset };
 
-    layer.appendChild(svgNode("line", {
-      class: "ladder-rail",
-      x1: a1.x,
-      y1: a1.y,
-      x2: b1.x,
-      y2: b1.y
-    }));
-    layer.appendChild(svgNode("line", {
-      class: "ladder-rail",
-      x1: a2.x,
-      y1: a2.y,
-      x2: b2.x,
-      y2: b2.y
-    }));
+    layer.appendChild(svgNode("line", { class: "ladder-rail", x1: a1.x, y1: a1.y, x2: b1.x, y2: b1.y }));
+    layer.appendChild(svgNode("line", { class: "ladder-rail", x1: a2.x, y1: a2.y, x2: b2.x, y2: b2.y }));
 
     const rungCount = Math.max(2, Math.min(12, Math.floor(length / 22)));
     for (let i = 1; i < rungCount; i++) {
       const t = i / rungCount;
       const r1 = root.jumpGeometry.lerpPoint(a1, b1, t);
       const r2 = root.jumpGeometry.lerpPoint(a2, b2, t);
-      layer.appendChild(svgNode("line", {
-        class: "ladder-rung",
-        x1: r1.x,
-        y1: r1.y,
-        x2: r2.x,
-        y2: r2.y
-      }));
+      layer.appendChild(svgNode("line", { class: "ladder-rung", x1: r1.x, y1: r1.y, x2: r2.x, y2: r2.y }));
     }
   }
 

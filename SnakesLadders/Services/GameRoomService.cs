@@ -5,6 +5,9 @@ namespace SnakesLadders.Services;
 
 public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine gameEngine) : IGameRoomService
 {
+    private const int OfflineAutoRollDelayMs = 700;
+    private const int TurnAnimationBufferSeconds = 14;
+
     private readonly Lock _sync = new();
     private readonly Dictionary<string, GameRoom> _rooms = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, ConnectionBinding> _connections = new();
@@ -205,9 +208,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             room.WinnerPlayerId = null;
             room.FinishReason = null;
             room.ActiveFrenzySnake = null;
-            room.TurnDeadlineUtc = room.BoardOptions.RuleOptions.TurnTimerEnabled
-                ? DateTimeOffset.UtcNow.AddSeconds(Math.Max(3, room.BoardOptions.RuleOptions.TurnSeconds))
-                : null;
+            room.TurnDeadlineUtc = ResolveNextTurnDeadlineUnsafe(room, room.CurrentTurnPlayer);
 
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
         }
@@ -554,7 +555,6 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
 
             foreach (var room in _rooms.Values.Where(x =>
                          x.Status == GameStatus.Started &&
-                         x.BoardOptions.RuleOptions.TurnTimerEnabled &&
                          x.TurnDeadlineUtc is not null &&
                          x.TurnDeadlineUtc <= now))
             {
@@ -667,6 +667,15 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                 room.FinishReason = "LastPlayerStanding";
                 room.TurnDeadlineUtc = null;
             }
+            else if (keepAsDisconnected &&
+                     ReferenceEquals(room.CurrentTurnPlayer, player))
+            {
+                room.TurnDeadlineUtc = DateTimeOffset.UtcNow.AddMilliseconds(OfflineAutoRollDelayMs);
+            }
+            else
+            {
+                room.TurnDeadlineUtc = ResolveNextTurnDeadlineUnsafe(room, room.CurrentTurnPlayer);
+            }
         }
 
         return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
@@ -703,6 +712,12 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
         if (player.PlayerId == room.HostPlayerId)
         {
             player.IsReady = true;
+        }
+
+        if (room.Status == GameStatus.Started &&
+            ReferenceEquals(room.CurrentTurnPlayer, player))
+        {
+            room.TurnDeadlineUtc = ResolveNextTurnDeadlineUnsafe(room, player);
         }
 
         _connections[connectionId] = new ConnectionBinding(room.RoomCode, player.PlayerId);
@@ -814,5 +829,24 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
     {
         public required string DisplayName { get; init; }
         public required DateTimeOffset LastSeenUtc { get; init; }
+    }
+
+    private static DateTimeOffset? ResolveNextTurnDeadlineUnsafe(GameRoom room, PlayerState? nextTurnPlayer)
+    {
+        if (room.Status != GameStatus.Started || nextTurnPlayer is null)
+        {
+            return null;
+        }
+
+        if (!nextTurnPlayer.Connected)
+        {
+            return DateTimeOffset.UtcNow.AddMilliseconds(OfflineAutoRollDelayMs);
+        }
+
+        var rules = room.BoardOptions.RuleOptions;
+        var animationBufferSeconds = room.TurnCounter > 0 ? TurnAnimationBufferSeconds : 0;
+        return rules.TurnTimerEnabled
+            ? DateTimeOffset.UtcNow.AddSeconds(Math.Max(3, rules.TurnSeconds) + animationBufferSeconds)
+            : null;
     }
 }

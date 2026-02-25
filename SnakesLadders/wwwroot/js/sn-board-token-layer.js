@@ -3,24 +3,33 @@
   const { state, el } = root;
   let resizeTimer = 0;
 
-  function render(players, turnPlayerId) {
+  function render(players, turnPlayerId, range = null) {
     const layer = ensureLayer();
-    if (!layer || !state.room?.board) {
+    const board = state.room?.board;
+    if (!layer || !board || !el.board) {
       clear();
       return;
     }
 
+    const visibleRange = range ?? root.boardPage.getVisibleRange(board.size, state.visiblePageStart);
     const grouped = new Map();
+
     for (const player of players ?? []) {
       if (state.animTransitActive && state.animTransitPlayerId === player.playerId) {
         continue;
       }
+
+      if (!root.boardPage.isCellVisible(player.position, visibleRange)) {
+        continue;
+      }
+
       const bucket = grouped.get(player.position) ?? [];
       bucket.push(player);
       grouped.set(player.position, bucket);
     }
 
     layer.replaceChildren();
+
     for (const [cellNumber, bucket] of grouped) {
       const cellEl = el.board.querySelector(`[data-cell="${cellNumber}"]`);
       if (!cellEl) {
@@ -38,19 +47,25 @@
         token.title = `${player.displayName}${!player.connected ? " (ออฟไลน์)" : ""}`;
 
         const offset = offsets[index] ?? { x: 0, y: 0 };
-        placeToken(token, cellEl, offset);
-        layer.appendChild(token);
+        if (placeToken(token, cellEl, offset)) {
+          layer.appendChild(token);
+        }
       });
     }
   }
 
   function updateFromState() {
-    if (!state.room?.board) {
+    const board = state.room?.board;
+    if (!board) {
       clear();
       return;
     }
 
-    render(root.viewState.getDisplayPlayers(), root.viewState.getDisplayTurnPlayerId());
+    render(
+      root.viewState.getDisplayPlayers(),
+      root.viewState.getDisplayTurnPlayerId(),
+      root.boardPage.getVisibleRange(board.size, state.visiblePageStart)
+    );
   }
 
   function clear() {
@@ -61,10 +76,24 @@
   }
 
   function placeToken(token, cellEl, offset) {
-    const left = el.board.offsetLeft + cellEl.offsetLeft + (cellEl.offsetWidth / 2) - el.board.scrollLeft + offset.x;
-    const top = el.board.offsetTop + cellEl.offsetTop + (cellEl.offsetHeight / 2) - el.board.scrollTop + offset.y;
+    const stageEl = el.boardStage ?? el.board.parentElement ?? el.board;
+    const stageRect = stageEl.getBoundingClientRect();
+    const cellRect = cellEl.getBoundingClientRect();
+
+    const left = cellRect.left - stageRect.left + (cellRect.width / 2) + offset.x;
+    const top = cellRect.top - stageRect.top + (cellRect.height / 2) + offset.y;
+
+    if (![left, top, stageRect.width, stageRect.height].every(Number.isFinite)) {
+      return false;
+    }
+
+    if (left < -40 || top < -40 || left > stageRect.width + 40 || top > stageRect.height + 40) {
+      return false;
+    }
+
     token.style.left = `${Math.round(left)}px`;
     token.style.top = `${Math.round(top)}px`;
+    return true;
   }
 
   function buildOffsets(count) {
@@ -72,7 +101,7 @@
       return [{ x: 0, y: 0 }];
     }
 
-    const radius = Math.min(14, 5 + count * 1.8);
+    const radius = Math.min(16, 5 + count * 2.2);
     const offsets = [];
     for (let i = 0; i < count; i++) {
       const angle = ((Math.PI * 2) / count) * i - (Math.PI / 2);
@@ -89,19 +118,19 @@
       return el.boardTokenLayer;
     }
 
-    if (!el.board) {
+    const board = el.board;
+    if (!board) {
       return null;
     }
 
     const layer = document.createElement("div");
     layer.id = "boardTokenLayer";
     layer.className = "board-token-layer";
-    (el.board.parentElement ?? el.board).appendChild(layer);
+    (board.parentElement ?? board).appendChild(layer);
     el.boardTokenLayer = layer;
     return layer;
   }
 
-  el.board?.addEventListener("scroll", updateFromState);
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(updateFromState, 80);

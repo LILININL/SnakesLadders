@@ -40,6 +40,11 @@
     if (el.winnerOverlay) {
       el.winnerOverlay.className = "winner-overlay hidden";
     }
+
+    if (el.jumpHintBadge) {
+      el.jumpHintBadge.className = "jump-hint-badge hidden";
+      el.jumpHintBadge.textContent = "";
+    }
   }
 
   async function animateDice(playerId, diceValue) {
@@ -84,9 +89,29 @@
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  async function showJumpHint(text, durationMs = 600) {
+    if (!el.jumpHintBadge) {
+      await wait(durationMs);
+      return;
+    }
+
+    el.jumpHintBadge.textContent = String(text ?? "").trim();
+    if (!el.jumpHintBadge.textContent) {
+      return;
+    }
+
+    el.jumpHintBadge.className = "jump-hint-badge show";
+    await wait(durationMs);
+    el.jumpHintBadge.className = "jump-hint-badge hide";
+    await wait(220);
+    el.jumpHintBadge.className = "jump-hint-badge hidden";
+    el.jumpHintBadge.textContent = "";
+  }
+
   root.boardFx = {
     showDice,
     showWinner,
+    showJumpHint,
     reset
   };
 })();

@@ -48,7 +48,7 @@ public sealed class TurnTimerBackgroundService(
                 logger.LogError(ex, "ประมวลผลเทิร์นที่หมดเวลาไม่สำเร็จ");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(250), stoppingToken);
         }
     }
 }

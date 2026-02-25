@@ -24,6 +24,8 @@
     el.layoutRoot.classList.toggle("in-room", inRoom);
     el.layoutRoot.classList.toggle("game-started", inRoom && started);
     el.lobbyPanel.classList.toggle("hidden", inRoom);
+    el.mainLobbyRooms.classList.toggle("hidden", inRoom);
+    el.roomGameShell.classList.toggle("hidden", !inRoom);
     el.roomRulesCard.classList.toggle("hidden", !inRoom);
 
     el.statusSplit.classList.toggle("hidden", !inRoom || !waiting);

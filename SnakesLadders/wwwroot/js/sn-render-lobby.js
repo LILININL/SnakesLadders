@@ -42,12 +42,22 @@
 
   function renderWaitingRooms() {
     const rooms = Array.isArray(state.waitingRooms) ? state.waitingRooms : [];
-    if (rooms.length === 0) {
-      el.waitingRoomList.innerHTML = "<li class='room-item'><div class='meta'>ยังไม่มีห้องที่เปิดรอ</div></li>";
+    const currentRoomCode = state.room?.roomCode ?? "";
+
+    renderWaitingRoomList(el.waitingRoomList, rooms, currentRoomCode, "ยังไม่มีห้องที่เปิดรอ");
+    renderWaitingRoomList(el.mainWaitingRoomList, rooms, currentRoomCode, "ตอนนี้ยังไม่มีห้องที่เปิดรอ ลองกดสร้างห้องแรกได้เลย");
+  }
+
+  function renderWaitingRoomList(target, rooms, currentRoomCode, emptyMessage) {
+    if (!target) {
       return;
     }
 
-    const currentRoomCode = state.room?.roomCode ?? "";
+    if (rooms.length === 0) {
+      target.innerHTML = `<li class='room-item'><div class='meta'>${escapeHtml(emptyMessage)}</div></li>`;
+      return;
+    }
+
     const rows = rooms.map((room) => {
       const isCurrent = room.roomCode === currentRoomCode;
       return `
@@ -61,7 +71,7 @@
       `;
     });
 
-    el.waitingRoomList.innerHTML = rows.join("");
+    target.innerHTML = rows.join("");
   }
 
   root.renderLobby = {

@@ -17,12 +17,19 @@
 
     el.createForm.addEventListener("submit", onCreateRoom);
     el.joinForm.addEventListener("submit", onJoinRoom);
-    el.waitingRoomList.addEventListener("click", onJoinFromRoomList);
+    if (el.waitingRoomList) {
+      el.waitingRoomList.addEventListener("click", onJoinFromRoomList);
+    }
+    if (el.mainWaitingRoomList) {
+      el.mainWaitingRoomList.addEventListener("click", onJoinFromRoomList);
+    }
 
-    el.refreshRoomsBtn.addEventListener("click", async () => {
-      await root.api.refreshLobbyOnline();
-      await root.api.refreshWaitingRooms();
-    });
+    if (el.refreshRoomsBtn) {
+      el.refreshRoomsBtn.addEventListener("click", refreshLobbyLists);
+    }
+    if (el.refreshRoomsMainBtn) {
+      el.refreshRoomsMainBtn.addEventListener("click", refreshLobbyLists);
+    }
 
     el.startGameBtn.addEventListener("click", () => {
       if (!state.roomCode) return;
@@ -132,8 +139,13 @@
     state.animTransitActive = false;
     state.animTransitPlayerId = "";
     state.deferredRoom = null;
+    state.pendingBeaconTargetPlayerId = "";
+    state.pageTransitioning = false;
+    state.pageTransitionDirection = 0;
     root.turnAnimation?.reset?.();
     root.boardFx?.reset?.();
+    root.boardFocus?.clearState?.();
+    root.boardBeacon?.hide?.();
 
     root.renderChat.clearChat();
     await root.api.refreshLobbyOnline();
@@ -186,6 +198,11 @@
       roomCode: state.roomCode,
       isReady: !me.isReady,
     });
+  }
+
+  async function refreshLobbyLists() {
+    await root.api.refreshLobbyOnline();
+    await root.api.refreshWaitingRooms();
   }
 
   root.actions = { wireForms };

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=20260225r5">
 </head>
 <body>
 <div class="bg-glow"></div>
@@ -137,87 +137,92 @@
         </div>
         <ul id="onlineUsersList" class="room-list"></ul>
       </div>
-
-      <hr>
-
-      <div class="stack">
-        <div class="open-rooms-header">
-          <h3>ห้องที่เปิดรอ</h3>
-          <button id="refreshRoomsBtn" class="btn">รีเฟรช</button>
-        </div>
-        <ul id="waitingRoomList" class="room-list"></ul>
-      </div>
     </aside>
 
     <section class="panel panel-main">
-      <div class="toolbar">
-        <div>
-          <h2 id="roomTitle">ห้อง: -</h2>
-          <p id="roomMeta">ยังไม่ได้เข้าห้อง</p>
+      <div id="mainLobbyRooms" class="main-lobby-rooms">
+        <div class="open-rooms-header">
+          <h2>ห้องที่เปิดรอ</h2>
+          <button id="refreshRoomsMainBtn" class="btn">รีเฟรช</button>
         </div>
-        <div class="toolbar-actions">
-          <div id="waitingRoomActions" class="toolbar-actions">
-            <button id="refreshRoomBtn" class="btn">รีเฟรช</button>
-            <button id="startGameBtn" class="btn btn-primary">เริ่มเกม</button>
+        <p class="sub">เลือกห้องที่ต้องการ แล้วกดเข้าร่วมได้ทันที</p>
+        <ul id="mainWaitingRoomList" class="room-list room-list-main"></ul>
+      </div>
+
+      <div id="roomGameShell">
+        <div class="toolbar">
+          <div>
+            <h2 id="roomTitle">ห้อง: -</h2>
+            <p id="roomMeta">ยังไม่ได้เข้าห้อง</p>
           </div>
-          <button id="leaveRoomBtn" class="btn btn-danger">ออกห้อง</button>
-        </div>
-      </div>
-
-      <div id="roomRulesCard" class="summary-card rules-card hidden">
-        <details id="roomRulesDetails" class="rules-details">
-          <summary>กติกาห้อง</summary>
-          <ul id="roomRuleList" class="rule-list"></ul>
-        </details>
-        <div id="readyPanel" class="ready-panel hidden">
-          <div class="ready-head">
-            <strong>เช็กความพร้อม</strong>
-            <span id="readySummary" class="meta-chip">พร้อม 0/0 คน</span>
+          <div class="toolbar-actions">
+            <div id="waitingRoomActions" class="toolbar-actions">
+              <button id="refreshRoomBtn" class="btn">รีเฟรช</button>
+              <button id="startGameBtn" class="btn btn-primary">เริ่มเกม</button>
+            </div>
+            <button id="leaveRoomBtn" class="btn btn-danger">ออกห้อง</button>
           </div>
-          <ul id="readyList" class="ready-list"></ul>
-          <button id="toggleReadyBtn" class="btn hidden" type="button">ฉันพร้อมแล้ว</button>
         </div>
-      </div>
 
-      <div id="statusSplit" class="split">
-        <div id="playersSection">
-          <h3>ผู้เล่น</h3>
-          <ul id="playerList" class="player-list"></ul>
+        <div id="roomRulesCard" class="summary-card rules-card hidden">
+          <details id="roomRulesDetails" class="rules-details">
+            <summary>กติกาห้อง</summary>
+            <ul id="roomRuleList" class="rule-list"></ul>
+          </details>
+          <div id="readyPanel" class="ready-panel hidden">
+            <div class="ready-head">
+              <strong>เช็กความพร้อม</strong>
+              <span id="readySummary" class="meta-chip">พร้อม 0/0 คน</span>
+            </div>
+            <ul id="readyList" class="ready-list"></ul>
+            <button id="toggleReadyBtn" class="btn hidden" type="button">ฉันพร้อมแล้ว</button>
+          </div>
         </div>
-        <div id="turnSection">
-          <h3>ตาเมื่อครู่</h3>
-          <div id="turnSummary" class="summary-card">ยังไม่มีการทอย</div>
+
+        <div id="statusSplit" class="split">
+          <div id="playersSection">
+            <h3>ผู้เล่น</h3>
+            <ul id="playerList" class="player-list"></ul>
+          </div>
+          <div id="turnSection">
+            <h3>ตาเมื่อครู่</h3>
+            <div id="turnSummary" class="summary-card">ยังไม่มีการทอย</div>
+          </div>
         </div>
-      </div>
 
-      <div class="board-wrap">
-        <h3>กระดาน</h3>
-        <div id="boardLegend" class="legend"></div>
-        <div id="turnBanner" class="turn-banner hidden"></div>
-        <div class="board-stage">
-          <div id="board" class="board"></div>
-          <div id="boardTokenLayer" class="board-token-layer"></div>
-          <div id="turnDeadlineAlert" class="turn-deadline-alert hidden"></div>
-          <div id="diceResultFx" class="dice-result-fx hidden"></div>
-          <button id="rollDiceFloatingBtn" class="btn btn-primary roll-fab hidden">🎲 ทอยเลย</button>
-          <button id="chatFabBtn" class="btn chat-fab hidden" type="button" aria-label="เปิดหรือปิดแชต">💬</button>
-          <button id="toggleRollBtn" class="btn roll-toggle hidden">ซ่อนปุ่มทอย</button>
+        <div class="board-wrap">
+          <h3>กระดาน</h3>
+          <div class="board-head">
+            <div id="boardLegend" class="legend"></div>
+          </div>
+          <div id="turnBanner" class="turn-banner hidden"></div>
+          <div id="boardStage" class="board-stage">
+            <div id="board" class="board"></div>
+            <div id="boardTokenLayer" class="board-token-layer"></div>
+            <div id="boardBeaconList" class="board-beacon-list hidden"></div>
+            <div id="jumpHintBadge" class="jump-hint-badge hidden"></div>
+            <div id="turnDeadlineAlert" class="turn-deadline-alert hidden"></div>
+            <div id="diceResultFx" class="dice-result-fx hidden"></div>
+            <button id="rollDiceFloatingBtn" class="btn btn-primary roll-fab hidden">🎲 ทอยเลย</button>
+            <button id="chatFabBtn" class="btn chat-fab hidden" type="button" aria-label="เปิดหรือปิดแชต">💬</button>
+            <button id="toggleRollBtn" class="btn roll-toggle hidden">ซ่อนปุ่มทอย</button>
+          </div>
         </div>
-      </div>
 
-      <div id="chatSection" class="chat-wrap">
-        <h3>แชตในห้อง</h3>
-        <ul id="chatList" class="chat-list"></ul>
-        <form id="chatForm" class="chat-form">
-          <input id="chatInput" type="text" maxlength="300" placeholder="พิมพ์ข้อความ..." autocomplete="off">
-          <button type="submit" class="btn btn-primary">ส่ง</button>
-          <button id="clearChatBtn" type="button" class="btn">ล้างแชต</button>
-        </form>
-      </div>
+        <div id="chatSection" class="chat-wrap">
+          <h3>แชตในห้อง</h3>
+          <ul id="chatList" class="chat-list"></ul>
+          <form id="chatForm" class="chat-form">
+            <input id="chatInput" type="text" maxlength="300" placeholder="พิมพ์ข้อความ..." autocomplete="off">
+            <button type="submit" class="btn btn-primary">ส่ง</button>
+            <button id="clearChatBtn" type="button" class="btn">ล้างแชต</button>
+          </form>
+        </div>
 
-      <div id="eventSection">
-        <h3>ความเคลื่อนไหว</h3>
-        <ul id="eventFeed" class="feed"></ul>
+        <div id="eventSection">
+          <h3>ความเคลื่อนไหว</h3>
+          <ul id="eventFeed" class="feed"></ul>
+        </div>
       </div>
     </section>
   </section>
@@ -232,28 +237,31 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
-<script src="/js/sn-state.js"></script>
-<script src="/js/sn-utils.js"></script>
-<script src="/js/sn-view-state.js"></script>
-<script src="/js/sn-storage.js"></script>
-<script src="/js/sn-render-lobby.js"></script>
-<script src="/js/sn-render-game.js"></script>
-<script src="/js/sn-jump-geometry.js"></script>
-<script src="/js/sn-board-overlay.js"></script>
-<script src="/js/sn-board-token-layer.js"></script>
-<script src="/js/sn-rule-summary.js"></script>
-<script src="/js/sn-room-ui.js"></script>
-<script src="/js/sn-ready-ui.js"></script>
-<script src="/js/sn-rule-ui.js"></script>
-<script src="/js/sn-board-fx.js"></script>
-<script src="/js/sn-piece-transit.js"></script>
-<script src="/js/sn-turn-animation.js"></script>
-<script src="/js/sn-render-chat.js"></script>
-<script src="/js/sn-render-main.js"></script>
-<script src="/js/sn-api.js"></script>
-<script src="/js/sn-signalr.js"></script>
-<script src="/js/sn-session.js"></script>
-<script src="/js/sn-actions.js"></script>
-<script src="/js/sn-main.js"></script>
+<script src="/js/sn-state.js?v=20260225r5"></script>
+<script src="/js/sn-utils.js?v=20260225r5"></script>
+<script src="/js/sn-view-state.js?v=20260225r5"></script>
+<script src="/js/sn-storage.js?v=20260225r5"></script>
+<script src="/js/sn-board-page.js?v=20260225r5"></script>
+<script src="/js/sn-board-focus.js?v=20260225r5"></script>
+<script src="/js/sn-board-beacon.js?v=20260225r5"></script>
+<script src="/js/sn-render-lobby.js?v=20260225r5"></script>
+<script src="/js/sn-render-game.js?v=20260225r5"></script>
+<script src="/js/sn-jump-geometry.js?v=20260225r5"></script>
+<script src="/js/sn-board-overlay.js?v=20260225r5"></script>
+<script src="/js/sn-board-token-layer.js?v=20260225r5"></script>
+<script src="/js/sn-rule-summary.js?v=20260225r5"></script>
+<script src="/js/sn-room-ui.js?v=20260225r5"></script>
+<script src="/js/sn-ready-ui.js?v=20260225r5"></script>
+<script src="/js/sn-rule-ui.js?v=20260225r5"></script>
+<script src="/js/sn-board-fx.js?v=20260225r5"></script>
+<script src="/js/sn-piece-transit.js?v=20260225r5"></script>
+<script src="/js/sn-turn-animation.js?v=20260225r5"></script>
+<script src="/js/sn-render-chat.js?v=20260225r5"></script>
+<script src="/js/sn-render-main.js?v=20260225r5"></script>
+<script src="/js/sn-api.js?v=20260225r5"></script>
+<script src="/js/sn-signalr.js?v=20260225r5"></script>
+<script src="/js/sn-session.js?v=20260225r5"></script>
+<script src="/js/sn-actions.js?v=20260225r5"></script>
+<script src="/js/sn-main.js?v=20260225r5"></script>
 </body>
 </html>
