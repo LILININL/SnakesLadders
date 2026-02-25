@@ -1,6 +1,7 @@
 # Cloudflare Deploy (whylin.xyz)
 
 เอกสารนี้ตั้งค่าตามโดเมนของคุณแล้ว:
+
 - Root domain: `whylin.xyz`
 - App subdomain: `snakkes.whylin.xyz`
 
@@ -73,6 +74,7 @@ ingress:
 ```
 
 ถ้าเป็น macOS ให้ path เป็น:
+
 - `/Users/<user>/.cloudflared/<TUNNEL_UUID>.json`
 
 ## 6) Start tunnel

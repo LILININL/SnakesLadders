@@ -35,7 +35,7 @@ public sealed class BoardOptions
     private const int DefaultBoardSize = 100;
     private const int TechnicalCap = 5000;
 
-    public int BoardSize { get; private set; } = DefaultBoardSize;
+    public int BoardSize { get; set; } = DefaultBoardSize;
     public DensityMode DensityMode { get; set; } = DensityMode.Medium;
     public OverflowMode OverflowMode { get; set; } = OverflowMode.StayPut;
     public int? Seed { get; set; }
@@ -80,7 +80,7 @@ public sealed class BoardOptions
 
         if (RuleOptions.MarathonThreshold < MinBoardSize)
         {
-            RuleOptions.MarathonThreshold = 300;
+            RuleOptions.MarathonThreshold = MinBoardSize;
         }
 
         if (RuleOptions.MarathonLadderMultiplier < 1.0d)
