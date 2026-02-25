@@ -65,6 +65,8 @@
     frenzyInterval: document.getElementById("frenzyInterval"),
     checkpointInterval: document.getElementById("checkpointInterval"),
     mercyBoost: document.getElementById("mercyBoost"),
+    marathonThreshold: document.getElementById("marathonThreshold"),
+    marathonMultiplier: document.getElementById("marathonMultiplier"),
 
     refreshRoomsBtn: document.getElementById("refreshRoomsBtn"),
     waitingRoomList: document.getElementById("waitingRoomList"),

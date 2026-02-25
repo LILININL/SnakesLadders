@@ -71,7 +71,9 @@
         turnSeconds: parseInt(el.turnSeconds.value, 10),
         roundLimitEnabled: el.ruleRoundLimit.checked,
         maxRounds: parseInt(el.maxRounds.value, 10),
-        marathonSpeedupEnabled: el.ruleMarathonSpeedup.checked
+        marathonSpeedupEnabled: el.ruleMarathonSpeedup.checked,
+        marathonThreshold: parseInt(el.marathonThreshold.value, 10),
+        marathonLadderMultiplier: parseFloat(el.marathonMultiplier.value)
       }
     };
   }

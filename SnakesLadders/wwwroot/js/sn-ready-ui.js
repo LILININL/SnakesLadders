@@ -11,11 +11,13 @@
     }
 
     const hostId = state.room.hostPlayerId;
-    const others = state.room.players.filter((x) => x.playerId !== hostId);
-    const readyCount = others.filter((x) => x.connected && x.isReady).length;
-    el.readySummary.textContent = `พร้อม ${readyCount}/${others.length} คน`;
+    const players = state.room.players;
+    const readyCount = players.filter((x) =>
+      x.playerId === hostId ? true : x.connected && x.isReady
+    ).length;
+    el.readySummary.textContent = `พร้อม ${readyCount}/${players.length} คน`;
 
-    el.readyList.innerHTML = state.room.players.map((player) => {
+    el.readyList.innerHTML = players.map((player) => {
       const host = player.playerId === hostId;
       const tone = host ? "host" : player.connected ? (player.isReady ? "ready" : "not-ready") : "offline";
       const label = host ? "หัวห้อง" : tone === "ready" ? "พร้อม" : tone === "offline" ? "ออฟไลน์" : "ยังไม่พร้อม";
