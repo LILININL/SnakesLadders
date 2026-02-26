@@ -10,6 +10,8 @@ public interface IBoardGenerator
 
 public interface IGameEngine
 {
+    void SeedRoomState(GameRoom room);
+
     TurnResult ResolveTurn(
         GameRoom room,
         PlayerState player,

@@ -4,9 +4,6 @@
 
   function wireForms() {
     el.nameForm.addEventListener("submit", root.session.onSaveProfileName);
-    el.createAvatarId?.addEventListener("change", onSelectProfileAvatar);
-    el.joinAvatarId?.addEventListener("change", onSelectProfileAvatar);
-    el.createAvatarPicker?.addEventListener("click", onPickCreateAvatar);
 
     el.showCreatePanelBtn.addEventListener("click", () => {
       state.createPanelVisible = true;
@@ -80,9 +77,7 @@
     state.createPanelVisible = false;
     root.renderLobby.renderCreatePanel();
 
-    const avatarId = root.session.ensureProfileAvatarId(
-      el.createAvatarId?.value,
-    );
+    const avatarId = root.session.ensureProfileAvatarId();
 
     await root.realtime.invokeHub("CreateRoom", {
       playerName: name,
@@ -121,7 +116,7 @@
   async function joinRoomCode(roomCode) {
     const name = root.session.ensureProfileName(el.joinName.value);
     if (!name) return;
-    const avatarId = root.session.ensureProfileAvatarId(el.joinAvatarId?.value);
+    const avatarId = root.session.ensureProfileAvatarId();
 
     const session = root.storage.getRoomSession(roomCode);
     await root.realtime.invokeHub("JoinRoom", {
@@ -212,25 +207,6 @@
       roomCode: state.roomCode,
       isReady: !me.isReady,
     });
-  }
-
-  function onSelectProfileAvatar(event) {
-    root.session.ensureProfileAvatarId(event?.target?.value);
-    root.feedback.renderAll();
-  }
-
-  function onPickCreateAvatar(event) {
-    const button = event.target.closest("[data-avatar-id]");
-    if (!button || button.disabled) {
-      return;
-    }
-
-    const avatarId = root.utils.normalizeAvatarId(
-      button.dataset.avatarId,
-      state.profileAvatarId,
-    );
-    root.session.ensureProfileAvatarId(avatarId);
-    root.feedback.renderAll();
   }
 
   async function onPickWaitingAvatar(event) {

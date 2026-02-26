@@ -4,6 +4,31 @@ public sealed record Jump(int From, int To, JumpType Type, bool IsTemporary = fa
 
 public sealed record ForkCell(int Cell, int SafeTo, int RiskyTo);
 
+public sealed record BoardItem(string ItemId, int Cell, BoardItemType Type);
+
+public sealed class TemporaryJumpState
+{
+    public required string EffectId { get; init; }
+    public required Jump Jump { get; init; }
+    public required int ExpiresAtTurnCounter { get; set; }
+    public required string Source { get; init; }
+}
+
+public sealed class BananaTrapState
+{
+    public required string TrapId { get; init; }
+    public required int Cell { get; init; }
+    public required string OwnerPlayerId { get; init; }
+    public required int ExpiresAtTurnCounter { get; set; }
+}
+
+public sealed class TurnItemEffect
+{
+    public required BoardItemType ItemType { get; init; }
+    public required int Cell { get; init; }
+    public required string Summary { get; init; }
+}
+
 public sealed class BoardState
 {
     public required int Size { get; init; }
@@ -30,6 +55,9 @@ public sealed class PlayerState
 
     public int ConsecutiveSnakeHits { get; set; }
     public bool MercyLadderPending { get; set; }
+    public int SnakeRepellentCharges { get; set; }
+    public bool LadderHackPending { get; set; }
+    public int AnchorProtectedUntilTurnCounter { get; set; }
 }
 
 public sealed class GameRoom
@@ -52,6 +80,9 @@ public sealed class GameRoom
     public Jump? ActiveFrenzySnake { get; set; }
     public int ActiveFrenzySnakeTurnsLeft { get; set; }
     public int FrenzyNoSpawnStreak { get; set; }
+    public List<BoardItem> ActiveItems { get; } = new();
+    public List<TemporaryJumpState> TemporaryJumps { get; } = new();
+    public List<BananaTrapState> BananaTraps { get; } = new();
     public DateTimeOffset? TurnDeadlineUtc { get; set; }
 
     public PlayerState? CurrentTurnPlayer =>
@@ -86,7 +117,11 @@ public sealed class TurnResult
     public bool FrenzySnakeTriggered { get; init; }
     public bool FrenzySnakeBlockedByShield { get; init; }
     public bool ShieldBlockedSnake { get; init; }
+    public bool SnakeRepellentBlockedSnake { get; init; }
     public bool MercyLadderApplied { get; init; }
+    public bool LadderHackApplied { get; init; }
+    public int LadderHackBoostAmount { get; init; }
+    public IReadOnlyList<TurnItemEffect> ItemEffects { get; init; } = Array.Empty<TurnItemEffect>();
 
     public int ShieldsEarned { get; init; }
 

@@ -209,6 +209,9 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                 player.Shields = 0;
                 player.ConsecutiveSnakeHits = 0;
                 player.MercyLadderPending = false;
+                player.SnakeRepellentCharges = 0;
+                player.LadderHackPending = false;
+                player.AnchorProtectedUntilTurnCounter = 0;
                 player.NextCheckpoint = Math.Max(1, room.BoardOptions.RuleOptions.CheckpointInterval);
                 player.LuckyRerollsLeft = room.BoardOptions.RuleOptions.LuckyRerollEnabled
                     ? room.BoardOptions.RuleOptions.LuckyRerollPerPlayer
@@ -224,7 +227,11 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             room.ActiveFrenzySnake = null;
             room.ActiveFrenzySnakeTurnsLeft = 0;
             room.FrenzyNoSpawnStreak = 0;
+            room.ActiveItems.Clear();
+            room.TemporaryJumps.Clear();
+            room.BananaTraps.Clear();
             room.TurnDeadlineUtc = ResolveNextTurnDeadlineUnsafe(room, room.CurrentTurnPlayer);
+            gameEngine.SeedRoomState(room);
 
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
         }
@@ -411,6 +418,9 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                 player.Shields = 0;
                 player.ConsecutiveSnakeHits = 0;
                 player.MercyLadderPending = false;
+                player.SnakeRepellentCharges = 0;
+                player.LadderHackPending = false;
+                player.AnchorProtectedUntilTurnCounter = 0;
                 player.NextCheckpoint = checkpoint;
                 player.LuckyRerollsLeft = room.BoardOptions.RuleOptions.LuckyRerollEnabled
                     ? room.BoardOptions.RuleOptions.LuckyRerollPerPlayer
@@ -428,6 +438,9 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             room.ActiveFrenzySnake = null;
             room.ActiveFrenzySnakeTurnsLeft = 0;
             room.FrenzyNoSpawnStreak = 0;
+            room.ActiveItems.Clear();
+            room.TemporaryJumps.Clear();
+            room.BananaTraps.Clear();
             room.TurnDeadlineUtc = null;
 
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
@@ -875,7 +888,10 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                 Connected = x.Connected,
                 IsReady = x.IsReady,
                 Shields = x.Shields,
-                LuckyRerollsLeft = x.LuckyRerollsLeft
+                LuckyRerollsLeft = x.LuckyRerollsLeft,
+                SnakeRepellentCharges = x.SnakeRepellentCharges,
+                LadderHackPending = x.LadderHackPending,
+                AnchorActive = x.AnchorProtectedUntilTurnCounter > room.TurnCounter
             }).ToArray(),
             CurrentTurnPlayerId = room.CurrentTurnPlayer?.PlayerId,
             TurnCounter = room.TurnCounter,
@@ -890,7 +906,10 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                     Size = board.Size,
                     Jumps = board.Jumps,
                     ForkCells = board.ForkCells,
-                    ActiveFrenzySnake = room.ActiveFrenzySnake
+                    ActiveFrenzySnake = room.ActiveFrenzySnake,
+                    TemporaryJumps = room.TemporaryJumps.Select(x => x.Jump).ToArray(),
+                    Items = room.ActiveItems.ToArray(),
+                    BananaTrapCells = room.BananaTraps.Select(x => x.Cell).Distinct().OrderBy(x => x).ToArray()
                 }
         };
     }

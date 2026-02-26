@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=20260225r7">
+  <link rel="stylesheet" href="/styles.css?v=20260226r6">
 </head>
 <body>
 <div class="bg-glow"></div>
@@ -49,36 +49,6 @@
             <input id="createName" type="text" maxlength="24" value="หัวห้อง">
           </label>
           <label>
-            Avatar ผู้สร้าง
-            <div id="createAvatarPicker" class="avatar-picker form-avatar-picker" role="listbox" aria-label="เลือก Avatar ผู้สร้าง">
-              <button type="button" class="avatar-choice selected" data-avatar-id="1" aria-label="เลือก Avatar 1">
-                <img src="/assets/avatars/avatar-01.png" alt="Avatar 1">
-              </button>
-              <button type="button" class="avatar-choice" data-avatar-id="2" aria-label="เลือก Avatar 2">
-                <img src="/assets/avatars/avatar-02.png" alt="Avatar 2">
-              </button>
-              <button type="button" class="avatar-choice" data-avatar-id="3" aria-label="เลือก Avatar 3">
-                <img src="/assets/avatars/avatar-03.png" alt="Avatar 3">
-              </button>
-              <button type="button" class="avatar-choice" data-avatar-id="4" aria-label="เลือก Avatar 4">
-                <img src="/assets/avatars/avatar-04.png" alt="Avatar 4">
-              </button>
-              <button type="button" class="avatar-choice" data-avatar-id="5" aria-label="เลือก Avatar 5">
-                <img src="/assets/avatars/avatar-05.png" alt="Avatar 5">
-              </button>
-              <button type="button" class="avatar-choice" data-avatar-id="6" aria-label="เลือก Avatar 6">
-                <img src="/assets/avatars/avatar-06.png" alt="Avatar 6">
-              </button>
-              <button type="button" class="avatar-choice" data-avatar-id="7" aria-label="เลือก Avatar 7">
-                <img src="/assets/avatars/avatar-07.png" alt="Avatar 7">
-              </button>
-              <button type="button" class="avatar-choice" data-avatar-id="8" aria-label="เลือก Avatar 8">
-                <img src="/assets/avatars/avatar-08.gif" alt="Avatar 8">
-              </button>
-            </div>
-            <input id="createAvatarId" type="hidden" value="1">
-          </label>
-          <label>
             ขนาดกระดาน (อย่างน้อย 50 ช่อง)
             <input id="boardSize" type="number" min="50" max="5000" value="100">
           </label>
@@ -87,6 +57,7 @@
             <select id="gameMode">
               <option value="0">Classic (กติกาพื้นฐาน)</option>
               <option value="1" selected>Custom (เลือกกฏเสริมเอง)</option>
+              <option value="2">Chaos (ไอเท็มปั่น + กฏตายตัว)</option>
             </select>
           </label>
           <label>
@@ -99,6 +70,10 @@
 
           <div id="customRuleOptionsBlock">
             <div id="createRuleToggleGrid" class="rule-grid">
+              <label class="rule-option">
+                <span class="rule-option-title"><input id="ruleItemsEnabled" type="checkbox"> เปิดระบบไอเท็ม</span>
+                <small class="rule-option-desc">สุ่มไอเท็มบนกระดาน เหยียบแล้วใช้ทันที (สำหรับโหมด Custom)</small>
+              </label>
               <label class="rule-option">
                 <span class="rule-option-title"><input id="ruleCheckpointShield" type="checkbox"> เกราะเช็กพอยต์</span>
                 <small class="rule-option-desc">ผ่านทุก ๆ N ช่อง รับโล่ 1 ชั้นไว้กันงูได้ 1 ครั้ง</small>
@@ -141,6 +116,11 @@
             <p id="createRuleHelpNote" class="rule-help-note">เลือกเฉพาะกฏที่อยากใช้ได้เลย ค่าตัวเลขจะมีผลเฉพาะกฏที่เปิดไว้เท่านั้น</p>
           </div>
 
+          <div id="chaosRuleInfoBlock" class="chaos-rule-info hidden">
+            <strong>Chaos Profile</strong>
+            <p>โหมดนี้ล็อกค่ากติกาหลักอัตโนมัติ (เช่น จับเวลา/จำกัดรอบ/งูคลุ้มคลั่ง) และเปิดระบบไอเท็มเสมอ</p>
+          </div>
+
           <button type="submit" class="btn btn-primary">เปิดห้อง</button>
         </form>
       </div>
@@ -151,19 +131,6 @@
         <label>
           ชื่อผู้เล่น
           <input id="joinName" type="text" maxlength="24" value="ผู้เล่น">
-        </label>
-        <label>
-          Avatar
-          <select id="joinAvatarId">
-            <option value="1">Avatar 1</option>
-            <option value="2">Avatar 2</option>
-            <option value="3">Avatar 3</option>
-            <option value="4">Avatar 4</option>
-            <option value="5">Avatar 5</option>
-            <option value="6">Avatar 6</option>
-            <option value="7">Avatar 7</option>
-            <option value="8">Avatar 8</option>
-          </select>
         </label>
         <label>
           รหัสห้อง
@@ -241,7 +208,7 @@
           </div>
         </div>
 
-        <div class="board-wrap">
+        <div id="boardWrap" class="board-wrap">
           <h3>กระดาน</h3>
           <div class="board-head">
             <div id="boardLegend" class="legend"></div>
@@ -252,16 +219,18 @@
             <div id="boardTokenLayer" class="board-token-layer"></div>
             <div id="boardBeaconList" class="board-beacon-list hidden"></div>
             <div id="jumpHintBadge" class="jump-hint-badge hidden"></div>
+            <div id="boardItemTooltip" class="board-item-tooltip hidden"></div>
             <div id="turnDeadlineAlert" class="turn-deadline-alert hidden"></div>
             <div id="diceResultFx" class="dice-result-fx hidden"></div>
             <button id="rollDiceFloatingBtn" class="btn btn-primary roll-fab hidden">🎲 ทอยเลย</button>
-            <button id="chatFabBtn" class="btn chat-fab hidden" type="button" aria-label="เปิดหรือปิดแชต">
-              💬
-              <span id="chatFabBadge" class="chat-badge hidden">0</span>
-            </button>
             <button id="toggleRollBtn" class="btn roll-toggle hidden">ซ่อนปุ่มทอย</button>
           </div>
         </div>
+
+        <button id="chatFabBtn" class="btn chat-sidebar-toggle hidden" type="button" aria-label="OpenChat">
+          <span id="chatFabLabel" class="chat-sidebar-toggle-label">OpenChat</span>
+          <span id="chatFabBadge" class="chat-badge hidden">0</span>
+        </button>
 
         <div id="chatSection" class="chat-wrap">
           <h3>แชตในห้อง</h3>
@@ -300,31 +269,31 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
-<script src="/js/sn-state.js?v=20260225r7"></script>
-<script src="/js/sn-utils.js?v=20260225r7"></script>
-<script src="/js/sn-view-state.js?v=20260225r7"></script>
-<script src="/js/sn-storage.js?v=20260225r7"></script>
-<script src="/js/sn-board-page.js?v=20260225r7"></script>
-<script src="/js/sn-board-focus.js?v=20260225r7"></script>
-<script src="/js/sn-board-beacon.js?v=20260225r7"></script>
-<script src="/js/sn-render-lobby.js?v=20260225r7"></script>
-<script src="/js/sn-render-game.js?v=20260225r7"></script>
-<script src="/js/sn-jump-geometry.js?v=20260225r7"></script>
-<script src="/js/sn-board-overlay.js?v=20260225r7"></script>
-<script src="/js/sn-board-token-layer.js?v=20260225r7"></script>
-<script src="/js/sn-rule-summary.js?v=20260225r7"></script>
-<script src="/js/sn-room-ui.js?v=20260225r7"></script>
-<script src="/js/sn-ready-ui.js?v=20260225r7"></script>
-<script src="/js/sn-rule-ui.js?v=20260225r7"></script>
-<script src="/js/sn-board-fx.js?v=20260225r7"></script>
-<script src="/js/sn-piece-transit.js?v=20260225r7"></script>
-<script src="/js/sn-turn-animation.js?v=20260225r7"></script>
-<script src="/js/sn-render-chat.js?v=20260225r7"></script>
-<script src="/js/sn-render-main.js?v=20260225r7"></script>
-<script src="/js/sn-api.js?v=20260225r7"></script>
-<script src="/js/sn-signalr.js?v=20260225r7"></script>
-<script src="/js/sn-session.js?v=20260225r7"></script>
-<script src="/js/sn-actions.js?v=20260225r7"></script>
-<script src="/js/sn-main.js?v=20260225r7"></script>
+<script src="/js/sn-state.js?v=20260226r6"></script>
+<script src="/js/sn-utils.js?v=20260226r6"></script>
+<script src="/js/sn-view-state.js?v=20260226r6"></script>
+<script src="/js/sn-storage.js?v=20260226r6"></script>
+<script src="/js/sn-board-page.js?v=20260226r6"></script>
+<script src="/js/sn-board-focus.js?v=20260226r6"></script>
+<script src="/js/sn-board-beacon.js?v=20260226r6"></script>
+<script src="/js/sn-render-lobby.js?v=20260226r6"></script>
+<script src="/js/sn-render-game.js?v=20260226r6"></script>
+<script src="/js/sn-jump-geometry.js?v=20260226r6"></script>
+<script src="/js/sn-board-overlay.js?v=20260226r6"></script>
+<script src="/js/sn-board-token-layer.js?v=20260226r6"></script>
+<script src="/js/sn-rule-summary.js?v=20260226r6"></script>
+<script src="/js/sn-room-ui.js?v=20260226r6"></script>
+<script src="/js/sn-ready-ui.js?v=20260226r6"></script>
+<script src="/js/sn-rule-ui.js?v=20260226r6"></script>
+<script src="/js/sn-board-fx.js?v=20260226r6"></script>
+<script src="/js/sn-piece-transit.js?v=20260226r6"></script>
+<script src="/js/sn-turn-animation.js?v=20260226r6"></script>
+<script src="/js/sn-render-chat.js?v=20260226r6"></script>
+<script src="/js/sn-render-main.js?v=20260226r6"></script>
+<script src="/js/sn-api.js?v=20260226r6"></script>
+<script src="/js/sn-signalr.js?v=20260226r6"></script>
+<script src="/js/sn-session.js?v=20260226r6"></script>
+<script src="/js/sn-actions.js?v=20260226r6"></script>
+<script src="/js/sn-main.js?v=20260226r6"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@
 
   function renderAll() {
     renderRoomShell();
+    updateChatSidebarLayout();
     renderRoomRules();
     renderTurnBanner();
     updateDeadlineAlert();
@@ -41,9 +42,16 @@
     }
 
     el.chatFabBtn.classList.toggle("hidden", !inRoom);
-    el.chatFabBtn.classList.toggle("active", inRoom && state.chatPanelOpen);
+    const chatOpen = inRoom && state.chatPanelOpen;
+    el.chatFabBtn.classList.toggle("open", chatOpen);
+    if (el.chatFabLabel) {
+      el.chatFabLabel.textContent = chatOpen ? "CloseChat" : "OpenChat";
+    } else {
+      el.chatFabBtn.textContent = chatOpen ? "CloseChat" : "OpenChat";
+    }
+    el.chatFabBtn.setAttribute("aria-label", chatOpen ? "CloseChat" : "OpenChat");
     el.chatSection.classList.toggle("chat-sidebar", inRoom);
-    el.chatSection.classList.toggle("hidden", !inRoom || !state.chatPanelOpen);
+    el.chatSection.classList.toggle("hidden", !chatOpen);
     el.eventSection.classList.toggle("hidden", inRoom);
   }
 
@@ -164,6 +172,7 @@
     }
 
     renderRoomShell();
+    updateChatSidebarLayout();
     if (state.chatPanelOpen) {
       requestAnimationFrame(() => el.chatInput?.focus());
     }
@@ -197,14 +206,70 @@
     return state.room?.status === GAME_STATUS.WAITING;
   }
 
+  function updateChatSidebarLayout() {
+    if (!isInRoom() || !el.chatSection || !el.chatFabBtn) {
+      resetChatSidebarLayout();
+      return;
+    }
+
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      resetChatSidebarLayout();
+      return;
+    }
+
+    const anchor = el.boardStage ?? el.boardWrap;
+    if (!anchor) {
+      resetChatSidebarLayout();
+      return;
+    }
+
+    const rect = anchor.getBoundingClientRect();
+    if (!Number.isFinite(rect.top) || !Number.isFinite(rect.height) || rect.height <= 0) {
+      resetChatSidebarLayout();
+      return;
+    }
+
+    const minTop = 76;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const top = Math.max(minTop, Math.round(rect.top));
+    const maxHeight = Math.max(280, viewportHeight - top - 12);
+    const height = Math.max(300, Math.min(Math.round(rect.height), maxHeight));
+
+    el.chatSection.style.top = `${top}px`;
+    el.chatSection.style.bottom = "auto";
+    el.chatSection.style.height = `${height}px`;
+
+    el.chatFabBtn.style.top = `${top}px`;
+    el.chatFabBtn.style.bottom = "auto";
+  }
+
+  function resetChatSidebarLayout() {
+    if (!el.chatSection || !el.chatFabBtn) {
+      return;
+    }
+
+    el.chatSection.style.top = "";
+    el.chatSection.style.bottom = "";
+    el.chatSection.style.height = "";
+    el.chatFabBtn.style.top = "";
+    el.chatFabBtn.style.bottom = "";
+  }
+
   el.board.addEventListener("scroll", () => {
     updateFloatingRollButton();
   });
 
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
-    resizeTimer = window.setTimeout(() => updateFloatingRollButton(), 80);
+    resizeTimer = window.setTimeout(() => {
+      updateFloatingRollButton();
+      updateChatSidebarLayout();
+    }, 80);
   });
+
+  window.addEventListener("scroll", () => {
+    updateChatSidebarLayout();
+  }, { passive: true });
 
   window.setInterval(updateDeadlineAlert, 200);
 

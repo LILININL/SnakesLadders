@@ -9,9 +9,20 @@
   const PAGE_TRANSITION_MS = 550;
 
   let chain = Promise.resolve();
+  let queuedTurns = 0;
 
   function queue(payload) {
-    chain = chain.then(() => play(payload)).catch(() => {});
+    queuedTurns += 1;
+    chain = chain
+      .then(() => play(payload))
+      .catch(() => {})
+      .finally(() => {
+        queuedTurns = Math.max(0, queuedTurns - 1);
+        if (queuedTurns === 0 && !state.animating) {
+          root.realtime?.flushPendingTurnTrigger?.(state.room);
+          root.feedback.renderAll();
+        }
+      });
     return chain;
   }
 
@@ -78,7 +89,6 @@
     state.deferredRoom = null;
     state.lastTurn = turn;
     root.boardFocus?.onRoomBound?.(false);
-    root.realtime?.flushPendingTurnTrigger?.(state.room);
     root.feedback.renderAll();
   }
 
@@ -242,12 +252,19 @@
   }
 
   function reset() {
+    chain = Promise.resolve();
+    queuedTurns = 0;
     root.pieceTransit?.reset?.();
     root.boardFx?.reset?.();
   }
 
+  function isBusy() {
+    return state.animating || queuedTurns > 0;
+  }
+
   root.turnAnimation = {
     queue,
-    reset
+    reset,
+    isBusy
   };
 })();

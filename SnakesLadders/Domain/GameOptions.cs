@@ -2,6 +2,8 @@ namespace SnakesLadders.Domain;
 
 public sealed class RuleOptions
 {
+    public bool ItemsEnabled { get; set; }
+
     public bool CheckpointShieldEnabled { get; set; } = true;
     public int CheckpointInterval { get; set; } = 50;
 
@@ -96,6 +98,7 @@ public sealed class BoardOptions
 
         if (GameMode == GameMode.Classic)
         {
+            RuleOptions.ItemsEnabled = false;
             RuleOptions.CheckpointShieldEnabled = false;
             RuleOptions.ComebackBoostEnabled = false;
             RuleOptions.LuckyRerollEnabled = false;
@@ -105,6 +108,23 @@ public sealed class BoardOptions
             RuleOptions.MercyLadderEnabled = false;
             RuleOptions.TurnTimerEnabled = false;
             RuleOptions.RoundLimitEnabled = false;
+            RuleOptions.MarathonSpeedupEnabled = false;
+        }
+        else if (GameMode == GameMode.Chaos)
+        {
+            RuleOptions.ItemsEnabled = true;
+            RuleOptions.CheckpointShieldEnabled = false;
+            RuleOptions.ComebackBoostEnabled = false;
+            RuleOptions.LuckyRerollEnabled = false;
+            RuleOptions.LuckyRerollPerPlayer = 0;
+            RuleOptions.ForkPathEnabled = false;
+            RuleOptions.SnakeFrenzyEnabled = true;
+            RuleOptions.SnakeFrenzyIntervalTurns = 4;
+            RuleOptions.MercyLadderEnabled = false;
+            RuleOptions.TurnTimerEnabled = true;
+            RuleOptions.TurnSeconds = 12;
+            RuleOptions.RoundLimitEnabled = true;
+            RuleOptions.MaxRounds = 90;
             RuleOptions.MarathonSpeedupEnabled = false;
         }
     }

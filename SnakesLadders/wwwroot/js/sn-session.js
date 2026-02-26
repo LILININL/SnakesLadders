@@ -103,8 +103,10 @@
   function buildBoardOptions(boardSize) {
     const gameMode = parseInt(el.gameMode?.value ?? "1", 10);
     const classicMode = gameMode === 0;
+    const chaosMode = gameMode === 2;
 
     const ruleOptions = {
+      itemsEnabled: Boolean(el.ruleItemsEnabled?.checked),
       checkpointShieldEnabled: el.ruleCheckpointShield.checked,
       comebackBoostEnabled: el.ruleComebackBoost.checked,
       luckyRerollEnabled: false,
@@ -125,6 +127,7 @@
     };
 
     if (classicMode) {
+      ruleOptions.itemsEnabled = false;
       ruleOptions.checkpointShieldEnabled = false;
       ruleOptions.comebackBoostEnabled = false;
       ruleOptions.snakeFrenzyEnabled = false;
@@ -132,6 +135,9 @@
       ruleOptions.turnTimerEnabled = false;
       ruleOptions.roundLimitEnabled = false;
       ruleOptions.marathonSpeedupEnabled = false;
+    }
+    else if (chaosMode) {
+      applyChaosRuleProfile(ruleOptions);
     }
 
     return {
@@ -141,6 +147,23 @@
       overflowMode: parseInt(el.overflowMode.value, 10),
       ruleOptions
     };
+  }
+
+  function applyChaosRuleProfile(ruleOptions) {
+    ruleOptions.itemsEnabled = true;
+    ruleOptions.checkpointShieldEnabled = false;
+    ruleOptions.comebackBoostEnabled = false;
+    ruleOptions.luckyRerollEnabled = false;
+    ruleOptions.luckyRerollPerPlayer = 0;
+    ruleOptions.forkPathEnabled = false;
+    ruleOptions.snakeFrenzyEnabled = true;
+    ruleOptions.snakeFrenzyIntervalTurns = 4;
+    ruleOptions.mercyLadderEnabled = false;
+    ruleOptions.turnTimerEnabled = true;
+    ruleOptions.turnSeconds = 12;
+    ruleOptions.roundLimitEnabled = true;
+    ruleOptions.maxRounds = 90;
+    ruleOptions.marathonSpeedupEnabled = false;
   }
 
   root.session = {

@@ -28,9 +28,15 @@
   }
 
   function syncAll() {
-    const customMode = isCustomMode();
+    const mode = getSelectedMode();
+    const customMode = mode === 1;
+    const chaosMode = mode === 2;
+
     if (el.customRuleOptionsBlock) {
       el.customRuleOptionsBlock.classList.toggle("hidden", !customMode);
+    }
+    if (el.chaosRuleInfoBlock) {
+      el.chaosRuleInfoBlock.classList.toggle("hidden", !chaosMode);
     }
 
     if (!customMode) {
@@ -71,9 +77,9 @@
     }
   }
 
-  function isCustomMode() {
+  function getSelectedMode() {
     const mode = Number.parseInt(String(el.gameMode?.value ?? "1"), 10);
-    return mode !== 0;
+    return Number.isFinite(mode) ? mode : 1;
   }
 
   root.ruleUi = {

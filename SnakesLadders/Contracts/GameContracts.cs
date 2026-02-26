@@ -122,6 +122,9 @@ public sealed class BoardSnapshot
     public required IReadOnlyList<Jump> Jumps { get; init; }
     public required IReadOnlyList<ForkCell> ForkCells { get; init; }
     public required Jump? ActiveFrenzySnake { get; init; }
+    public required IReadOnlyList<Jump> TemporaryJumps { get; init; }
+    public required IReadOnlyList<BoardItem> Items { get; init; }
+    public required IReadOnlyList<int> BananaTrapCells { get; init; }
 }
 
 public sealed class PlayerSnapshot
@@ -134,6 +137,9 @@ public sealed class PlayerSnapshot
     public required bool IsReady { get; init; }
     public required int Shields { get; init; }
     public required int LuckyRerollsLeft { get; init; }
+    public required int SnakeRepellentCharges { get; init; }
+    public required bool LadderHackPending { get; init; }
+    public required bool AnchorActive { get; init; }
 }
 
 public sealed class PublicRoomSummary

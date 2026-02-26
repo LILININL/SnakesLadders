@@ -31,6 +31,12 @@
       featureLines.push(`จำกัดรอบ: เล่นสูงสุด ${maxRounds} รอบ แล้วตัดสินผู้ชนะจากคนที่ขึ้นไปไกลที่สุด`);
     }
 
+    if (rules.itemsEnabled) {
+      featureLines.push(gameMode === 2
+        ? "Chaos Items: ไอเท็มสุ่มบนกระดาน เหยียบแล้วทำงานทันที"
+        : "ระบบไอเท็ม: ไอเท็มสุ่มบนกระดาน เหยียบแล้วทำงานทันที");
+    }
+
     if (rules.snakeFrenzyEnabled) {
       featureLines.push(`งูคลุ้มคลั่ง: ทุก ${frenzyEvery} เทิร์น จะมีงูชั่วคราวโผล่มาเพิ่ม`);
     }

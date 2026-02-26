@@ -43,7 +43,7 @@
     state.connection.on("RoomResumed", (payload) => bindRoomPayload(payload, "กลับเข้าห้องเดิมแล้ว"));
 
     state.connection.on("RoomUpdated", (room) => {
-      if (state.animating) {
+      if (root.turnAnimation?.isBusy?.()) {
         state.deferredRoom = room;
         if (room?.status === root.GAME_STATUS.STARTED) {
           state.pendingTurnChangedPlayerId = room.currentTurnPlayerId ?? "";
@@ -70,7 +70,7 @@
 
     state.connection.on("TurnChanged", (playerId) => {
       state.pendingTurnChangedPlayerId = playerId ?? "";
-      if (state.animating) {
+      if (root.turnAnimation?.isBusy?.()) {
         return;
       }
 
@@ -167,6 +167,10 @@
   }
 
   function flushPendingTurnTrigger(roomOverride = null) {
+    if (root.turnAnimation?.isBusy?.()) {
+      return false;
+    }
+
     const room = roomOverride ?? state.room;
     if (!room || room.status !== root.GAME_STATUS.STARTED) {
       state.pendingTurnChangedPlayerId = "";
@@ -215,7 +219,8 @@
     const baseLine = root.feedback.formatTurnLine(turn);
     const comebackLine = formatComebackLine(turn);
     const frenzyLine = formatFrenzyLine(turn);
-    const extraLines = [comebackLine, frenzyLine].filter(Boolean).join(" | ");
+    const itemLine = formatItemLine(turn);
+    const extraLines = [comebackLine, frenzyLine, itemLine].filter(Boolean).join(" | ");
     if (!turn?.autoRollReason) {
       return extraLines ? `${baseLine} | ${extraLines}` : baseLine;
     }
@@ -265,6 +270,32 @@
     }
 
     return `งูคลุ้มคลั่งโผล่ที่ ${turn.frenzySnake.from}`;
+  }
+
+  function formatItemLine(turn) {
+    if (!turn) {
+      return "";
+    }
+
+    const chunks = [];
+    if (turn.snakeRepellentBlockedSnake) {
+      chunks.push("Repellent กันงูสำเร็จ");
+    }
+    if (turn.ladderHackApplied) {
+      chunks.push(`Ladder Hack +${turn.ladderHackBoostAmount ?? 0}`);
+    }
+
+    if (Array.isArray(turn.itemEffects)) {
+      for (const effect of turn.itemEffects.slice(0, 2)) {
+        const meta = root.utils.boardItemMeta(effect.itemType);
+        chunks.push(`${meta.name}: ${effect.summary ?? "-"}`);
+      }
+      if (turn.itemEffects.length > 2) {
+        chunks.push(`ไอเท็มทำงาน ${turn.itemEffects.length} รายการ`);
+      }
+    }
+
+    return chunks.join(" | ");
   }
 
   root.realtime = {

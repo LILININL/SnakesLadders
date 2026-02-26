@@ -6,6 +6,23 @@ public sealed class GameEngine : IGameEngine
 {
     private const int OfflineAutoRollDelayMs = 700;
     private const int TurnAnimationBufferSeconds = 14;
+    private const int RocketBootsBoost = 2;
+    private const int LadderHackBoost = 4;
+    private const int BananaSlipBack = 2;
+    private const int MaxItemSpawnAttempts = 600;
+
+    private static readonly BoardItemType[] ItemPool = Enum.GetValues<BoardItemType>();
+
+    public void SeedRoomState(GameRoom room)
+    {
+        if (room.Board is null)
+        {
+            return;
+        }
+
+        PruneExpiredTransientState(room);
+        EnsureBoardItems(room, room.Board);
+    }
 
     public TurnResult ResolveTurn(
         GameRoom room,
@@ -25,6 +42,9 @@ public sealed class GameEngine : IGameEngine
         var autoRollReason = isAutoRoll
             ? (player.Connected ? "TimerExpired" : "Disconnected")
             : null;
+
+        PruneExpiredTransientState(room);
+        EnsureBoardItems(room, board);
 
         var frenzySnake = ResolveFrenzySnakeForTurn(room, player, board);
         room.ActiveFrenzySnake = frenzySnake;
@@ -74,43 +94,111 @@ public sealed class GameEngine : IGameEngine
 
         Jump? triggeredJump = null;
         var shieldBlockedSnake = false;
+        var snakeRepellentBlockedSnake = false;
         var snakeHit = false;
         var frenzySnakeTriggered = false;
         var frenzySnakeBlockedByShield = false;
+        var mercyLadderApplied = false;
+        var ladderHackApplied = false;
+        var ladderHackBoostAmount = 0;
+        var itemEffects = new List<TurnItemEffect>();
+        var blockedSnakeCells = new HashSet<int>();
 
-        if (board.JumpsByFrom.TryGetValue(currentPosition, out var boardJump))
+        var chainGuard = 0;
+        while (chainGuard++ < 32)
         {
-            triggeredJump = boardJump;
-            if (boardJump.Type == JumpType.Snake)
+            var interacted = false;
+            var moved = false;
+
+            var jump = FindJumpAtCell(room, board, currentPosition, frenzySnake, blockedSnakeCells);
+            if (jump is not null)
             {
-                if (TryConsumeShield(player))
+                interacted = true;
+                var frenzyJump = IsSameJump(jump, frenzySnake);
+                if (!frenzyJump && triggeredJump is null)
                 {
-                    shieldBlockedSnake = true;
+                    triggeredJump = jump;
+                }
+
+                if (jump.Type == JumpType.Snake)
+                {
+                    var protection = TryConsumeSnakeProtection(player);
+                    if (protection == SnakeProtectionKind.None)
+                    {
+                        currentPosition = jump.To;
+                        snakeHit = true;
+                        moved = true;
+                        if (frenzyJump)
+                        {
+                            frenzySnakeTriggered = true;
+                        }
+                    }
+                    else
+                    {
+                        blockedSnakeCells.Add(jump.From);
+                        if (protection == SnakeProtectionKind.Shield)
+                        {
+                            shieldBlockedSnake = true;
+                            if (frenzyJump)
+                            {
+                                frenzySnakeBlockedByShield = true;
+                            }
+                        }
+                        else
+                        {
+                            snakeRepellentBlockedSnake = true;
+                        }
+                    }
                 }
                 else
                 {
-                    currentPosition = boardJump.To;
-                    snakeHit = true;
+                    var beforeJump = currentPosition;
+                    currentPosition = jump.To;
+                    moved = currentPosition != beforeJump;
+
+                    if (player.LadderHackPending)
+                    {
+                        player.LadderHackPending = false;
+                        var beforeHack = currentPosition;
+                        currentPosition = Math.Min(board.Size, currentPosition + LadderHackBoost);
+                        ladderHackBoostAmount = Math.Max(0, currentPosition - beforeHack);
+                        if (ladderHackBoostAmount > 0)
+                        {
+                            ladderHackApplied = true;
+                            moved = true;
+                        }
+                    }
                 }
             }
-            else
-            {
-                currentPosition = boardJump.To;
-            }
-        }
 
-        if (frenzySnake is not null && currentPosition == frenzySnake.From)
-        {
-            if (TryConsumeShield(player))
+            if (TryTriggerBananaTrap(room, board, player, ref currentPosition, out var trapCell, out var trapSummary, out var trapMoved))
             {
-                shieldBlockedSnake = true;
-                frenzySnakeBlockedByShield = true;
+                interacted = true;
+                moved |= trapMoved;
+                itemEffects.Add(new TurnItemEffect
+                {
+                    ItemType = BoardItemType.BananaPeel,
+                    Cell = trapCell,
+                    Summary = trapSummary
+                });
             }
-            else
+
+            if (rules.ItemsEnabled && TryTakeBoardItem(room, currentPosition, out var pickedItem))
             {
-                currentPosition = frenzySnake.To;
-                snakeHit = true;
-                frenzySnakeTriggered = true;
+                interacted = true;
+                var summary = ApplyBoardItemEffect(pickedItem, room, board, player, ref currentPosition, out var itemMoved);
+                itemEffects.Add(new TurnItemEffect
+                {
+                    ItemType = pickedItem.Type,
+                    Cell = pickedItem.Cell,
+                    Summary = summary
+                });
+                moved |= itemMoved;
+            }
+
+            if (!interacted || !moved)
+            {
+                break;
             }
         }
 
@@ -123,7 +211,6 @@ public sealed class GameEngine : IGameEngine
             player.ConsecutiveSnakeHits = 0;
         }
 
-        var mercyLadderApplied = false;
         if (rules.MercyLadderEnabled && player.MercyLadderPending)
         {
             player.MercyLadderPending = false;
@@ -152,7 +239,6 @@ public sealed class GameEngine : IGameEngine
         }
 
         player.Position = currentPosition;
-
         room.TurnCounter++;
 
         var isGameFinished = false;
@@ -212,6 +298,8 @@ public sealed class GameEngine : IGameEngine
         }
 
         AdvanceFrenzySnakeLifetime(room);
+        PruneExpiredTransientState(room);
+        EnsureBoardItems(room, board);
 
         return new TurnResult
         {
@@ -232,7 +320,11 @@ public sealed class GameEngine : IGameEngine
             FrenzySnakeTriggered = frenzySnakeTriggered,
             FrenzySnakeBlockedByShield = frenzySnakeBlockedByShield,
             ShieldBlockedSnake = shieldBlockedSnake,
+            SnakeRepellentBlockedSnake = snakeRepellentBlockedSnake,
             MercyLadderApplied = mercyLadderApplied,
+            LadderHackApplied = ladderHackApplied,
+            LadderHackBoostAmount = ladderHackBoostAmount,
+            ItemEffects = itemEffects,
             ShieldsEarned = shieldsEarned,
             RoundLimitTriggered = roundLimitTriggered,
             IsGameFinished = isGameFinished,
@@ -282,7 +374,7 @@ public sealed class GameEngine : IGameEngine
         }
 
         var playerCount = Math.Max(2, room.Players.Count);
-        var checkInterval = ResolveFrenzyCheckInterval(rules.SnakeFrenzyIntervalTurns, playerCount);
+        var checkInterval = ResolveFrenzyCheckInterval(playerCount);
         if (checkInterval <= 0 || (room.TurnCounter + 1) % checkInterval != 0)
         {
             return null;
@@ -295,7 +387,7 @@ public sealed class GameEngine : IGameEngine
             return null;
         }
 
-        var snake = GenerateFrenzySnakeAheadOfPlayer(board, currentPlayer.Position, room.Players);
+        var snake = GenerateFrenzySnakeAheadOfPlayer(room, board, currentPlayer.Position, room.Players);
         if (snake is null)
         {
             room.FrenzyNoSpawnStreak++;
@@ -331,23 +423,22 @@ public sealed class GameEngine : IGameEngine
         }
     }
 
-    private static int ResolveFrenzyCheckInterval(int configuredInterval, int playerCount)
+    private static int ResolveFrenzyCheckInterval(int playerCount)
     {
         var normalizedPlayerCount = Math.Max(2, playerCount);
-        var baseInterval = Math.Max(2, configuredInterval);
-        var reducedByPlayers = baseInterval - Math.Max(0, normalizedPlayerCount - 2);
-        return Math.Clamp(reducedByPlayers, 2, 4);
+        return Math.Clamp(6 - normalizedPlayerCount, 2, 4);
     }
 
     private static double ResolveFrenzySpawnChance(int playerCount, int noSpawnStreak)
     {
         var normalizedPlayerCount = Math.Max(2, playerCount);
         var normalizedStreak = Math.Max(0, noSpawnStreak);
-        var chance = 0.42 + ((normalizedPlayerCount - 2) * 0.08) + (normalizedStreak * 0.09);
-        return Math.Clamp(chance, 0.42, 0.88);
+        var chance = 0.35d + ((normalizedPlayerCount - 2) * 0.07d) + (normalizedStreak * 0.08d);
+        return Math.Clamp(chance, 0.35d, 0.80d);
     }
 
     private static Jump? GenerateFrenzySnakeAheadOfPlayer(
+        GameRoom room,
         BoardState board,
         int playerPosition,
         IReadOnlyList<PlayerState> players)
@@ -357,7 +448,7 @@ public sealed class GameEngine : IGameEngine
             .ToHashSet();
 
         var minHead = Math.Max(5, playerPosition + 2);
-        var maxHead = Math.Min(board.Size - 1, playerPosition + 8);
+        var maxHead = Math.Min(board.Size - 3, playerPosition + 8);
         if (maxHead < minHead)
         {
             return null;
@@ -369,12 +460,7 @@ public sealed class GameEngine : IGameEngine
 
         foreach (var head in headCandidates)
         {
-            if (occupiedCells.Contains(head))
-            {
-                continue;
-            }
-
-            if (board.JumpsByFrom.ContainsKey(head) || board.ForksByCell.ContainsKey(head))
+            if (!CanUseCellForTemporaryJump(head, room, board, occupiedCells))
             {
                 continue;
             }
@@ -389,12 +475,7 @@ public sealed class GameEngine : IGameEngine
             for (var attempt = 0; attempt < 8; attempt++)
             {
                 var tail = Random.Shared.Next(minTail, maxTail + 1);
-                if (occupiedCells.Contains(tail))
-                {
-                    continue;
-                }
-
-                if (board.JumpsByFrom.ContainsKey(tail) || board.ForksByCell.ContainsKey(tail))
+                if (!CanUseCellForTemporaryJump(tail, room, board, occupiedCells))
                 {
                     continue;
                 }
@@ -408,32 +489,27 @@ public sealed class GameEngine : IGameEngine
             }
         }
 
-        return GenerateFrenzySnakeFallback(board, occupiedCells);
+        return GenerateFrenzySnakeFallback(room, board, occupiedCells);
     }
 
-    private static Jump? GenerateFrenzySnakeFallback(BoardState board, IReadOnlySet<int> occupiedCells)
+    private static Jump? GenerateFrenzySnakeFallback(GameRoom room, BoardState board, IReadOnlySet<int> occupiedCells)
     {
         var attempts = 0;
-        while (attempts++ < 200)
+        while (attempts++ < 220)
         {
-            var head = Random.Shared.Next(5, board.Size);
+            var head = Random.Shared.Next(5, Math.Max(6, board.Size - 1));
             var tail = Random.Shared.Next(2, head);
             if (head - tail < 4)
             {
                 continue;
             }
 
-            if (occupiedCells.Contains(head) || occupiedCells.Contains(tail))
+            if (!CanUseCellForTemporaryJump(head, room, board, occupiedCells))
             {
                 continue;
             }
 
-            if (board.JumpsByFrom.ContainsKey(head) || board.JumpsByFrom.ContainsKey(tail))
-            {
-                continue;
-            }
-
-            if (board.ForksByCell.ContainsKey(head) || board.ForksByCell.ContainsKey(tail))
+            if (!CanUseCellForTemporaryJump(tail, room, board, occupiedCells))
             {
                 continue;
             }
@@ -444,15 +520,739 @@ public sealed class GameEngine : IGameEngine
         return null;
     }
 
-    private static bool TryConsumeShield(PlayerState player)
+    private static bool TryTakeBoardItem(GameRoom room, int cell, out BoardItem item)
     {
-        if (player.Shields <= 0)
+        for (var i = 0; i < room.ActiveItems.Count; i++)
+        {
+            if (room.ActiveItems[i].Cell != cell)
+            {
+                continue;
+            }
+
+            item = room.ActiveItems[i];
+            room.ActiveItems.RemoveAt(i);
+            return true;
+        }
+
+        item = null!;
+        return false;
+    }
+
+    private static string ApplyBoardItemEffect(
+        BoardItem item,
+        GameRoom room,
+        BoardState board,
+        PlayerState player,
+        ref int currentPosition,
+        out bool positionChanged)
+    {
+        positionChanged = false;
+        return item.Type switch
+        {
+            BoardItemType.RocketBoots => ApplyRocketBoots(board, ref currentPosition, out positionChanged),
+            BoardItemType.MagnetDice => ApplyMagnetDice(board, ref currentPosition, out positionChanged),
+            BoardItemType.SnakeRepellent => ApplySnakeRepellent(player),
+            BoardItemType.LadderHack => ApplyLadderHack(player),
+            BoardItemType.BananaPeel => ApplyBananaPeel(room, board, player, currentPosition),
+            BoardItemType.SwapGlove => ApplySwapGlove(room, board, player, ref currentPosition, out positionChanged),
+            BoardItemType.Anchor => ApplyAnchor(room, player),
+            BoardItemType.ChaosButton => ApplyChaosButton(room, board, player, ref currentPosition, out positionChanged),
+            BoardItemType.SnakeRow => ApplySnakeRow(room, board),
+            BoardItemType.BridgeToLeader => ApplyBridgeToLeader(room, board, player, ref currentPosition, out positionChanged),
+            BoardItemType.GlobalSnakeRound => ApplyGlobalSnakeRound(room, board),
+            _ => "ไอเท็มนี้ยังไม่มีเอฟเฟกต์"
+        };
+    }
+
+    private static string ApplyRocketBoots(BoardState board, ref int currentPosition, out bool moved)
+    {
+        var before = currentPosition;
+        currentPosition = Math.Min(board.Size, currentPosition + RocketBootsBoost);
+        moved = currentPosition > before;
+        return moved
+            ? $"Rocket Boots: พุ่ง +{RocketBootsBoost} ไปช่อง {currentPosition}"
+            : "Rocket Boots: แตะแล้วแต่ตันเส้นชัย";
+    }
+
+    private static string ApplyMagnetDice(BoardState board, ref int currentPosition, out bool moved)
+    {
+        var delta = Random.Shared.Next(0, 2) == 0 ? -1 : 1;
+        var before = currentPosition;
+        currentPosition = Math.Clamp(currentPosition + delta, 1, board.Size);
+        moved = currentPosition != before;
+        if (!moved)
+        {
+            return "Magnet Dice: แรงดูดไม่เกิดผล";
+        }
+
+        return delta > 0
+            ? $"Magnet Dice: ดันเพิ่ม +1 ไปช่อง {currentPosition}"
+            : $"Magnet Dice: ดึงถอย -1 ไปช่อง {currentPosition}";
+    }
+
+    private static string ApplySnakeRepellent(PlayerState player)
+    {
+        player.SnakeRepellentCharges = Math.Min(2, player.SnakeRepellentCharges + 1);
+        return $"Snake Repellent: กันงูสะสม {player.SnakeRepellentCharges} ชั้น";
+    }
+
+    private static string ApplyLadderHack(PlayerState player)
+    {
+        player.LadderHackPending = true;
+        return "Ladder Hack: บันไดครั้งถัดไปจะพุ่งเพิ่ม";
+    }
+
+    private static string ApplyBananaPeel(GameRoom room, BoardState board, PlayerState player, int currentPosition)
+    {
+        return TryPlaceBananaTrap(room, board, player.PlayerId, currentPosition, out var trapCell)
+            ? $"Banana Peel: วางกับดักที่ช่อง {trapCell}"
+            : "Banana Peel: หาช่องวางกับดักไม่สำเร็จ";
+    }
+
+    private static string ApplySwapGlove(
+        GameRoom room,
+        BoardState board,
+        PlayerState currentPlayer,
+        ref int currentPosition,
+        out bool moved)
+    {
+        moved = false;
+        var actorPosition = currentPosition;
+
+        var target = room.Players
+            .Where(x => !ReferenceEquals(x, currentPlayer) && x.Position > actorPosition)
+            .OrderBy(x => x.Position)
+            .ThenBy(x => room.Players.IndexOf(x))
+            .FirstOrDefault();
+
+        if (target is null)
+        {
+            return "Swap Glove: ไม่มีคนที่อยู่เหนือกว่าให้สลับ";
+        }
+
+        if (IsAnchorActive(target, room))
+        {
+            return $"Swap Glove: {target.DisplayName} เปิด Anchor กันไว้";
+        }
+
+        var targetPosition = target.Position;
+        target.Position = currentPosition;
+        currentPosition = Math.Clamp(targetPosition, 1, board.Size);
+        moved = true;
+
+        return $"Swap Glove: สลับตำแหน่งกับ {target.DisplayName}";
+    }
+
+    private static string ApplyAnchor(GameRoom room, PlayerState player)
+    {
+        player.AnchorProtectedUntilTurnCounter = Math.Max(
+            player.AnchorProtectedUntilTurnCounter,
+            room.TurnCounter + Math.Max(1, room.Players.Count));
+        return "Anchor: กันการสลับ/ผลักถอยจนถึงตาถัดไปของคุณ";
+    }
+
+    private static string ApplyChaosButton(
+        GameRoom room,
+        BoardState board,
+        PlayerState currentPlayer,
+        ref int currentPosition,
+        out bool moved)
+    {
+        moved = false;
+        var choice = Random.Shared.Next(0, 4);
+        switch (choice)
+        {
+            case 0:
+                {
+                    var movedPlayers = 0;
+                    foreach (var player in room.Players)
+                    {
+                        if (ReferenceEquals(player, currentPlayer))
+                        {
+                            var before = currentPosition;
+                            currentPosition = Math.Min(board.Size, currentPosition + 1);
+                            moved |= currentPosition != before;
+                            if (currentPosition != before)
+                            {
+                                movedPlayers++;
+                            }
+                            continue;
+                        }
+
+                        var beforeOther = player.Position;
+                        player.Position = Math.Min(Math.Max(1, board.Size - 1), player.Position + 1);
+                        if (player.Position != beforeOther)
+                        {
+                            movedPlayers++;
+                        }
+                    }
+
+                    return $"Chaos Button: ลมส่งท้าย ดันผู้เล่นขยับ +1 ({movedPlayers} คน)";
+                }
+            case 1:
+                {
+                    var affected = 0;
+                    foreach (var player in room.Players)
+                    {
+                        if (ReferenceEquals(player, currentPlayer))
+                        {
+                            var before = currentPosition;
+                            currentPosition = Math.Max(1, currentPosition - 1);
+                            moved |= currentPosition != before;
+                            if (currentPosition != before)
+                            {
+                                affected++;
+                            }
+                            continue;
+                        }
+
+                        if (IsAnchorActive(player, room))
+                        {
+                            continue;
+                        }
+
+                        var beforeOther = player.Position;
+                        player.Position = Math.Max(1, player.Position - 2);
+                        if (player.Position != beforeOther)
+                        {
+                            affected++;
+                        }
+                    }
+
+                    return $"Chaos Button: แผ่นดินไหว ผลักผู้เล่นถอย ({affected} คน)";
+                }
+            case 2:
+                {
+                    foreach (var player in room.Players)
+                    {
+                        player.Shields++;
+                    }
+
+                    return "Chaos Button: ฝนโล่ตก ทุกคนได้โล่ +1";
+                }
+            default:
+                {
+                    var actorPosition = currentPosition;
+                    var entries = room.Players
+                        .Select((player, index) => new
+                        {
+                            Player = player,
+                            Index = index,
+                            Position = ReferenceEquals(player, currentPlayer) ? actorPosition : player.Position
+                        })
+                        .OrderByDescending(x => x.Position)
+                        .ThenBy(x => x.Index)
+                        .ToArray();
+
+                    if (entries.Length < 2 || entries[0].Position == entries[^1].Position)
+                    {
+                        return "Chaos Button: ไพ่สลับตำแหน่งไม่ทำงาน (คะแนนสูสีกัน)";
+                    }
+
+                    var leader = entries[0];
+                    var trailer = entries[^1];
+                    if (IsAnchorActive(leader.Player, room) || IsAnchorActive(trailer.Player, room))
+                    {
+                        return "Chaos Button: ไพ่สลับโดน Anchor กันไว้";
+                    }
+
+                    SetEffectivePosition(currentPlayer, leader.Player, trailer.Position, ref currentPosition);
+                    SetEffectivePosition(currentPlayer, trailer.Player, leader.Position, ref currentPosition);
+                    moved = true;
+                    return $"Chaos Button: สลับหัวแถว {leader.Player.DisplayName} กับท้ายแถว {trailer.Player.DisplayName}";
+                }
+        }
+    }
+
+    private static string ApplySnakeRow(GameRoom room, BoardState board)
+    {
+        if (room.Players.Count == 0)
+        {
+            return "Snake Row: ไม่มีผู้เล่นในห้อง";
+        }
+
+        var trailingPosition = room.Players.Min(x => x.Position);
+        var beneficiary = room.Players
+            .Where(x => x.Position == trailingPosition)
+            .OrderBy(x => room.Players.IndexOf(x))
+            .First();
+
+        var seedCell = Math.Min(board.Size - 1, Math.Max(3, beneficiary.Position + 7));
+        var rowStart = ((seedCell - 1) / 10) * 10 + 1;
+        var rowEnd = Math.Min(board.Size - 1, rowStart + 9);
+
+        if (rowEnd < 5)
+        {
+            return "Snake Row: แถวเป้าหมายไม่พร้อมสร้างงู";
+        }
+
+        var occupied = room.Players.Select(x => x.Position).ToHashSet();
+        var candidates = Enumerable.Range(rowStart, rowEnd - rowStart + 1)
+            .Where(x => x >= 5 && !occupied.Contains(x))
+            .ToArray();
+
+        if (candidates.Length < 3)
+        {
+            return "Snake Row: ช่องในแถวไม่พอสำหรับสร้างงู";
+        }
+
+        var safeCell = candidates[Random.Shared.Next(candidates.Length)];
+        var expiresAt = room.TurnCounter + Math.Max(2, room.Players.Count);
+        var created = 0;
+
+        foreach (var head in candidates)
+        {
+            if (head == safeCell)
+            {
+                continue;
+            }
+
+            var tail = Math.Max(2, head - Random.Shared.Next(3, 9));
+            if (!CanPlaceTemporaryJump(room, board, head, tail, occupied))
+            {
+                continue;
+            }
+
+            room.TemporaryJumps.Add(new TemporaryJumpState
+            {
+                EffectId = Guid.NewGuid().ToString("N")[..10],
+                Jump = new Jump(head, tail, JumpType.Snake, true),
+                ExpiresAtTurnCounter = expiresAt,
+                Source = "SnakeRow"
+            });
+            created++;
+        }
+
+        return created > 0
+            ? $"Snake Row: แถว {rowStart}-{rowEnd} มีงู {created} ตัว (ช่องรอด {safeCell})"
+            : "Snake Row: สร้างงูไม่สำเร็จ";
+    }
+
+    private static string ApplyBridgeToLeader(
+        GameRoom room,
+        BoardState board,
+        PlayerState player,
+        ref int currentPosition,
+        out bool moved)
+    {
+        moved = false;
+        var leader = room.Players
+            .Where(x => !ReferenceEquals(x, player))
+            .OrderByDescending(x => x.Position)
+            .ThenBy(x => room.Players.IndexOf(x))
+            .FirstOrDefault();
+
+        if (leader is null || leader.Position <= currentPosition)
+        {
+            return "Bridge to Leader: ไม่มีคนที่นำหน้าให้ไล่ทัน";
+        }
+
+        var before = currentPosition;
+        currentPosition = Math.Clamp(leader.Position, 1, board.Size);
+        moved = currentPosition != before;
+        return moved
+            ? $"Bridge to Leader: พุ่งไปช่อง {currentPosition} เท่าผู้นำ"
+            : "Bridge to Leader: ตำแหน่งเท่าผู้นำอยู่แล้ว";
+    }
+
+    private static string ApplyGlobalSnakeRound(GameRoom room, BoardState board)
+    {
+        var targetCount = Math.Clamp(room.Players.Count * 3, 6, 18);
+        var occupied = room.Players.Select(x => x.Position).ToHashSet();
+        var expiresAt = room.TurnCounter + Math.Max(2, room.Players.Count);
+        var created = 0;
+        var attempts = 0;
+
+        while (created < targetCount && attempts++ < 900)
+        {
+            var head = Random.Shared.Next(5, Math.Max(6, board.Size - 1));
+            var tailMin = Math.Max(2, head - 12);
+            var tailMax = head - 3;
+            if (tailMax < tailMin)
+            {
+                continue;
+            }
+
+            var tail = Random.Shared.Next(tailMin, tailMax + 1);
+            if (!CanPlaceTemporaryJump(room, board, head, tail, occupied))
+            {
+                continue;
+            }
+
+            room.TemporaryJumps.Add(new TemporaryJumpState
+            {
+                EffectId = Guid.NewGuid().ToString("N")[..10],
+                Jump = new Jump(head, tail, JumpType.Snake, true),
+                ExpiresAtTurnCounter = expiresAt,
+                Source = "GlobalSnakeRound"
+            });
+            created++;
+        }
+
+        return created > 0
+            ? $"Global Snake Round: เพิ่มงูชั่วคราว {created} ตัว จนครบรอบผู้เล่น"
+            : "Global Snake Round: พื้นที่กระดานแน่นเกินไป งูไม่เกิดเพิ่ม";
+    }
+
+    private static bool TryPlaceBananaTrap(
+        GameRoom room,
+        BoardState board,
+        string ownerPlayerId,
+        int currentPosition,
+        out int trapCell)
+    {
+        trapCell = 0;
+        var occupied = room.Players.Select(x => x.Position).ToHashSet();
+        var minCell = Math.Max(3, currentPosition + 2);
+        var maxCell = Math.Min(board.Size - 1, currentPosition + 10);
+        if (maxCell < minCell)
         {
             return false;
         }
 
-        player.Shields--;
+        var candidates = Enumerable.Range(minCell, maxCell - minCell + 1)
+            .OrderBy(_ => Random.Shared.Next())
+            .ToArray();
+
+        foreach (var cell in candidates)
+        {
+            if (occupied.Contains(cell))
+            {
+                continue;
+            }
+
+            if (board.JumpsByFrom.ContainsKey(cell) || board.ForksByCell.ContainsKey(cell))
+            {
+                continue;
+            }
+
+            if (room.ActiveItems.Any(x => x.Cell == cell))
+            {
+                continue;
+            }
+
+            if (room.BananaTraps.Any(x => x.Cell == cell))
+            {
+                continue;
+            }
+
+            if (room.TemporaryJumps.Any(x => x.Jump.From == cell || x.Jump.To == cell))
+            {
+                continue;
+            }
+
+            if (room.ActiveFrenzySnake is not null &&
+                (room.ActiveFrenzySnake.From == cell || room.ActiveFrenzySnake.To == cell))
+            {
+                continue;
+            }
+
+            trapCell = cell;
+            room.BananaTraps.Add(new BananaTrapState
+            {
+                TrapId = Guid.NewGuid().ToString("N")[..10],
+                Cell = cell,
+                OwnerPlayerId = ownerPlayerId,
+                ExpiresAtTurnCounter = room.TurnCounter + Math.Max(2, room.Players.Count)
+            });
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryTriggerBananaTrap(
+        GameRoom room,
+        BoardState board,
+        PlayerState player,
+        ref int currentPosition,
+        out int trapCell,
+        out string summary,
+        out bool moved)
+    {
+        moved = false;
+        trapCell = currentPosition;
+        summary = string.Empty;
+        var actorPosition = currentPosition;
+
+        var trap = room.BananaTraps
+            .FirstOrDefault(x => x.Cell == actorPosition && !string.Equals(x.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal));
+        if (trap is null)
+        {
+            return false;
+        }
+
+        room.BananaTraps.Remove(trap);
+        trapCell = trap.Cell;
+
+        if (IsAnchorActive(player, room))
+        {
+            summary = "Banana Peel: ติดกับดักแต่ Anchor กันแรงถอยไว้ได้";
+            return true;
+        }
+
+        var before = currentPosition;
+        currentPosition = Math.Clamp(currentPosition - BananaSlipBack, 1, board.Size);
+        moved = currentPosition != before;
+        summary = moved
+            ? $"Banana Peel: ลื่นถอย {before} -> {currentPosition}"
+            : "Banana Peel: ลื่นแต่ไม่ถอย";
         return true;
+    }
+
+    private static Jump? FindJumpAtCell(
+        GameRoom room,
+        BoardState board,
+        int cell,
+        Jump? frenzySnake,
+        IReadOnlySet<int> blockedSnakeCells)
+    {
+        if (board.JumpsByFrom.TryGetValue(cell, out var boardJump))
+        {
+            if (boardJump.Type == JumpType.Snake && blockedSnakeCells.Contains(cell))
+            {
+                return null;
+            }
+
+            return boardJump;
+        }
+
+        var temporaryJump = room.TemporaryJumps
+            .Select(x => x.Jump)
+            .FirstOrDefault(x => x.From == cell);
+        if (temporaryJump is not null)
+        {
+            if (temporaryJump.Type == JumpType.Snake && blockedSnakeCells.Contains(cell))
+            {
+                return null;
+            }
+
+            return temporaryJump;
+        }
+
+        if (frenzySnake is not null && frenzySnake.From == cell && !blockedSnakeCells.Contains(cell))
+        {
+            return frenzySnake;
+        }
+
+        return null;
+    }
+
+    private static bool IsSameJump(Jump? left, Jump? right)
+    {
+        if (left is null || right is null)
+        {
+            return false;
+        }
+
+        return left.From == right.From &&
+               left.To == right.To &&
+               left.Type == right.Type;
+    }
+
+    private static SnakeProtectionKind TryConsumeSnakeProtection(PlayerState player)
+    {
+        if (player.SnakeRepellentCharges > 0)
+        {
+            player.SnakeRepellentCharges--;
+            return SnakeProtectionKind.Repellent;
+        }
+
+        if (player.Shields > 0)
+        {
+            player.Shields--;
+            return SnakeProtectionKind.Shield;
+        }
+
+        return SnakeProtectionKind.None;
+    }
+
+    private static bool IsAnchorActive(PlayerState player, GameRoom room) =>
+        player.AnchorProtectedUntilTurnCounter > room.TurnCounter;
+
+    private static void SetEffectivePosition(
+        PlayerState currentPlayer,
+        PlayerState targetPlayer,
+        int newPosition,
+        ref int currentPosition)
+    {
+        if (ReferenceEquals(currentPlayer, targetPlayer))
+        {
+            currentPosition = newPosition;
+            return;
+        }
+
+        targetPlayer.Position = newPosition;
+    }
+
+    private static bool CanPlaceTemporaryJump(
+        GameRoom room,
+        BoardState board,
+        int head,
+        int tail,
+        IReadOnlySet<int> occupiedCells)
+    {
+        if (head <= 2 || tail <= 1 || head >= board.Size || tail >= board.Size)
+        {
+            return false;
+        }
+
+        if (head - tail < 3)
+        {
+            return false;
+        }
+
+        if (!CanUseCellForTemporaryJump(head, room, board, occupiedCells))
+        {
+            return false;
+        }
+
+        if (!CanUseCellForTemporaryJump(tail, room, board, occupiedCells))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool CanUseCellForTemporaryJump(
+        int cell,
+        GameRoom room,
+        BoardState board,
+        IReadOnlySet<int> occupiedCells)
+    {
+        if (cell <= 2 || cell >= board.Size)
+        {
+            return false;
+        }
+
+        if (occupiedCells.Contains(cell))
+        {
+            return false;
+        }
+
+        if (board.JumpsByFrom.ContainsKey(cell) || board.ForksByCell.ContainsKey(cell))
+        {
+            return false;
+        }
+
+        if (room.ActiveItems.Any(x => x.Cell == cell) ||
+            room.BananaTraps.Any(x => x.Cell == cell))
+        {
+            return false;
+        }
+
+        if (room.TemporaryJumps.Any(x => x.Jump.From == cell || x.Jump.To == cell))
+        {
+            return false;
+        }
+
+        if (room.ActiveFrenzySnake is not null &&
+            (room.ActiveFrenzySnake.From == cell || room.ActiveFrenzySnake.To == cell))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static void PruneExpiredTransientState(GameRoom room)
+    {
+        room.TemporaryJumps.RemoveAll(x => x.ExpiresAtTurnCounter <= room.TurnCounter);
+        room.BananaTraps.RemoveAll(x => x.ExpiresAtTurnCounter <= room.TurnCounter);
+    }
+
+    private static void EnsureBoardItems(GameRoom room, BoardState board)
+    {
+        if (!room.BoardOptions.RuleOptions.ItemsEnabled)
+        {
+            room.ActiveItems.Clear();
+            room.BananaTraps.Clear();
+            room.TemporaryJumps.RemoveAll(x => string.Equals(x.Source, "SnakeRow", StringComparison.OrdinalIgnoreCase) ||
+                                               string.Equals(x.Source, "GlobalSnakeRound", StringComparison.OrdinalIgnoreCase));
+            return;
+        }
+
+        var targetCount = ResolveTargetItemCount(board.Size, room.Players.Count);
+        if (room.ActiveItems.Count >= targetCount)
+        {
+            return;
+        }
+
+        var blockedCells = BuildItemBlockedCellSet(room, board);
+        var attempts = 0;
+        while (room.ActiveItems.Count < targetCount && attempts++ < MaxItemSpawnAttempts)
+        {
+            var cell = Random.Shared.Next(3, Math.Max(4, board.Size));
+            if (cell <= 2 || cell >= board.Size)
+            {
+                continue;
+            }
+
+            if (blockedCells.Contains(cell))
+            {
+                continue;
+            }
+
+            var itemType = ItemPool[Random.Shared.Next(0, ItemPool.Length)];
+            room.ActiveItems.Add(new BoardItem(
+                Guid.NewGuid().ToString("N")[..10],
+                cell,
+                itemType));
+            blockedCells.Add(cell);
+        }
+    }
+
+    private static HashSet<int> BuildItemBlockedCellSet(GameRoom room, BoardState board)
+    {
+        var blocked = new HashSet<int> { 1, 2, board.Size };
+
+        foreach (var player in room.Players)
+        {
+            blocked.Add(player.Position);
+        }
+
+        foreach (var jump in board.Jumps)
+        {
+            blocked.Add(jump.From);
+            blocked.Add(jump.To);
+        }
+
+        foreach (var fork in board.ForkCells)
+        {
+            blocked.Add(fork.Cell);
+        }
+
+        foreach (var item in room.ActiveItems)
+        {
+            blocked.Add(item.Cell);
+        }
+
+        foreach (var trap in room.BananaTraps)
+        {
+            blocked.Add(trap.Cell);
+        }
+
+        foreach (var jump in room.TemporaryJumps.Select(x => x.Jump))
+        {
+            blocked.Add(jump.From);
+            blocked.Add(jump.To);
+        }
+
+        if (room.ActiveFrenzySnake is not null)
+        {
+            blocked.Add(room.ActiveFrenzySnake.From);
+            blocked.Add(room.ActiveFrenzySnake.To);
+        }
+
+        return blocked;
+    }
+
+    private static int ResolveTargetItemCount(int boardSize, int playerCount)
+    {
+        var byBoard = (int)Math.Ceiling(boardSize / 35d);
+        var byPlayers = Math.Max(2, playerCount);
+        return Math.Clamp(byBoard + byPlayers, 6, 24);
     }
 
     private static void AdvanceTurn(GameRoom room)
@@ -467,5 +1267,12 @@ public sealed class GameEngine : IGameEngine
         {
             room.CompletedRounds++;
         }
+    }
+
+    private enum SnakeProtectionKind
+    {
+        None = 0,
+        Shield = 1,
+        Repellent = 2
     }
 }

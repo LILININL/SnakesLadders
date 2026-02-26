@@ -38,3 +38,18 @@ public enum ForkPathChoice
     Safe = 0,
     Risky = 1
 }
+
+public enum BoardItemType
+{
+    RocketBoots = 0,
+    MagnetDice = 1,
+    SnakeRepellent = 2,
+    LadderHack = 3,
+    BananaPeel = 4,
+    SwapGlove = 5,
+    Anchor = 6,
+    ChaosButton = 7,
+    SnakeRow = 8,
+    BridgeToLeader = 9,
+    GlobalSnakeRound = 10
+}

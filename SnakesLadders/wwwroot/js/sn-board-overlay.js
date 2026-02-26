@@ -10,7 +10,10 @@
       return;
     }
 
-    const jumps = [...(Array.isArray(board.jumps) ? board.jumps : [])];
+    const jumps = [
+      ...(Array.isArray(board.jumps) ? board.jumps : []),
+      ...(Array.isArray(board.temporaryJumps) ? board.temporaryJumps : [])
+    ];
     if (board.activeFrenzySnake?.type === 0) {
       jumps.push(board.activeFrenzySnake);
     }
