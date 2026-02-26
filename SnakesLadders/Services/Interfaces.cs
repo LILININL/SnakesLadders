@@ -26,6 +26,7 @@ public interface IGameRoomService
     ServiceResult<RoomSnapshot> StartGame(string connectionId, StartGameRequest request);
     ServiceResult<TurnEnvelope> RollDice(string connectionId, RollDiceRequest request, bool isAutoRoll = false);
     ServiceResult<RoomSnapshot> SetReady(string connectionId, SetReadyRequest request);
+    ServiceResult<RoomSnapshot> SetAvatar(string connectionId, SetAvatarRequest request);
     ServiceResult<RoomSnapshot> ResetFinishedGame(string roomCode);
     ServiceResult<ChatMessage> SendChat(string connectionId, SendChatRequest request);
     ServiceResult<RoomSnapshot> LeaveRoom(string connectionId, string? roomCode = null);

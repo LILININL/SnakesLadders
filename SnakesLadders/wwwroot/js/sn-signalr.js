@@ -24,7 +24,8 @@
         await invokeHub("ResumeRoom", {
           roomCode: state.roomCode,
           sessionId: state.sessionId,
-          playerName: state.profileName
+          playerName: state.profileName,
+          avatarId: state.profileAvatarId
         }, true);
       }
     });
@@ -51,6 +52,7 @@
       }
 
       state.room = room;
+      root.session.syncProfileAvatarFromRoom(room, state.playerId);
       flushPendingTurnTrigger(room);
       root.boardFocus?.onRoomBound?.(false);
       root.feedback.renderAll();
@@ -58,10 +60,12 @@
 
     state.connection.on("GameStarted", (room) => {
       state.room = room;
+      root.session.syncProfileAvatarFromRoom(room, state.playerId);
       seedTurnTriggerCounter(room);
       root.boardFocus?.onRoomBound?.(true);
       root.feedback.logEvent("เกมเริ่มแล้ว ลุยได้เลย");
       root.feedback.renderAll();
+      root.boardFx?.showTurnStart?.(room, room.currentTurnPlayerId, "ผู้เริ่มเกม");
     });
 
     state.connection.on("TurnChanged", (playerId) => {
@@ -149,6 +153,7 @@
     state.pageTransitioning = false;
     state.pageTransitionDirection = 0;
     seedTurnTriggerCounter(payload.room);
+    root.session.syncProfileAvatarFromRoom(payload.room, payload.playerId);
     root.turnAnimation?.reset?.();
     root.boardFx?.reset?.();
     root.boardFocus?.onRoomBound?.(true);
@@ -186,6 +191,7 @@
     const player = room.players?.find((x) => x.playerId === playerId);
     root.boardFocus?.refreshPendingBeaconTarget?.();
     root.feedback.logEvent(`ตอนนี้เป็นตาของ ${player ? player.displayName : playerId}`);
+    root.boardFx?.showTurnStart?.(room, playerId, "ถึงเทิร์นของ");
     return true;
   }
 

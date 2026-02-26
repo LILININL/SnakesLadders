@@ -39,7 +39,8 @@
     const resumed = await root.realtime.invokeHub("ResumeRoom", {
       roomCode: last.roomCode,
       sessionId: last.sessionId,
-      playerName: state.profileName
+      playerName: state.profileName,
+      avatarId: state.profileAvatarId
     }, true);
 
     if (!resumed) {

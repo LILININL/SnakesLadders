@@ -43,9 +43,19 @@
         const token = document.createElement("div");
         token.className = "board-token";
         if (player.playerId === state.playerId) token.classList.add("me");
-        if (player.playerId === turnPlayerId) token.classList.add("turn");
         if (!player.connected) token.classList.add("offline");
-        token.textContent = root.utils?.resolvePlayerMarker?.(player.playerId, player.displayName, markerMap) ?? "ผ";
+        const safeAvatarId = root.utils?.normalizeAvatarId?.(player.avatarId, 1) ?? 1;
+        const safeAvatarSrc = root.utils?.avatarSrc?.(safeAvatarId) ?? "";
+        if (safeAvatarSrc) {
+          token.classList.add("avatar");
+          const avatar = document.createElement("img");
+          avatar.className = "token-avatar-img";
+          avatar.src = safeAvatarSrc;
+          avatar.alt = `Avatar ${safeAvatarId}`;
+          token.replaceChildren(avatar);
+        } else {
+          token.textContent = root.utils?.resolvePlayerMarker?.(player.playerId, player.displayName, markerMap) ?? "ผ";
+        }
         token.title = `${player.displayName}${!player.connected ? " (ออฟไลน์)" : ""}`;
 
         const offset = offsets[index] ?? { x: 0, y: 0 };

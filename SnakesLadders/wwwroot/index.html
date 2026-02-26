@@ -49,6 +49,36 @@
             <input id="createName" type="text" maxlength="24" value="หัวห้อง">
           </label>
           <label>
+            Avatar ผู้สร้าง
+            <div id="createAvatarPicker" class="avatar-picker form-avatar-picker" role="listbox" aria-label="เลือก Avatar ผู้สร้าง">
+              <button type="button" class="avatar-choice selected" data-avatar-id="1" aria-label="เลือก Avatar 1">
+                <img src="/assets/avatars/avatar-01.png" alt="Avatar 1">
+              </button>
+              <button type="button" class="avatar-choice" data-avatar-id="2" aria-label="เลือก Avatar 2">
+                <img src="/assets/avatars/avatar-02.png" alt="Avatar 2">
+              </button>
+              <button type="button" class="avatar-choice" data-avatar-id="3" aria-label="เลือก Avatar 3">
+                <img src="/assets/avatars/avatar-03.png" alt="Avatar 3">
+              </button>
+              <button type="button" class="avatar-choice" data-avatar-id="4" aria-label="เลือก Avatar 4">
+                <img src="/assets/avatars/avatar-04.png" alt="Avatar 4">
+              </button>
+              <button type="button" class="avatar-choice" data-avatar-id="5" aria-label="เลือก Avatar 5">
+                <img src="/assets/avatars/avatar-05.png" alt="Avatar 5">
+              </button>
+              <button type="button" class="avatar-choice" data-avatar-id="6" aria-label="เลือก Avatar 6">
+                <img src="/assets/avatars/avatar-06.png" alt="Avatar 6">
+              </button>
+              <button type="button" class="avatar-choice" data-avatar-id="7" aria-label="เลือก Avatar 7">
+                <img src="/assets/avatars/avatar-07.png" alt="Avatar 7">
+              </button>
+              <button type="button" class="avatar-choice" data-avatar-id="8" aria-label="เลือก Avatar 8">
+                <img src="/assets/avatars/avatar-08.gif" alt="Avatar 8">
+              </button>
+            </div>
+            <input id="createAvatarId" type="hidden" value="1">
+          </label>
+          <label>
             ขนาดกระดาน (อย่างน้อย 50 ช่อง)
             <input id="boardSize" type="number" min="50" max="5000" value="100">
           </label>
@@ -123,6 +153,19 @@
           <input id="joinName" type="text" maxlength="24" value="ผู้เล่น">
         </label>
         <label>
+          Avatar
+          <select id="joinAvatarId">
+            <option value="1">Avatar 1</option>
+            <option value="2">Avatar 2</option>
+            <option value="3">Avatar 3</option>
+            <option value="4">Avatar 4</option>
+            <option value="5">Avatar 5</option>
+            <option value="6">Avatar 6</option>
+            <option value="7">Avatar 7</option>
+            <option value="8">Avatar 8</option>
+          </select>
+        </label>
+        <label>
           รหัสห้อง
           <input id="joinRoomCode" type="text" maxlength="8" placeholder="ABC123">
         </label>
@@ -176,6 +219,13 @@
               <span id="readySummary" class="meta-chip">พร้อม 0/0 คน</span>
             </div>
             <ul id="readyList" class="ready-list"></ul>
+            <div id="readyAvatarSection" class="ready-avatar-section hidden">
+              <div class="ready-avatar-head">
+                <strong>Avatar ของคุณ</strong>
+                <span id="readyAvatarHint" class="meta-chip">เลือกได้จนกว่าจะกดพร้อม</span>
+              </div>
+              <div id="readyAvatarPicker" class="avatar-picker"></div>
+            </div>
             <button id="toggleReadyBtn" class="btn hidden" type="button">ฉันพร้อมแล้ว</button>
           </div>
         </div>
@@ -235,8 +285,17 @@
 <div id="winnerOverlay" class="winner-overlay hidden" aria-hidden="true">
   <div class="winner-card">
     <div class="winner-badge">ผู้ชนะ</div>
+    <img id="winnerAvatar" class="winner-avatar" alt="Avatar ผู้ชนะ">
     <h2 id="winnerNameText">ผู้เล่น</h2>
     <p id="winnerMetaText">คว้าชัยไปอย่างสวยงาม</p>
+  </div>
+</div>
+
+<div id="firstTurnOverlay" class="first-turn-overlay hidden" aria-hidden="true">
+  <div class="first-turn-card">
+    <div id="firstTurnBadge" class="first-turn-badge">ผู้เริ่มเกม</div>
+    <img id="firstTurnAvatar" class="first-turn-avatar" alt="Avatar ผู้เริ่มเกม">
+    <h2 id="firstTurnNameText">ผู้เล่น</h2>
   </div>
 </div>
 

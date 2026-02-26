@@ -1,8 +1,9 @@
 (() => {
   const root = window.SNL;
   const { state, el } = root;
-  const { escapeHtml } = root.utils;
+  const { escapeHtml, avatarSrc, normalizeAvatarId } = root.utils;
   let diceChain = Promise.resolve();
+  let turnStartChain = Promise.resolve();
 
   function showDice(playerId, diceValue) {
     diceChain = diceChain.then(() => animateDice(playerId, diceValue)).catch(() => {});
@@ -15,9 +16,15 @@
     }
 
     const winnerId = turn?.winnerPlayerId ?? room?.winnerPlayerId;
+    const winner = (room?.players ?? []).find((x) => x.playerId === winnerId);
     const winnerName = resolvePlayerName(winnerId, room);
+    const winnerAvatarId = normalizeAvatarId(winner?.avatarId, 1);
     el.winnerNameText.textContent = winnerName;
     el.winnerMetaText.textContent = winnerMetaText(turn?.finishReason);
+    if (el.winnerAvatar) {
+      el.winnerAvatar.src = avatarSrc(winnerAvatarId);
+      el.winnerAvatar.alt = `Avatar ${winnerAvatarId}`;
+    }
 
     el.winnerOverlay.classList.remove("hidden");
     el.winnerOverlay.classList.add("show");
@@ -31,6 +38,13 @@
       });
   }
 
+  function showTurnStart(room, playerId = null, badge = "ถึงเทิร์นของ") {
+    turnStartChain = turnStartChain
+      .then(() => animateTurnStart(room, playerId ?? room?.currentTurnPlayerId ?? "", badge))
+      .catch(() => {});
+    return turnStartChain;
+  }
+
   function reset() {
     if (el.diceResultFx) {
       el.diceResultFx.className = "dice-result-fx hidden";
@@ -39,6 +53,10 @@
 
     if (el.winnerOverlay) {
       el.winnerOverlay.className = "winner-overlay hidden";
+    }
+
+    if (el.firstTurnOverlay) {
+      el.firstTurnOverlay.className = "first-turn-overlay hidden";
     }
 
     if (el.jumpHintBadge) {
@@ -85,6 +103,34 @@
     return "เข้าเส้นชัยได้อย่างเฉียบขาด";
   }
 
+  async function animateTurnStart(room, playerId, badge) {
+    if (!el.firstTurnOverlay || !el.firstTurnBadge || !el.firstTurnAvatar || !el.firstTurnNameText || !room) {
+      return;
+    }
+
+    if (!playerId) {
+      return;
+    }
+
+    const player = (room.players ?? []).find((x) => x.playerId === playerId);
+    if (!player) {
+      return;
+    }
+
+    const safeAvatarId = normalizeAvatarId(player.avatarId, 1);
+    el.firstTurnBadge.textContent = String(badge ?? "ถึงเทิร์นของ");
+    el.firstTurnAvatar.src = avatarSrc(safeAvatarId);
+    el.firstTurnAvatar.alt = `Avatar ${safeAvatarId}`;
+    el.firstTurnNameText.textContent = player.displayName ?? playerId;
+
+    el.firstTurnOverlay.classList.remove("hidden");
+    el.firstTurnOverlay.classList.add("show");
+    await wait(1650);
+    el.firstTurnOverlay.classList.remove("show");
+    await wait(220);
+    el.firstTurnOverlay.classList.add("hidden");
+  }
+
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -111,6 +157,7 @@
   root.boardFx = {
     showDice,
     showWinner,
+    showTurnStart,
     showJumpHint,
     reset
   };

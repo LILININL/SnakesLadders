@@ -4,6 +4,9 @@
 
   function wireForms() {
     el.nameForm.addEventListener("submit", root.session.onSaveProfileName);
+    el.createAvatarId?.addEventListener("change", onSelectProfileAvatar);
+    el.joinAvatarId?.addEventListener("change", onSelectProfileAvatar);
+    el.createAvatarPicker?.addEventListener("click", onPickCreateAvatar);
 
     el.showCreatePanelBtn.addEventListener("click", () => {
       state.createPanelVisible = true;
@@ -52,6 +55,7 @@
       root.roomUi.toggleChatPanel(),
     );
     el.toggleReadyBtn.addEventListener("click", onToggleReady);
+    el.readyAvatarPicker?.addEventListener("click", onPickWaitingAvatar);
 
     el.leaveRoomBtn.addEventListener("click", onLeaveRoom);
 
@@ -76,8 +80,13 @@
     state.createPanelVisible = false;
     root.renderLobby.renderCreatePanel();
 
+    const avatarId = root.session.ensureProfileAvatarId(
+      el.createAvatarId?.value,
+    );
+
     await root.realtime.invokeHub("CreateRoom", {
       playerName: name,
+      avatarId,
       boardOptions: root.session.buildBoardOptions(boardSize),
     });
   }
@@ -112,11 +121,13 @@
   async function joinRoomCode(roomCode) {
     const name = root.session.ensureProfileName(el.joinName.value);
     if (!name) return;
+    const avatarId = root.session.ensureProfileAvatarId(el.joinAvatarId?.value);
 
     const session = root.storage.getRoomSession(roomCode);
     await root.realtime.invokeHub("JoinRoom", {
       roomCode,
       playerName: name,
+      avatarId,
       sessionId: session?.sessionId ?? null,
     });
   }
@@ -200,6 +211,64 @@
     await root.realtime.invokeHub("SetReady", {
       roomCode: state.roomCode,
       isReady: !me.isReady,
+    });
+  }
+
+  function onSelectProfileAvatar(event) {
+    root.session.ensureProfileAvatarId(event?.target?.value);
+    root.feedback.renderAll();
+  }
+
+  function onPickCreateAvatar(event) {
+    const button = event.target.closest("[data-avatar-id]");
+    if (!button || button.disabled) {
+      return;
+    }
+
+    const avatarId = root.utils.normalizeAvatarId(
+      button.dataset.avatarId,
+      state.profileAvatarId,
+    );
+    root.session.ensureProfileAvatarId(avatarId);
+    root.feedback.renderAll();
+  }
+
+  async function onPickWaitingAvatar(event) {
+    const button = event.target.closest("[data-avatar-id]");
+    if (!button || button.disabled) {
+      return;
+    }
+
+    if (
+      !state.roomCode ||
+      !state.room ||
+      state.room.status !== root.GAME_STATUS.WAITING
+    ) {
+      return;
+    }
+
+    const me = state.room.players.find((x) => x.playerId === state.playerId);
+    if (!me) {
+      return;
+    }
+
+    const isHost = me.playerId === state.room.hostPlayerId;
+    if (me.isReady && !isHost) {
+      root.feedback.logEvent("ยกเลิกพร้อมก่อน แล้วค่อยเปลี่ยน Avatar");
+      return;
+    }
+
+    const avatarId = root.utils.normalizeAvatarId(
+      button.dataset.avatarId,
+      me.avatarId,
+    );
+    if (avatarId === me.avatarId) {
+      return;
+    }
+
+    await root.realtime.invokeHub("SetAvatar", {
+      roomCode: state.roomCode,
+      avatarId,
     });
   }
 

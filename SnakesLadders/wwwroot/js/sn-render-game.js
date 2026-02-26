@@ -1,7 +1,7 @@
 (() => {
   const root = window.SNL;
   const { state, el, GAME_STATUS } = root;
-  const { escapeHtml, formatClock } = root.utils;
+  const { escapeHtml, formatClock, avatarSrc, normalizeAvatarId } = root.utils;
 
   function renderRoomHeader() {
     if (!state.room) {
@@ -52,10 +52,14 @@
       const stats = waiting
         ? `สถานะ: <span class="inline-pill ${tone}">${escapeHtml(label)}</span>`
         : `ตำแหน่ง: ${player.position} | โล่: ${player.shields}`;
+      const safeAvatarId = normalizeAvatarId(player.avatarId, 1);
 
       return `
         <li class="${classes.join(" ")}">
-          <strong>${escapeHtml(player.displayName)}</strong>
+          <div class="player-name-row">
+            <img class="inline-avatar" src="${avatarSrc(safeAvatarId)}" alt="Avatar ${safeAvatarId}">
+            <strong>${escapeHtml(player.displayName)}</strong>
+          </div>
           <br>
           ${stats}
           ${player.connected ? "" : "<br><em>หลุดการเชื่อมต่อ</em>"}

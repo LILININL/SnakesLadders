@@ -7,6 +7,8 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
 {
     private const int OfflineAutoRollDelayMs = 700;
     private const int TurnAnimationBufferSeconds = 14;
+    private const int MinAvatarId = 1;
+    private const int MaxAvatarId = 8;
 
     private readonly Lock _sync = new();
     private readonly Dictionary<string, GameRoom> _rooms = new(StringComparer.OrdinalIgnoreCase);
@@ -32,7 +34,13 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             var roomCode = GenerateRoomCodeUnsafe();
             var playerId = NewPlayerId();
             var sessionId = NewSessionId();
-            var player = NewPlayerState(playerId, sessionId, connectionId, request.PlayerName, boardOptions);
+            var player = NewPlayerState(
+                playerId,
+                sessionId,
+                connectionId,
+                request.PlayerName,
+                NormalizeAvatarId(request.AvatarId),
+                boardOptions);
             player.IsReady = true;
 
             var room = new GameRoom
@@ -92,7 +100,13 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
 
             var playerId = NewPlayerId();
             var sessionId = NewSessionId();
-            var player = NewPlayerState(playerId, sessionId, connectionId, request.PlayerName, room.BoardOptions);
+            var player = NewPlayerState(
+                playerId,
+                sessionId,
+                connectionId,
+                request.PlayerName,
+                NormalizeAvatarId(request.AvatarId),
+                room.BoardOptions);
             player.IsReady = false;
             room.Players.Add(player);
 
@@ -202,12 +216,14 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             }
 
             room.Status = GameStatus.Started;
-            room.CurrentTurnIndex = 0;
+            room.CurrentTurnIndex = random.Next(0, room.Players.Count);
             room.TurnCounter = 0;
             room.CompletedRounds = 0;
             room.WinnerPlayerId = null;
             room.FinishReason = null;
             room.ActiveFrenzySnake = null;
+            room.ActiveFrenzySnakeTurnsLeft = 0;
+            room.FrenzyNoSpawnStreak = 0;
             room.TurnDeadlineUtc = ResolveNextTurnDeadlineUnsafe(room, room.CurrentTurnPlayer);
 
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
@@ -319,6 +335,47 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
         }
     }
 
+    public ServiceResult<RoomSnapshot> SetAvatar(string connectionId, SetAvatarRequest request)
+    {
+        lock (_sync)
+        {
+            if (!_connections.TryGetValue(connectionId, out var binding))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("คุณยังไม่ได้เข้าห้อง");
+            }
+
+            var roomCode = NormalizeRoomCode(request.RoomCode);
+            if (!binding.RoomCode.Equals(roomCode, StringComparison.OrdinalIgnoreCase))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("คุณไม่ได้อยู่ในห้องนี้");
+            }
+
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบห้องที่ระบุ");
+            }
+
+            if (room.Status != GameStatus.Waiting)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("เปลี่ยน Avatar ได้เฉพาะก่อนเริ่มเกม");
+            }
+
+            var player = room.FindPlayer(binding.PlayerId);
+            if (player is null)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบผู้เล่น");
+            }
+
+            if (player.IsReady && player.PlayerId != room.HostPlayerId)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ยกเลิกพร้อมก่อน แล้วค่อยเปลี่ยน Avatar");
+            }
+
+            player.AvatarId = NormalizeAvatarId(request.AvatarId);
+            return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
+        }
+    }
+
     public ServiceResult<RoomSnapshot> ResetFinishedGame(string roomCode)
     {
         lock (_sync)
@@ -369,6 +426,8 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             room.WinnerPlayerId = null;
             room.FinishReason = null;
             room.ActiveFrenzySnake = null;
+            room.ActiveFrenzySnakeTurnsLeft = 0;
+            room.FrenzyNoSpawnStreak = 0;
             room.TurnDeadlineUtc = null;
 
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
@@ -743,6 +802,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
         string sessionId,
         string connectionId,
         string playerName,
+        int avatarId,
         BoardOptions boardOptions)
     {
         var safeName = SanitizePlayerName(playerName);
@@ -752,6 +812,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             SessionId = sessionId,
             ConnectionId = connectionId,
             DisplayName = safeName,
+            AvatarId = NormalizeAvatarId(avatarId),
             LuckyRerollsLeft = boardOptions.RuleOptions.LuckyRerollEnabled
                 ? boardOptions.RuleOptions.LuckyRerollPerPlayer
                 : 0,
@@ -786,6 +847,16 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
         return name.Length <= 24 ? name : name[..24];
     }
 
+    private static int NormalizeAvatarId(int avatarId)
+    {
+        if (avatarId < MinAvatarId || avatarId > MaxAvatarId)
+        {
+            return MinAvatarId;
+        }
+
+        return avatarId;
+    }
+
     private static RoomSnapshot ToSnapshot(GameRoom room)
     {
         var board = room.Board;
@@ -799,6 +870,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             {
                 PlayerId = x.PlayerId,
                 DisplayName = x.DisplayName,
+                AvatarId = NormalizeAvatarId(x.AvatarId),
                 Position = x.Position,
                 Connected = x.Connected,
                 IsReady = x.IsReady,

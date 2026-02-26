@@ -109,6 +109,18 @@ public sealed class GameHub : Hub
         await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("RoomUpdated", result.Value);
     }
 
+    public async Task SetAvatar(SetAvatarRequest request)
+    {
+        var result = _roomService.SetAvatar(Context.ConnectionId, request);
+        if (!result.Success || result.Value is null)
+        {
+            await SendError(result.Error ?? "เปลี่ยน Avatar ไม่สำเร็จ");
+            return;
+        }
+
+        await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("RoomUpdated", result.Value);
+    }
+
     public async Task SendChat(SendChatRequest request)
     {
         var result = _roomService.SendChat(Context.ConnectionId, request);

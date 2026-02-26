@@ -1,7 +1,7 @@
 (() => {
   const root = window.SNL;
   const { state, el } = root;
-  const { normalizeName } = root.utils;
+  const { normalizeName, normalizeAvatarId } = root.utils;
 
   function seedProfileFromStorage() {
     const saved = root.storage.loadProfileName();
@@ -12,6 +12,9 @@
       state.requireNamePrompt = true;
       el.profileNameInput.value = "";
     }
+
+    const savedAvatarId = root.storage.loadProfileAvatarId();
+    applyProfileAvatarId(savedAvatarId);
   }
 
   async function onSaveProfileName(event) {
@@ -42,6 +45,12 @@
     return name;
   }
 
+  function ensureProfileAvatarId(inputAvatarId) {
+    const avatarId = normalizeAvatarId(inputAvatarId, state.profileAvatarId);
+    applyProfileAvatarId(avatarId);
+    return avatarId;
+  }
+
   function applyProfileName(name) {
     state.profileName = normalizeName(name);
     root.storage.saveProfileName(state.profileName);
@@ -49,6 +58,46 @@
     el.profileNameInput.value = state.profileName;
     el.createName.value = state.profileName;
     el.joinName.value = state.profileName;
+  }
+
+  function applyProfileAvatarId(avatarId) {
+    const safeAvatarId = normalizeAvatarId(avatarId, 1);
+    state.profileAvatarId = safeAvatarId;
+    root.storage.saveProfileAvatarId(safeAvatarId);
+
+    if (el.createAvatarId) {
+      el.createAvatarId.value = String(safeAvatarId);
+    }
+    syncAvatarPickerSelection(el.createAvatarPicker, safeAvatarId);
+    if (el.joinAvatarId) {
+      el.joinAvatarId.value = String(safeAvatarId);
+    }
+  }
+
+  function syncAvatarPickerSelection(container, avatarId) {
+    if (!container) {
+      return;
+    }
+
+    const safeAvatarId = normalizeAvatarId(avatarId, 1);
+    for (const button of container.querySelectorAll("[data-avatar-id]")) {
+      const buttonId = normalizeAvatarId(button.dataset.avatarId, 1);
+      button.classList.toggle("selected", buttonId === safeAvatarId);
+      button.setAttribute("aria-selected", buttonId === safeAvatarId ? "true" : "false");
+    }
+  }
+
+  function syncProfileAvatarFromRoom(room, playerId) {
+    if (!room || !playerId) {
+      return;
+    }
+
+    const me = room.players?.find((x) => x.playerId === playerId);
+    if (!me) {
+      return;
+    }
+
+    applyProfileAvatarId(me.avatarId);
   }
 
   function buildBoardOptions(boardSize) {
@@ -98,6 +147,9 @@
     seedProfileFromStorage,
     onSaveProfileName,
     ensureProfileName,
+    ensureProfileAvatarId,
+    applyProfileAvatarId,
+    syncProfileAvatarFromRoom,
     buildBoardOptions
   };
 })();

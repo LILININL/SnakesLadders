@@ -1,9 +1,10 @@
 (() => {
   const root = window.SNL;
-  const { normalizeName } = root.utils;
+  const { normalizeName, normalizeAvatarId } = root.utils;
 
   const keys = {
     profileName: "snl_profile_name",
+    profileAvatarId: "snl_profile_avatar_id",
     roomSessions: "snl_room_sessions",
     lastRoomCode: "snl_last_room_code",
     focusMode: "snl_focus_mode"
@@ -20,6 +21,15 @@
       return;
     }
     localStorage.setItem(keys.profileName, normalized);
+  }
+
+  function loadProfileAvatarId() {
+    return normalizeAvatarId(localStorage.getItem(keys.profileAvatarId), 1);
+  }
+
+  function saveProfileAvatarId(avatarId) {
+    const normalized = normalizeAvatarId(avatarId, 1);
+    localStorage.setItem(keys.profileAvatarId, String(normalized));
   }
 
   function loadSessionMap() {
@@ -112,6 +122,8 @@
   root.storage = {
     loadProfileName,
     saveProfileName,
+    loadProfileAvatarId,
+    saveProfileAvatarId,
     saveRoomSession,
     getRoomSession,
     getLastRoomSession,

@@ -5,6 +5,7 @@ namespace SnakesLadders.Contracts;
 public sealed class CreateRoomRequest
 {
     public string PlayerName { get; set; } = string.Empty;
+    public int AvatarId { get; set; } = 1;
     public BoardOptions? BoardOptions { get; set; }
 }
 
@@ -12,6 +13,7 @@ public sealed class JoinRoomRequest
 {
     public string RoomCode { get; set; } = string.Empty;
     public string PlayerName { get; set; } = string.Empty;
+    public int AvatarId { get; set; } = 1;
     public string? SessionId { get; set; }
 }
 
@@ -20,6 +22,7 @@ public sealed class ResumeRoomRequest
     public string RoomCode { get; set; } = string.Empty;
     public string SessionId { get; set; } = string.Empty;
     public string PlayerName { get; set; } = string.Empty;
+    public int AvatarId { get; set; } = 1;
 }
 
 public sealed class StartGameRequest
@@ -38,6 +41,12 @@ public sealed class SetReadyRequest
 {
     public string RoomCode { get; set; } = string.Empty;
     public bool IsReady { get; set; }
+}
+
+public sealed class SetAvatarRequest
+{
+    public string RoomCode { get; set; } = string.Empty;
+    public int AvatarId { get; set; } = 1;
 }
 
 public sealed class LeaveRoomRequest
@@ -119,6 +128,7 @@ public sealed class PlayerSnapshot
 {
     public required string PlayerId { get; init; }
     public required string DisplayName { get; init; }
+    public required int AvatarId { get; init; }
     public required int Position { get; init; }
     public required bool Connected { get; init; }
     public required bool IsReady { get; init; }

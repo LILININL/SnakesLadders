@@ -19,6 +19,7 @@ public sealed class PlayerState
     public required string SessionId { get; init; }
     public required string ConnectionId { get; set; }
     public required string DisplayName { get; set; }
+    public int AvatarId { get; set; } = 1;
     public int Position { get; set; } = 1;
     public bool Connected { get; set; } = true;
     public bool IsReady { get; set; }
@@ -49,6 +50,8 @@ public sealed class GameRoom
     public string? FinishReason { get; set; }
 
     public Jump? ActiveFrenzySnake { get; set; }
+    public int ActiveFrenzySnakeTurnsLeft { get; set; }
+    public int FrenzyNoSpawnStreak { get; set; }
     public DateTimeOffset? TurnDeadlineUtc { get; set; }
 
     public PlayerState? CurrentTurnPlayer =>

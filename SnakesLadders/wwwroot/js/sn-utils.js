@@ -1,5 +1,7 @@
 (() => {
   const root = window.SNL;
+  const MIN_AVATAR_ID = 1;
+  const MAX_AVATAR_ID = 8;
 
   function normalizeName(name) {
     const value = String(name ?? "").trim();
@@ -83,6 +85,25 @@
     return String(index + 1);
   }
 
+  function normalizeAvatarId(value, fallback = MIN_AVATAR_ID) {
+    const parsed = Number.parseInt(String(value ?? ""), 10);
+    if (!Number.isFinite(parsed) || parsed < MIN_AVATAR_ID || parsed > MAX_AVATAR_ID) {
+      const safeFallback = Number.parseInt(String(fallback ?? ""), 10);
+      return Number.isFinite(safeFallback) && safeFallback >= MIN_AVATAR_ID && safeFallback <= MAX_AVATAR_ID
+        ? safeFallback
+        : MIN_AVATAR_ID;
+    }
+
+    return parsed;
+  }
+
+  function avatarSrc(avatarId) {
+    const safeId = normalizeAvatarId(avatarId);
+    const suffix = String(safeId).padStart(2, "0");
+    const extension = safeId === 8 ? "gif" : "png";
+    return `/assets/avatars/avatar-${suffix}.${extension}`;
+  }
+
   root.utils = {
     normalizeName,
     escapeHtml,
@@ -90,6 +111,8 @@
     densityLabel,
     formatClock,
     buildPlayerMarkerMap,
-    resolvePlayerMarker
+    resolvePlayerMarker,
+    normalizeAvatarId,
+    avatarSrc
   };
 })();

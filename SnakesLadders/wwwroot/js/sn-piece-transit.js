@@ -112,8 +112,21 @@
     const players = state.room?.players ?? state.deferredRoom?.players ?? [];
     const player = players.find((x) => x.playerId === playerId);
     const markerMap = root.utils?.buildPlayerMarkerMap?.(players) ?? new Map();
-    const marker = root.utils?.resolvePlayerMarker?.(playerId, player?.displayName, markerMap) ?? "ผ";
-    token.textContent = marker;
+    const safeAvatarId = root.utils?.normalizeAvatarId?.(player?.avatarId, 1) ?? 1;
+    const safeAvatarSrc = root.utils?.avatarSrc?.(safeAvatarId) ?? "";
+    if (safeAvatarSrc) {
+      token.classList.add("avatar");
+      const avatar = document.createElement("img");
+      avatar.className = "token-avatar-img";
+      avatar.src = safeAvatarSrc;
+      avatar.alt = `Avatar ${safeAvatarId}`;
+      token.replaceChildren(avatar);
+    } else {
+      const marker = root.utils?.resolvePlayerMarker?.(playerId, player?.displayName, markerMap) ?? "ผ";
+      token.classList.remove("avatar");
+      token.replaceChildren();
+      token.textContent = marker;
+    }
     token.title = player?.displayName ?? playerId;
     token.classList.toggle("me", playerId === state.playerId);
   }
@@ -131,6 +144,11 @@
 
     token.style.left = `${Math.round(left)}px`;
     token.style.top = `${Math.round(top)}px`;
+    if (token.classList.contains("avatar")) {
+      token.style.transform = "translate(-50%, -50%)";
+      return;
+    }
+
     token.style.transform = `translate(-50%, -50%) rotate(${Math.round(angle)}deg)`;
   }
 
@@ -142,6 +160,8 @@
 
     token.classList.add("hidden");
     token.classList.remove("snake");
+    token.classList.remove("avatar");
+    token.replaceChildren();
     token.style.transform = "translate(-50%, -50%) rotate(0deg)";
   }
 
