@@ -26,6 +26,8 @@ public sealed class TurnItemEffect
 {
     public required BoardItemType ItemType { get; init; }
     public required int Cell { get; init; }
+    public required int FromPosition { get; init; }
+    public required int ToPosition { get; init; }
     public required string Summary { get; init; }
 }
 
@@ -58,6 +60,7 @@ public sealed class PlayerState
     public int SnakeRepellentCharges { get; set; }
     public bool LadderHackPending { get; set; }
     public int AnchorProtectedUntilTurnCounter { get; set; }
+    public int ItemDryTurnStreak { get; set; }
 }
 
 public sealed class GameRoom
@@ -80,6 +83,7 @@ public sealed class GameRoom
     public Jump? ActiveFrenzySnake { get; set; }
     public int ActiveFrenzySnakeTurnsLeft { get; set; }
     public int FrenzyNoSpawnStreak { get; set; }
+    public int NextItemRefreshAtTurnCounter { get; set; }
     public List<BoardItem> ActiveItems { get; } = new();
     public List<TemporaryJumpState> TemporaryJumps { get; } = new();
     public List<BananaTrapState> BananaTraps { get; } = new();

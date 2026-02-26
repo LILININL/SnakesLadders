@@ -144,6 +144,7 @@
     state.animPlayerId = "";
     state.animPlayerPosition = 1;
     state.animTurnPlayerId = "";
+    state.animFrenzySnake = null;
     state.animTransitActive = false;
     state.animTransitPlayerId = "";
     state.deferredRoom = null;

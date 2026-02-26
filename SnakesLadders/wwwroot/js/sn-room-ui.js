@@ -20,9 +20,17 @@
     const waiting = isWaiting();
     const host = root.readyUi?.amHost?.() ?? false;
 
+    if (inRoom) {
+      state.chatPanelOpen = true;
+      state.chatUnreadCount = 0;
+    } else {
+      state.chatPanelOpen = false;
+      state.chatUnreadCount = 0;
+    }
+
     document.body.classList.toggle("in-room", inRoom);
     document.body.classList.toggle("in-game", inRoom && started);
-    document.body.classList.toggle("chat-open", inRoom && state.chatPanelOpen);
+    document.body.classList.toggle("chat-open", false);
     el.layoutRoot.classList.toggle("in-room", inRoom);
     el.layoutRoot.classList.toggle("game-started", inRoom && started);
     el.lobbyPanel.classList.toggle("hidden", inRoom);
@@ -36,22 +44,16 @@
     el.waitingRoomActions.classList.toggle("hidden", !inRoom || started || !host);
     el.leaveRoomBtn.classList.toggle("hidden", !inRoom);
 
-    if (!inRoom) {
-      state.chatPanelOpen = false;
-      state.chatUnreadCount = 0;
+    if (el.chatFabBtn) {
+      el.chatFabBtn.classList.add("hidden");
+      el.chatFabBtn.classList.remove("open");
+      el.chatFabBtn.setAttribute("aria-label", "OpenChat");
     }
-
-    el.chatFabBtn.classList.toggle("hidden", !inRoom);
-    const chatOpen = inRoom && state.chatPanelOpen;
-    el.chatFabBtn.classList.toggle("open", chatOpen);
     if (el.chatFabLabel) {
-      el.chatFabLabel.textContent = chatOpen ? "CloseChat" : "OpenChat";
-    } else {
-      el.chatFabBtn.textContent = chatOpen ? "CloseChat" : "OpenChat";
+      el.chatFabLabel.textContent = "OpenChat";
     }
-    el.chatFabBtn.setAttribute("aria-label", chatOpen ? "CloseChat" : "OpenChat");
-    el.chatSection.classList.toggle("chat-sidebar", inRoom);
-    el.chatSection.classList.toggle("hidden", !chatOpen);
+    el.chatSection.classList.remove("chat-sidebar");
+    el.chatSection.classList.toggle("hidden", !inRoom);
     el.eventSection.classList.toggle("hidden", inRoom);
   }
 
@@ -165,17 +167,12 @@
       return;
     }
 
-    state.chatPanelOpen = !state.chatPanelOpen;
-    if (state.chatPanelOpen) {
-      state.chatUnreadCount = 0;
-      renderChatBadge();
-    }
-
+    state.chatPanelOpen = true;
+    state.chatUnreadCount = 0;
+    renderChatBadge();
     renderRoomShell();
     updateChatSidebarLayout();
-    if (state.chatPanelOpen) {
-      requestAnimationFrame(() => el.chatInput?.focus());
-    }
+    requestAnimationFrame(() => el.chatInput?.focus());
   }
 
   function renderChatBadge() {
@@ -207,7 +204,7 @@
   }
 
   function updateChatSidebarLayout() {
-    if (!isInRoom() || !el.chatSection || !el.chatFabBtn) {
+    if (!isInRoom() || !el.chatSection || !el.chatSection.classList.contains("chat-sidebar")) {
       resetChatSidebarLayout();
       return;
     }
@@ -239,20 +236,24 @@
     el.chatSection.style.bottom = "auto";
     el.chatSection.style.height = `${height}px`;
 
-    el.chatFabBtn.style.top = `${top}px`;
-    el.chatFabBtn.style.bottom = "auto";
+    if (el.chatFabBtn) {
+      el.chatFabBtn.style.top = `${top}px`;
+      el.chatFabBtn.style.bottom = "auto";
+    }
   }
 
   function resetChatSidebarLayout() {
-    if (!el.chatSection || !el.chatFabBtn) {
+    if (!el.chatSection) {
       return;
     }
 
     el.chatSection.style.top = "";
     el.chatSection.style.bottom = "";
     el.chatSection.style.height = "";
-    el.chatFabBtn.style.top = "";
-    el.chatFabBtn.style.bottom = "";
+    if (el.chatFabBtn) {
+      el.chatFabBtn.style.top = "";
+      el.chatFabBtn.style.bottom = "";
+    }
   }
 
   el.board.addEventListener("scroll", () => {

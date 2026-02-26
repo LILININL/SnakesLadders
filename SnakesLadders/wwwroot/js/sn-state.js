@@ -30,6 +30,7 @@
     animTurnPlayerId: "",
     animTransitActive: false,
     animTransitPlayerId: "",
+    animFrenzySnake: null,
     deferredRoom: null,
     pendingTurnChangedPlayerId: "",
     lastAnnouncedTurnCounter: -1,

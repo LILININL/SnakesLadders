@@ -101,7 +101,9 @@
     root.boardFocus?.refreshPendingBeaconTarget?.();
 
     const jumps = [...(board.jumps ?? []), ...(board.temporaryJumps ?? [])];
-    const activeFrenzySnake = board.activeFrenzySnake;
+    const activeFrenzySnake = state.animating && state.animFrenzySnake
+      ? state.animFrenzySnake
+      : board.activeFrenzySnake;
     if (activeFrenzySnake?.type === 0) {
       jumps.push(activeFrenzySnake);
     }
@@ -166,7 +168,12 @@
       let itemMeta = null;
       if (boardItem) {
         itemMeta = boardItemMeta(boardItem.type);
-        marks.push(`<span class='jump-tag item' title='${escapeHtml(itemMeta.name)}: ${escapeHtml(itemMeta.desc)}'>${escapeHtml(itemMeta.icon)}</span>`);
+        const hasItemImage = Boolean(itemMeta.imageSrc);
+        const itemVisual = hasItemImage
+          ? `<img class='item-chip-img' src='${escapeHtml(itemMeta.imageSrc)}' alt='${escapeHtml(itemMeta.name)}' loading='lazy' decoding='async'>`
+          : escapeHtml(itemMeta.icon);
+        const itemClass = hasItemImage ? "jump-tag item item-tag-image" : "jump-tag item";
+        marks.push(`<span class='${itemClass}' title='${escapeHtml(itemMeta.name)}: ${escapeHtml(itemMeta.desc)}'>${itemVisual}</span>`);
       }
 
       const cellTitle = [`ช่อง ${absoluteCell}`];

@@ -212,6 +212,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                 player.SnakeRepellentCharges = 0;
                 player.LadderHackPending = false;
                 player.AnchorProtectedUntilTurnCounter = 0;
+                player.ItemDryTurnStreak = 0;
                 player.NextCheckpoint = Math.Max(1, room.BoardOptions.RuleOptions.CheckpointInterval);
                 player.LuckyRerollsLeft = room.BoardOptions.RuleOptions.LuckyRerollEnabled
                     ? room.BoardOptions.RuleOptions.LuckyRerollPerPlayer
@@ -227,6 +228,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             room.ActiveFrenzySnake = null;
             room.ActiveFrenzySnakeTurnsLeft = 0;
             room.FrenzyNoSpawnStreak = 0;
+            room.NextItemRefreshAtTurnCounter = 0;
             room.ActiveItems.Clear();
             room.TemporaryJumps.Clear();
             room.BananaTraps.Clear();
@@ -421,6 +423,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                 player.SnakeRepellentCharges = 0;
                 player.LadderHackPending = false;
                 player.AnchorProtectedUntilTurnCounter = 0;
+                player.ItemDryTurnStreak = 0;
                 player.NextCheckpoint = checkpoint;
                 player.LuckyRerollsLeft = room.BoardOptions.RuleOptions.LuckyRerollEnabled
                     ? room.BoardOptions.RuleOptions.LuckyRerollPerPlayer
@@ -438,6 +441,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
             room.ActiveFrenzySnake = null;
             room.ActiveFrenzySnakeTurnsLeft = 0;
             room.FrenzyNoSpawnStreak = 0;
+            room.NextItemRefreshAtTurnCounter = 0;
             room.ActiveItems.Clear();
             room.TemporaryJumps.Clear();
             room.BananaTraps.Clear();

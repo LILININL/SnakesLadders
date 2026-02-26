@@ -9,7 +9,10 @@ public sealed class GameEngine : IGameEngine
     private const int RocketBootsBoost = 2;
     private const int LadderHackBoost = 4;
     private const int BananaSlipBack = 2;
-    private const int MaxItemSpawnAttempts = 600;
+    private const int MaxItemSpawnAttempts = 900;
+    private const int ItemRefreshMinTurns = 3;
+    private const int ItemRefreshMaxTurns = 5;
+    private const int NearFinishItemGuardCells = 4;
 
     private static readonly BoardItemType[] ItemPool = Enum.GetValues<BoardItemType>();
 
@@ -21,7 +24,8 @@ public sealed class GameEngine : IGameEngine
         }
 
         PruneExpiredTransientState(room);
-        EnsureBoardItems(room, room.Board);
+        RefreshBoardItemsIfNeeded(room, room.Board, forceRefresh: true);
+        EnsureMinimumLiveItems(room, room.Board);
     }
 
     public TurnResult ResolveTurn(
@@ -44,7 +48,9 @@ public sealed class GameEngine : IGameEngine
             : null;
 
         PruneExpiredTransientState(room);
-        EnsureBoardItems(room, board);
+        RefreshBoardItemsIfNeeded(room, board, forceRefresh: false);
+        EnsureMinimumLiveItems(room, board);
+        TrySpawnPersonalItemChance(room, board, player);
 
         var frenzySnake = ResolveFrenzySnakeForTurn(room, player, board);
         room.ActiveFrenzySnake = frenzySnake;
@@ -83,15 +89,6 @@ public sealed class GameEngine : IGameEngine
             };
         }
 
-        ForkCell? triggeredForkCell = null;
-        ForkPathChoice? appliedForkChoice = null;
-        if (rules.ForkPathEnabled && board.ForksByCell.TryGetValue(currentPosition, out var forkCell))
-        {
-            appliedForkChoice = forkChoice ?? ForkPathChoice.Safe;
-            triggeredForkCell = forkCell;
-            currentPosition = appliedForkChoice == ForkPathChoice.Risky ? forkCell.RiskyTo : forkCell.SafeTo;
-        }
-
         Jump? triggeredJump = null;
         var shieldBlockedSnake = false;
         var snakeRepellentBlockedSnake = false;
@@ -103,6 +100,28 @@ public sealed class GameEngine : IGameEngine
         var ladderHackBoostAmount = 0;
         var itemEffects = new List<TurnItemEffect>();
         var blockedSnakeCells = new HashSet<int>();
+        var pickedBoardItemThisTurn = false;
+
+        if (rules.ItemsEnabled && overflow <= 0 && diceValue > 0)
+        {
+            currentPosition = ResolveForwardMovementWithPassThroughItems(
+                room,
+                board,
+                player,
+                startPosition,
+                diceValue,
+                itemEffects,
+                ref pickedBoardItemThisTurn);
+        }
+
+        ForkCell? triggeredForkCell = null;
+        ForkPathChoice? appliedForkChoice = null;
+        if (rules.ForkPathEnabled && board.ForksByCell.TryGetValue(currentPosition, out var forkCell))
+        {
+            appliedForkChoice = forkChoice ?? ForkPathChoice.Safe;
+            triggeredForkCell = forkCell;
+            currentPosition = appliedForkChoice == ForkPathChoice.Risky ? forkCell.RiskyTo : forkCell.SafeTo;
+        }
 
         var chainGuard = 0;
         while (chainGuard++ < 32)
@@ -171,6 +190,7 @@ public sealed class GameEngine : IGameEngine
                 }
             }
 
+            var beforeTrapPosition = currentPosition;
             if (TryTriggerBananaTrap(room, board, player, ref currentPosition, out var trapCell, out var trapSummary, out var trapMoved))
             {
                 interacted = true;
@@ -179,6 +199,8 @@ public sealed class GameEngine : IGameEngine
                 {
                     ItemType = BoardItemType.BananaPeel,
                     Cell = trapCell,
+                    FromPosition = beforeTrapPosition,
+                    ToPosition = currentPosition,
                     Summary = trapSummary
                 });
             }
@@ -186,11 +208,15 @@ public sealed class GameEngine : IGameEngine
             if (rules.ItemsEnabled && TryTakeBoardItem(room, currentPosition, out var pickedItem))
             {
                 interacted = true;
+                pickedBoardItemThisTurn = true;
+                var beforeItemPosition = currentPosition;
                 var summary = ApplyBoardItemEffect(pickedItem, room, board, player, ref currentPosition, out var itemMoved);
                 itemEffects.Add(new TurnItemEffect
                 {
                     ItemType = pickedItem.Type,
                     Cell = pickedItem.Cell,
+                    FromPosition = beforeItemPosition,
+                    ToPosition = currentPosition,
                     Summary = summary
                 });
                 moved |= itemMoved;
@@ -239,6 +265,7 @@ public sealed class GameEngine : IGameEngine
         }
 
         player.Position = currentPosition;
+        UpdatePlayerItemDryTurnStreak(player, rules.ItemsEnabled, pickedBoardItemThisTurn);
         room.TurnCounter++;
 
         var isGameFinished = false;
@@ -299,7 +326,8 @@ public sealed class GameEngine : IGameEngine
 
         AdvanceFrenzySnakeLifetime(room);
         PruneExpiredTransientState(room);
-        EnsureBoardItems(room, board);
+        RefreshBoardItemsIfNeeded(room, board, forceRefresh: false);
+        EnsureMinimumLiveItems(room, board);
 
         return new TurnResult
         {
@@ -518,6 +546,47 @@ public sealed class GameEngine : IGameEngine
         }
 
         return null;
+    }
+
+    private static int ResolveForwardMovementWithPassThroughItems(
+        GameRoom room,
+        BoardState board,
+        PlayerState player,
+        int startPosition,
+        int diceSteps,
+        List<TurnItemEffect> itemEffects,
+        ref bool pickedBoardItemThisTurn)
+    {
+        var currentPosition = startPosition;
+        var steps = Math.Max(0, diceSteps);
+        for (var i = 0; i < steps; i++)
+        {
+            if (currentPosition >= board.Size)
+            {
+                currentPosition = board.Size;
+                break;
+            }
+
+            currentPosition++;
+            if (!TryTakeBoardItem(room, currentPosition, out var pickedItem))
+            {
+                continue;
+            }
+
+            pickedBoardItemThisTurn = true;
+            var beforeItemPosition = currentPosition;
+            var summary = ApplyBoardItemEffect(pickedItem, room, board, player, ref currentPosition, out _);
+            itemEffects.Add(new TurnItemEffect
+            {
+                ItemType = pickedItem.Type,
+                Cell = pickedItem.Cell,
+                FromPosition = beforeItemPosition,
+                ToPosition = currentPosition,
+                Summary = summary
+            });
+        }
+
+        return Math.Clamp(currentPosition, 1, board.Size);
     }
 
     private static bool TryTakeBoardItem(GameRoom room, int cell, out BoardItem item)
@@ -1162,7 +1231,24 @@ public sealed class GameEngine : IGameEngine
         room.BananaTraps.RemoveAll(x => x.ExpiresAtTurnCounter <= room.TurnCounter);
     }
 
-    private static void EnsureBoardItems(GameRoom room, BoardState board)
+    private static void UpdatePlayerItemDryTurnStreak(PlayerState player, bool itemsEnabled, bool pickedBoardItemThisTurn)
+    {
+        if (!itemsEnabled)
+        {
+            player.ItemDryTurnStreak = 0;
+            return;
+        }
+
+        if (pickedBoardItemThisTurn)
+        {
+            player.ItemDryTurnStreak = 0;
+            return;
+        }
+
+        player.ItemDryTurnStreak = Math.Min(12, player.ItemDryTurnStreak + 1);
+    }
+
+    private static void RefreshBoardItemsIfNeeded(GameRoom room, BoardState board, bool forceRefresh)
     {
         if (!room.BoardOptions.RuleOptions.ItemsEnabled)
         {
@@ -1170,89 +1256,227 @@ public sealed class GameEngine : IGameEngine
             room.BananaTraps.Clear();
             room.TemporaryJumps.RemoveAll(x => string.Equals(x.Source, "SnakeRow", StringComparison.OrdinalIgnoreCase) ||
                                                string.Equals(x.Source, "GlobalSnakeRound", StringComparison.OrdinalIgnoreCase));
+            room.NextItemRefreshAtTurnCounter = 0;
             return;
         }
 
-        var targetCount = ResolveTargetItemCount(board.Size, room.Players.Count);
-        if (room.ActiveItems.Count >= targetCount)
+        if (room.Players.Count == 0)
+        {
+            room.ActiveItems.Clear();
+            room.NextItemRefreshAtTurnCounter = 0;
+            return;
+        }
+
+        if (room.NextItemRefreshAtTurnCounter <= 0)
+        {
+            ScheduleNextItemRefresh(room);
+        }
+
+        if (!forceRefresh && room.TurnCounter < room.NextItemRefreshAtTurnCounter)
         {
             return;
         }
 
-        var blockedCells = BuildItemBlockedCellSet(room, board);
+        RemoveItemsBehindAllPlayers(room);
+        ReplenishItems(room, board, ResolveTargetItemCount(board.Size, room.Players.Count), priorityPlayer: null);
+        ScheduleNextItemRefresh(room);
+    }
+
+    private static void EnsureMinimumLiveItems(GameRoom room, BoardState board)
+    {
+        if (!room.BoardOptions.RuleOptions.ItemsEnabled)
+        {
+            return;
+        }
+
+        var target = ResolveTargetItemCount(board.Size, room.Players.Count);
+        var floor = Math.Max(4, target - Math.Max(2, room.Players.Count));
+        if (room.ActiveItems.Count >= floor)
+        {
+            return;
+        }
+
+        var trailingPlayer = room.Players
+            .OrderBy(x => x.Position)
+            .ThenBy(x => room.Players.IndexOf(x))
+            .FirstOrDefault();
+        ReplenishItems(room, board, floor, trailingPlayer);
+    }
+
+    private static void RemoveItemsBehindAllPlayers(GameRoom room)
+    {
+        if (room.Players.Count == 0 || room.ActiveItems.Count == 0)
+        {
+            return;
+        }
+
+        var minimumPosition = room.Players.Min(x => x.Position);
+        room.ActiveItems.RemoveAll(x => x.Cell < minimumPosition);
+    }
+
+    private static void ReplenishItems(GameRoom room, BoardState board, int targetCount, PlayerState? priorityPlayer)
+    {
+        if (targetCount <= 0 || room.Players.Count == 0)
+        {
+            return;
+        }
+
         var attempts = 0;
         while (room.ActiveItems.Count < targetCount && attempts++ < MaxItemSpawnAttempts)
         {
-            var cell = Random.Shared.Next(3, Math.Max(4, board.Size));
-            if (cell <= 2 || cell >= board.Size)
+            var anchor = SelectAnchorPlayer(room, priorityPlayer, attempts);
+            if (!TrySpawnItemAheadOfPlayer(room, board, anchor))
             {
                 continue;
             }
-
-            if (blockedCells.Contains(cell))
-            {
-                continue;
-            }
-
-            var itemType = ItemPool[Random.Shared.Next(0, ItemPool.Length)];
-            room.ActiveItems.Add(new BoardItem(
-                Guid.NewGuid().ToString("N")[..10],
-                cell,
-                itemType));
-            blockedCells.Add(cell);
         }
     }
 
-    private static HashSet<int> BuildItemBlockedCellSet(GameRoom room, BoardState board)
+    private static PlayerState SelectAnchorPlayer(GameRoom room, PlayerState? priorityPlayer, int attempt)
     {
-        var blocked = new HashSet<int> { 1, 2, board.Size };
-
-        foreach (var player in room.Players)
+        if (priorityPlayer is not null && attempt % 2 == 0)
         {
-            blocked.Add(player.Position);
+            return priorityPlayer;
         }
 
-        foreach (var jump in board.Jumps)
+        if (attempt % 3 == 0)
         {
-            blocked.Add(jump.From);
-            blocked.Add(jump.To);
+            return room.Players
+                .OrderBy(x => x.Position)
+                .ThenBy(x => room.Players.IndexOf(x))
+                .First();
         }
 
-        foreach (var fork in board.ForkCells)
+        return room.Players[Random.Shared.Next(0, room.Players.Count)];
+    }
+
+    private static void TrySpawnPersonalItemChance(GameRoom room, BoardState board, PlayerState player)
+    {
+        if (!room.BoardOptions.RuleOptions.ItemsEnabled)
         {
-            blocked.Add(fork.Cell);
+            return;
         }
 
-        foreach (var item in room.ActiveItems)
+        var attemptTurn = Math.Max(1, player.ItemDryTurnStreak + 1);
+        var spawnChance = ResolvePersonalSpawnChance(attemptTurn);
+        if (spawnChance <= 0d)
         {
-            blocked.Add(item.Cell);
+            return;
         }
 
-        foreach (var trap in room.BananaTraps)
+        if (HasItemAheadOfPlayer(room, player.Position))
         {
-            blocked.Add(trap.Cell);
+            return;
         }
 
-        foreach (var jump in room.TemporaryJumps.Select(x => x.Jump))
+        if (Random.Shared.NextDouble() > spawnChance)
         {
-            blocked.Add(jump.From);
-            blocked.Add(jump.To);
+            return;
         }
 
-        if (room.ActiveFrenzySnake is not null)
+        TrySpawnItemAheadOfPlayer(room, board, player);
+    }
+
+    private static double ResolvePersonalSpawnChance(int attemptTurn)
+    {
+        if (attemptTurn <= 2) return 0d;
+        if (attemptTurn == 3) return 0.50d;
+        if (attemptTurn == 4) return 0.65d;
+        if (attemptTurn == 5) return 0.85d;
+        return 1.0d;
+    }
+
+    private static bool HasItemAheadOfPlayer(GameRoom room, int playerPosition)
+    {
+        var minCell = playerPosition + 1;
+        var maxCell = playerPosition + 6;
+        return room.ActiveItems.Any(x => x.Cell >= minCell && x.Cell <= maxCell);
+    }
+
+    private static bool TrySpawnItemAheadOfPlayer(GameRoom room, BoardState board, PlayerState player)
+    {
+        var minCell = player.Position + 1;
+        var maxCell = Math.Min(board.Size - 1, player.Position + 6);
+        if (maxCell < minCell)
         {
-            blocked.Add(room.ActiveFrenzySnake.From);
-            blocked.Add(room.ActiveFrenzySnake.To);
+            return false;
         }
 
-        return blocked;
+        var candidates = Enumerable.Range(minCell, maxCell - minCell + 1)
+            .OrderBy(_ => Random.Shared.Next())
+            .ToArray();
+
+        foreach (var cell in candidates)
+        {
+            if (!IsAllowedItemCell(room, board, cell))
+            {
+                continue;
+            }
+
+            room.ActiveItems.Add(new BoardItem(
+                Guid.NewGuid().ToString("N")[..10],
+                cell,
+                ItemPool[Random.Shared.Next(0, ItemPool.Length)]));
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsAllowedItemCell(GameRoom room, BoardState board, int cell)
+    {
+        if (cell <= 2 || cell >= board.Size)
+        {
+            return false;
+        }
+
+        var nearFinishThreshold = Math.Max(3, board.Size - NearFinishItemGuardCells);
+        if (cell >= nearFinishThreshold)
+        {
+            return false;
+        }
+
+        if (room.Players.Any(x => x.Position == cell))
+        {
+            return false;
+        }
+
+        if (board.JumpsByFrom.ContainsKey(cell) || board.ForksByCell.ContainsKey(cell))
+        {
+            return false;
+        }
+
+        if (room.ActiveItems.Any(x => x.Cell == cell) ||
+            room.BananaTraps.Any(x => x.Cell == cell))
+        {
+            return false;
+        }
+
+        if (room.TemporaryJumps.Any(x => x.Jump.From == cell || x.Jump.To == cell))
+        {
+            return false;
+        }
+
+        if (room.ActiveFrenzySnake is not null &&
+            (room.ActiveFrenzySnake.From == cell || room.ActiveFrenzySnake.To == cell))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static void ScheduleNextItemRefresh(GameRoom room)
+    {
+        var offset = Random.Shared.Next(ItemRefreshMinTurns, ItemRefreshMaxTurns + 1);
+        room.NextItemRefreshAtTurnCounter = room.TurnCounter + offset;
     }
 
     private static int ResolveTargetItemCount(int boardSize, int playerCount)
     {
-        var byBoard = (int)Math.Ceiling(boardSize / 35d);
+        var byBoard = (int)Math.Ceiling(boardSize / 25d);
         var byPlayers = Math.Max(2, playerCount);
-        return Math.Clamp(byBoard + byPlayers, 6, 24);
+        return Math.Clamp(byBoard + byPlayers + 1, 8, 28);
     }
 
     private static void AdvanceTurn(GameRoom room)
