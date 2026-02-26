@@ -201,7 +201,8 @@ public sealed class GameEngine : IGameEngine
                     Cell = trapCell,
                     FromPosition = beforeTrapPosition,
                     ToPosition = currentPosition,
-                    Summary = trapSummary
+                    Summary = trapSummary,
+                    IsTrapTrigger = true
                 });
             }
 

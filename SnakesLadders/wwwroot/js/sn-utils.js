@@ -3,17 +3,61 @@
   const MIN_AVATAR_ID = 1;
   const MAX_AVATAR_ID = 8;
   const ITEM_META = {
-    0: { name: "Rocket Boots", icon: "🚀", imageSrc: "/assets/item/RocketBoots.png", desc: "เหยียบแล้วพุ่งต่อทันที +2 ช่อง" },
-    1: { name: "Magnet Dice", icon: "🧲", imageSrc: "/assets/item/MagnetDice.png", desc: "สุ่มดันตำแหน่งทันที +1 หรือ -1" },
-    2: { name: "Snake Repellent", icon: "🛡️", imageSrc: "/assets/item/SnakeRepellent.png", desc: "กันงูครั้งถัดไป (สะสมได้)" },
-    3: { name: "Ladder Hack", icon: "🪜", imageSrc: "/assets/item/LadderHack.png", desc: "ขึ้นบันไดครั้งถัดไปแล้วพุ่งเพิ่ม" },
-    4: { name: "Banana Peel", icon: "🍌", imageSrc: "/assets/item/BananaPeel.png", desc: "วางกับดักให้คนเหยียบแล้วถอยหลัง" },
-    5: { name: "Swap Glove", icon: "🧤", imageSrc: "/assets/item/Swap.png", desc: "สลับตำแหน่งกับคนที่อยู่เหนือกว่า" },
-    6: { name: "Anchor", icon: "⚓", imageSrc: "/assets/item/Anchor.png", desc: "กันโดนสลับ/ผลักถอยจนถึงตาถัดไป" },
-    7: { name: "Chaos Button", icon: "🎛️", imageSrc: "/assets/item/ChaosButton.png", desc: "สุ่มเหตุการณ์ปั่นทั้งห้อง" },
-    8: { name: "Snake Row", icon: "🐍", imageSrc: "/assets/item/SnakeRow.png", desc: "เสกงูเป็นแถวโดยมีช่องรอด 1 ช่อง" },
-    9: { name: "Bridge to Leader", icon: "🌉", imageSrc: "/assets/item/BridgetoLeader.png", desc: "พุ่งไปตำแหน่งเท่าผู้นำทันที" },
-    10: { name: "Global Snake Round", icon: "🌪️", imageSrc: "/assets/item/GlobalSnakeRound.png", desc: "เพิ่มงูชั่วคราวทั้งกระดาน 1 รอบ" }
+    0: {
+      name: "Rocket Boots",
+      imageSrc: "/assets/item/RocketBoots.png",
+      desc: "เหยียบแล้วพุ่งต่อทันที +2 ช่อง",
+    },
+    1: {
+      name: "Magnet Dice",
+      imageSrc: "/assets/item/MagnetDice.png",
+      desc: "สุ่มดันตำแหน่งทันที +1 หรือ -1",
+    },
+    2: {
+      name: "Snake Repellent",
+      imageSrc: "/assets/item/SnakeRepellent.png",
+      desc: "กันงูครั้งถัดไป (สะสมได้)",
+    },
+    3: {
+      name: "Ladder Hack",
+      imageSrc: "/assets/item/LadderHack.png",
+      desc: "ขึ้นบันไดครั้งถัดไปแล้วพุ่งเพิ่ม",
+    },
+    4: {
+      name: "Banana Peel",
+      imageSrc: "/assets/item/BananaPeel.png",
+      desc: "วางกับดักให้คนเหยียบแล้วถอยหลัง",
+    },
+    5: {
+      name: "Swap Glove",
+      imageSrc: "/assets/item/Swap.png",
+      desc: "สลับตำแหน่งกับคนที่อยู่เหนือกว่า",
+    },
+    6: {
+      name: "Anchor",
+      imageSrc: "/assets/item/Anchor.png",
+      desc: "กันโดนสลับ/ผลักถอยจนถึงตาถัดไป",
+    },
+    7: {
+      name: "Chaos Button",
+      imageSrc: "/assets/item/ChaosButton.png",
+      desc: "สุ่มเหตุการณ์ปั่นทั้งห้อง",
+    },
+    8: {
+      name: "Snake Row",
+      imageSrc: "/assets/item/SnakeRow.png",
+      desc: "เสกงูเป็นแถวโดยมีช่องรอด 1 ช่อง",
+    },
+    9: {
+      name: "Bridge to Leader",
+      imageSrc: "/assets/item/BridgetoLeader.png",
+      desc: "พุ่งไปตำแหน่งเท่าผู้นำทันที",
+    },
+    10: {
+      name: "Global Snake Round",
+      imageSrc: "/assets/item/GlobalSnakeRound.png",
+      desc: "เพิ่มงูชั่วคราวทั้งกระดาน 1 รอบ",
+    },
   };
 
   function normalizeName(name) {
@@ -100,9 +144,15 @@
 
   function normalizeAvatarId(value, fallback = MIN_AVATAR_ID) {
     const parsed = Number.parseInt(String(value ?? ""), 10);
-    if (!Number.isFinite(parsed) || parsed < MIN_AVATAR_ID || parsed > MAX_AVATAR_ID) {
+    if (
+      !Number.isFinite(parsed) ||
+      parsed < MIN_AVATAR_ID ||
+      parsed > MAX_AVATAR_ID
+    ) {
       const safeFallback = Number.parseInt(String(fallback ?? ""), 10);
-      return Number.isFinite(safeFallback) && safeFallback >= MIN_AVATAR_ID && safeFallback <= MAX_AVATAR_ID
+      return Number.isFinite(safeFallback) &&
+        safeFallback >= MIN_AVATAR_ID &&
+        safeFallback <= MAX_AVATAR_ID
         ? safeFallback
         : MIN_AVATAR_ID;
     }
@@ -118,12 +168,13 @@
   }
 
   function boardItemMeta(itemType) {
-    return ITEM_META[itemType] ?? {
-      name: "Mystery Item",
-      icon: "🎁",
-      imageSrc: "",
-      desc: "ไอเท็มสุ่มพิเศษ"
-    };
+    return (
+      ITEM_META[itemType] ?? {
+        name: "Mystery Item",
+        imageSrc: "",
+        desc: "ไอเท็มสุ่มพิเศษ",
+      }
+    );
   }
 
   root.utils = {
@@ -136,6 +187,6 @@
     resolvePlayerMarker,
     normalizeAvatarId,
     avatarSrc,
-    boardItemMeta
+    boardItemMeta,
   };
 })();

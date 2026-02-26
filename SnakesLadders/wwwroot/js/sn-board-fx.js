@@ -154,30 +154,47 @@
     el.jumpHintBadge.textContent = "";
   }
 
-  async function showItemPickup(effect, durationMs = 780) {
+  async function showItemPickup(effect, durationMs = 1500) {
     if (!el.jumpHintBadge) {
       await wait(durationMs);
       return;
     }
 
     const meta = boardItemMeta(effect?.itemType);
+    const summary = String(effect?.summary ?? "").trim();
+    const holdMs = Math.max(
+      durationMs,
+      summary ? Math.min(3000, 1500 + (summary.length * 18)) : 1300
+    );
+    const summaryHtml = summary ? `<span class="item-pickup-summary">${escapeHtml(summary)}</span>` : "";
+
     if (meta.imageSrc) {
       el.jumpHintBadge.innerHTML = `
         <span class="item-pickup-row">
           <img class="item-pickup-img" src="${escapeHtml(meta.imageSrc)}" alt="${escapeHtml(meta.name)}" loading="eager" decoding="async">
-          <span class="item-pickup-name">${escapeHtml(meta.name)}</span>
+          <span class="item-pickup-text">
+            <span class="item-pickup-name">${escapeHtml(meta.name)}</span>
+            ${summaryHtml}
+          </span>
         </span>
       `;
     } else {
-      el.jumpHintBadge.textContent = `${meta.icon} ${meta.name}`;
+      el.jumpHintBadge.innerHTML = `
+        <span class="item-pickup-row">
+          <span class="item-pickup-text">
+            <span class="item-pickup-name">${escapeHtml(meta.name)}</span>
+            ${summaryHtml}
+          </span>
+        </span>
+      `;
     }
 
     el.jumpHintBadge.className = "jump-hint-badge item-pickup show";
-    await wait(durationMs);
+    await wait(holdMs);
     el.jumpHintBadge.className = "jump-hint-badge item-pickup hide";
     await wait(220);
     el.jumpHintBadge.className = "jump-hint-badge hidden";
-    el.jumpHintBadge.textContent = "";
+    el.jumpHintBadge.innerHTML = "";
   }
 
   root.boardFx = {

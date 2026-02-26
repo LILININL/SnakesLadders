@@ -29,6 +29,7 @@ public sealed class TurnItemEffect
     public required int FromPosition { get; init; }
     public required int ToPosition { get; init; }
     public required string Summary { get; init; }
+    public bool IsTrapTrigger { get; init; }
 }
 
 public sealed class BoardState

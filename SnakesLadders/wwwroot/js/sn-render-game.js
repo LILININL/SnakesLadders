@@ -171,7 +171,7 @@
         const hasItemImage = Boolean(itemMeta.imageSrc);
         const itemVisual = hasItemImage
           ? `<img class='item-chip-img' src='${escapeHtml(itemMeta.imageSrc)}' alt='${escapeHtml(itemMeta.name)}' loading='lazy' decoding='async'>`
-          : escapeHtml(itemMeta.icon);
+          : "?";
         const itemClass = hasItemImage ? "jump-tag item item-tag-image" : "jump-tag item";
         marks.push(`<span class='${itemClass}' title='${escapeHtml(itemMeta.name)}: ${escapeHtml(itemMeta.desc)}'>${itemVisual}</span>`);
       }

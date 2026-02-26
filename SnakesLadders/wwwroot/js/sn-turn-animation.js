@@ -52,17 +52,12 @@
       }
 
       const pendingItemEffects = normalizeItemEffects(turn.itemEffects, room.board.size);
-      const segments = buildSegments(turn, room);
+      const segments = buildSegments(turn, room, pendingItemEffects);
       for (const segment of segments) {
         await runSegment(segment, room.board.size, followPlayer, pendingItemEffects);
       }
 
-      while (pendingItemEffects.length > 0) {
-        const leftover = pendingItemEffects.shift();
-        if (leftover) {
-          await root.boardFx?.showItemPickup?.(leftover);
-        }
-      }
+      await consumeLeftoverItemEffects(room.board.size, followPlayer, pendingItemEffects);
 
       if (turn.isGameFinished) {
         await root.boardFx?.showWinner?.(turn, room);
@@ -210,7 +205,8 @@
         cell,
         fromPosition,
         toPosition,
-        summary: effect?.summary ?? ""
+        summary: effect?.summary ?? "",
+        isTrapTrigger: Boolean(effect?.isTrapTrigger)
       };
     });
   }
@@ -241,12 +237,43 @@
     return current;
   }
 
-  function buildSegments(turn, room) {
+  async function consumeLeftoverItemEffects(boardSize, followPlayer, pendingItemEffects) {
+    if (!Array.isArray(pendingItemEffects) || pendingItemEffects.length === 0) {
+      return;
+    }
+
+    while (pendingItemEffects.length > 0) {
+      const effect = pendingItemEffects.shift();
+      if (!effect) {
+        continue;
+      }
+
+      await root.boardFx?.showItemPickup?.(effect);
+      let current = clamp(
+        Number.parseInt(String(state.animPlayerPosition ?? effect.fromPosition), 10) || effect.fromPosition,
+        1,
+        boardSize
+      );
+
+      if (effect.fromPosition !== current) {
+        current = await runStepSegment(current, effect.fromPosition, boardSize, followPlayer, pendingItemEffects);
+      }
+
+      if (effect.toPosition !== current) {
+        current = await runStepSegment(current, effect.toPosition, boardSize, followPlayer, pendingItemEffects);
+      }
+
+      state.animPlayerPosition = current;
+      root.feedback.renderAll();
+    }
+  }
+
+  function buildSegments(turn, room, pendingItemEffects) {
     const size = room.board.size;
     const segments = [];
     let cursor = turn.startPosition;
 
-    const primary = resolvePrimaryLanding(turn, room.boardOptions.overflowMode, size);
+    const primary = resolvePrimaryLanding(turn, room.boardOptions.overflowMode, size, pendingItemEffects);
     if (primary !== cursor) {
       segments.push({ mode: "step", playerId: turn.playerId, from: cursor, to: primary });
       cursor = primary;
@@ -260,7 +287,10 @@
       }
     }
 
-    if (turn.triggeredJump && !turn.shieldBlockedSnake) {
+    const jumpBlocked =
+      turn.triggeredJump?.type === 0 &&
+      (turn.shieldBlockedSnake || turn.snakeRepellentBlockedSnake);
+    if (turn.triggeredJump && !jumpBlocked) {
       const jumpFrom = clamp(turn.triggeredJump.from, 1, size);
       const jumpTo = clamp(turn.triggeredJump.to, 1, size);
       if (jumpFrom !== cursor) {
@@ -310,10 +340,11 @@
     return segments;
   }
 
-  function resolvePrimaryLanding(turn, overflowMode, size) {
+  function resolvePrimaryLanding(turn, overflowMode, size, pendingItemEffects) {
     const rawTarget = turn.startPosition + turn.diceValue;
     if (!turn.overflowAmount || turn.overflowAmount <= 0) {
-      return clamp(rawTarget, 1, size);
+      const diceSteps = Number.parseInt(String(turn?.diceValue ?? 0), 10) || 0;
+      return resolveLandingAfterDiceWithItems(turn.startPosition, diceSteps, size, pendingItemEffects);
     }
 
     if (overflowMode === 1) {
@@ -321,6 +352,38 @@
     }
 
     return clamp(turn.startPosition, 1, size);
+  }
+
+  function resolveLandingAfterDiceWithItems(startPosition, diceSteps, boardSize, pendingItemEffects) {
+    let current = clamp(startPosition, 1, boardSize);
+    const steps = Math.max(0, diceSteps);
+    let effectIndex = 0;
+
+    for (let i = 0; i < steps; i++) {
+      if (current >= boardSize) {
+        current = boardSize;
+        break;
+      }
+
+      current += 1;
+      if (!Array.isArray(pendingItemEffects) || effectIndex >= pendingItemEffects.length) {
+        continue;
+      }
+
+      const effect = pendingItemEffects[effectIndex];
+      if (!effect || effect.isTrapTrigger) {
+        continue;
+      }
+
+      if (effect.cell !== current || effect.fromPosition !== current) {
+        continue;
+      }
+
+      current = clamp(effect.toPosition, 1, boardSize);
+      effectIndex += 1;
+    }
+
+    return clamp(current, 1, boardSize);
   }
 
   async function ensureVisiblePage(cell, animate, boardSize) {
