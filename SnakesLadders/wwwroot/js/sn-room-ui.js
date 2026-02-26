@@ -10,6 +10,7 @@
     renderTurnBanner();
     updateDeadlineAlert();
     updateFloatingRollButton();
+    renderChatBadge();
   }
 
   function renderRoomShell() {
@@ -17,10 +18,10 @@
     const started = isStarted();
     const waiting = isWaiting();
     const host = root.readyUi?.amHost?.() ?? false;
-    const useFloatingChat = inRoom && started;
 
     document.body.classList.toggle("in-room", inRoom);
     document.body.classList.toggle("in-game", inRoom && started);
+    document.body.classList.toggle("chat-open", inRoom && state.chatPanelOpen);
     el.layoutRoot.classList.toggle("in-room", inRoom);
     el.layoutRoot.classList.toggle("game-started", inRoom && started);
     el.lobbyPanel.classList.toggle("hidden", inRoom);
@@ -34,15 +35,15 @@
     el.waitingRoomActions.classList.toggle("hidden", !inRoom || started || !host);
     el.leaveRoomBtn.classList.toggle("hidden", !inRoom);
 
-    if (!useFloatingChat) {
+    if (!inRoom) {
       state.chatPanelOpen = false;
+      state.chatUnreadCount = 0;
     }
 
-    // Keep room page focused to board + rules; chat becomes floating menu during game.
-    el.chatFabBtn.classList.toggle("hidden", !useFloatingChat);
-    el.chatFabBtn.classList.toggle("active", useFloatingChat && state.chatPanelOpen);
-    el.chatSection.classList.toggle("floating-chat", useFloatingChat);
-    el.chatSection.classList.toggle("hidden", !inRoom || (useFloatingChat && !state.chatPanelOpen));
+    el.chatFabBtn.classList.toggle("hidden", !inRoom);
+    el.chatFabBtn.classList.toggle("active", inRoom && state.chatPanelOpen);
+    el.chatSection.classList.toggle("chat-sidebar", inRoom);
+    el.chatSection.classList.toggle("hidden", !inRoom || !state.chatPanelOpen);
     el.eventSection.classList.toggle("hidden", inRoom);
   }
 
@@ -107,7 +108,6 @@
       return;
     }
 
-    // Keep roll button in the center so it stays visible on large/long boards.
     el.rollDiceFloatingBtn.style.left = "50%";
     el.rollDiceFloatingBtn.style.top = "50%";
     el.rollDiceFloatingBtn.classList.remove("hidden");
@@ -153,15 +153,36 @@
   }
 
   function toggleChatPanel() {
-    if (!isInRoom() || !isStarted()) {
+    if (!isInRoom()) {
       return;
     }
 
     state.chatPanelOpen = !state.chatPanelOpen;
+    if (state.chatPanelOpen) {
+      state.chatUnreadCount = 0;
+      renderChatBadge();
+    }
+
     renderRoomShell();
     if (state.chatPanelOpen) {
       requestAnimationFrame(() => el.chatInput?.focus());
     }
+  }
+
+  function renderChatBadge() {
+    if (!el.chatFabBadge) {
+      return;
+    }
+
+    const unread = Math.max(0, Number.parseInt(String(state.chatUnreadCount ?? 0), 10) || 0);
+    if (unread <= 0 || state.chatPanelOpen || !isInRoom()) {
+      el.chatFabBadge.textContent = "0";
+      el.chatFabBadge.classList.add("hidden");
+      return;
+    }
+
+    el.chatFabBadge.textContent = unread > 99 ? "99+" : String(unread);
+    el.chatFabBadge.classList.remove("hidden");
   }
 
   function isInRoom() {
@@ -192,6 +213,7 @@
     updateFloatingRollButton,
     toggleRollButton,
     toggleChatPanel,
-    updateDeadlineAlert
+    updateDeadlineAlert,
+    renderChatBadge
   };
 })();

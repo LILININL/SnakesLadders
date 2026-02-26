@@ -1,5 +1,6 @@
 (() => {
   const root = window.SNL;
+  const { el } = root;
 
   const settings = [
     { ruleId: "ruleTurnTimer", settingId: "settingTurnSeconds" },
@@ -12,6 +13,10 @@
   ];
 
   function init() {
+    if (el.gameMode) {
+      el.gameMode.addEventListener("change", syncAll);
+    }
+
     for (const item of settings) {
       const rule = document.getElementById(item.ruleId);
       if (rule) {
@@ -23,8 +28,32 @@
   }
 
   function syncAll() {
+    const customMode = isCustomMode();
+    if (el.customRuleOptionsBlock) {
+      el.customRuleOptionsBlock.classList.toggle("hidden", !customMode);
+    }
+
+    if (!customMode) {
+      hideAllSettings();
+      return;
+    }
+
     for (const item of settings) {
       syncSetting(item);
+    }
+  }
+
+  function hideAllSettings() {
+    for (const item of settings) {
+      const setting = document.getElementById(item.settingId);
+      if (!setting) {
+        continue;
+      }
+
+      setting.classList.add("hidden");
+      for (const input of setting.querySelectorAll("input, select")) {
+        input.disabled = true;
+      }
     }
   }
 
@@ -40,6 +69,11 @@
     for (const input of setting.querySelectorAll("input, select")) {
       input.disabled = !enabled;
     }
+  }
+
+  function isCustomMode() {
+    const mode = Number.parseInt(String(el.gameMode?.value ?? "1"), 10);
+    return mode !== 0;
   }
 
   root.ruleUi = {

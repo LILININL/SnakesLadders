@@ -13,6 +13,13 @@ public enum OverflowMode
     BackByOverflowX2 = 1
 }
 
+public enum GameMode
+{
+    Classic = 0,
+    Custom = 1,
+    Chaos = 2
+}
+
 public enum GameStatus
 {
     Waiting = 0,

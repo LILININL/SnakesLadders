@@ -11,6 +11,8 @@
       return;
     }
 
+    const markerMap = root.utils?.buildPlayerMarkerMap?.(players ?? []) ?? new Map();
+
     const visibleRange = range ?? root.boardPage.getVisibleRange(board.size, state.visiblePageStart);
     const grouped = new Map();
 
@@ -43,7 +45,7 @@
         if (player.playerId === state.playerId) token.classList.add("me");
         if (player.playerId === turnPlayerId) token.classList.add("turn");
         if (!player.connected) token.classList.add("offline");
-        token.textContent = (player.displayName?.[0] ?? "ผ").toUpperCase();
+        token.textContent = root.utils?.resolvePlayerMarker?.(player.playerId, player.displayName, markerMap) ?? "ผ";
         token.title = `${player.displayName}${!player.connected ? " (ออฟไลน์)" : ""}`;
 
         const offset = offsets[index] ?? { x: 0, y: 0 };

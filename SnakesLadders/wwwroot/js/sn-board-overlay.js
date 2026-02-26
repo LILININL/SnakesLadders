@@ -5,13 +5,23 @@
   let resizeTimer = 0;
 
   function render(board, range = null) {
-    if (!board || !Array.isArray(board.jumps) || board.jumps.length === 0 || !el.board) {
+    if (!board || !el.board) {
+      clear();
+      return;
+    }
+
+    const jumps = [...(Array.isArray(board.jumps) ? board.jumps : [])];
+    if (board.activeFrenzySnake?.type === 0) {
+      jumps.push(board.activeFrenzySnake);
+    }
+
+    if (jumps.length === 0) {
       clear();
       return;
     }
 
     const visibleRange = range ?? root.boardPage.getVisibleRange(board.size, state.visiblePageStart);
-    const visibleJumps = board.jumps.filter((jump) =>
+    const visibleJumps = jumps.filter((jump) =>
       root.boardPage.isCellVisible(jump.from, visibleRange) &&
       root.boardPage.isCellVisible(jump.to, visibleRange));
 

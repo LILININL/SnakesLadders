@@ -35,6 +35,7 @@ public sealed class BoardOptions
     private const int DefaultBoardSize = 100;
     private const int TechnicalCap = 5000;
 
+    public GameMode GameMode { get; set; } = GameMode.Custom;
     public int BoardSize { get; set; } = DefaultBoardSize;
     public DensityMode DensityMode { get; set; } = DensityMode.Medium;
     public OverflowMode OverflowMode { get; set; } = OverflowMode.StayPut;
@@ -43,6 +44,11 @@ public sealed class BoardOptions
 
     public void Normalize()
     {
+        if (!Enum.IsDefined(GameMode))
+        {
+            GameMode = GameMode.Custom;
+        }
+
         if (BoardSize <= 0)
         {
             BoardSize = DefaultBoardSize;
@@ -86,6 +92,20 @@ public sealed class BoardOptions
         if (RuleOptions.MarathonLadderMultiplier < 1.0d)
         {
             RuleOptions.MarathonLadderMultiplier = 1.0d;
+        }
+
+        if (GameMode == GameMode.Classic)
+        {
+            RuleOptions.CheckpointShieldEnabled = false;
+            RuleOptions.ComebackBoostEnabled = false;
+            RuleOptions.LuckyRerollEnabled = false;
+            RuleOptions.LuckyRerollPerPlayer = 0;
+            RuleOptions.ForkPathEnabled = false;
+            RuleOptions.SnakeFrenzyEnabled = false;
+            RuleOptions.MercyLadderEnabled = false;
+            RuleOptions.TurnTimerEnabled = false;
+            RuleOptions.RoundLimitEnabled = false;
+            RuleOptions.MarathonSpeedupEnabled = false;
         }
     }
 

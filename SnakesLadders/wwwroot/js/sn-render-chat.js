@@ -26,6 +26,8 @@
 
   function clearChat() {
     state.chatMessages = [];
+    state.chatUnreadCount = 0;
+    root.roomUi?.renderChatBadge?.();
     renderChat();
   }
 
@@ -41,6 +43,12 @@
     state.chatMessages.push(message);
     if (state.chatMessages.length > 120) {
       state.chatMessages = state.chatMessages.slice(-120);
+    }
+
+    const isSelf = message.playerId === state.playerId;
+    if (!isSelf && !state.chatPanelOpen) {
+      state.chatUnreadCount = Math.min(99, (state.chatUnreadCount ?? 0) + 1);
+      root.roomUi?.renderChatBadge?.();
     }
 
     renderChat();

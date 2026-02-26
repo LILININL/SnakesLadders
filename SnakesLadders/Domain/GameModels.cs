@@ -67,6 +67,8 @@ public sealed class TurnResult
     public required string PlayerId { get; init; }
     public required int StartPosition { get; init; }
     public required int DiceValue { get; init; }
+    public int BaseDiceValue { get; init; }
+    public int ComebackBoostAmount { get; init; }
     public required int EndPosition { get; init; }
 
     public bool ComebackBoostApplied { get; init; }
@@ -78,6 +80,8 @@ public sealed class TurnResult
 
     public Jump? TriggeredJump { get; init; }
     public Jump? FrenzySnake { get; init; }
+    public bool FrenzySnakeTriggered { get; init; }
+    public bool FrenzySnakeBlockedByShield { get; init; }
     public bool ShieldBlockedSnake { get; init; }
     public bool MercyLadderApplied { get; init; }
 

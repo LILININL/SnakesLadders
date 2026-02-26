@@ -1,46 +1,43 @@
 # Snakes & Ladders Live
 
-Real-time multiplayer Snakes and Ladders built with ASP.NET Core + SignalR and a modular vanilla JS frontend.
+เกมบันไดงูออนไลน์แบบเรียลไทม์ (หลายผู้เล่น) ด้วย ASP.NET Core + SignalR และ Frontend แบบ Vanilla JS แยกโมดูล
 
-The project supports:
-- Lobby with online users and open rooms
-- Room system with host + ready check
-- Custom board generation (size, density, rules)
-- Animated movement (step-by-step, snake/ladder path slide)
-- Turn timer, event feed, and room chat
-- Winner overlay and automatic room reset back to ready state
-
----
+## สถานะล่าสุด (อัปเดต)
+โปรเจกต์ตอนนี้รองรับครบทั้ง flow หลักที่คุยไว้:
+- Lobby + ห้อง + ระบบ Ready/Not Ready
+- กระดานขนาดยาว (สูงสุด 5000 ช่อง) พร้อมการแสดงผลแบบแบ่งหน้า 100 ช่องต่อหน้า
+- โฟกัสกล้องตามคนที่ถึงตาอัตโนมัติ
+- งู/บันไดข้ามช่วงพร้อม hint ปลายทาง
+- ผู้เล่นหลุดระหว่างเกมยังอยู่ในกระดานเป็น Offline และ auto-roll ให้แบบเร็ว
+- แชตในห้องแบบ Sidebar ด้านขวา เปิดค้างตั้งต้น และมี badge แจ้งเตือนข้อความใหม่
+- ผู้ชนะโชว์ overlay และรีเซ็ตกลับไปสถานะรอ Ready รอบใหม่อัตโนมัติ
 
 ## 1) Tech Stack
-
 - Backend: ASP.NET Core (`net10.0`)
 - Realtime: SignalR (`/hubs/game`)
-- Frontend: Static HTML/CSS + modular vanilla JS in `wwwroot/js`
-- In-memory state: room/game state kept in singleton services
-- Client persistence: `localStorage` for player name + room session resume
+- Frontend: HTML/CSS + Modular Vanilla JS (`wwwroot/js`)
+- State: In-memory (ไม่มี DB)
+- Persistence ฝั่ง client: `localStorage`
 
----
+## 2) ฟีเจอร์ที่ทำแล้ว
 
-## 2) Current Gameplay Rules
+### 2.1 Lobby / Room
+- ตั้งชื่อก่อนใช้งาน (popup)
+- แสดงห้องที่เปิดรอและกดเข้าห้องได้
+- Host สร้างห้องพร้อมกำหนดกติกา
+- Resume เข้าห้องเดิมด้วย session เดิมหลังรีโหลด/หลุด
+- ก่อนเริ่มเกม: Host = พร้อมเสมอ, คนอื่นต้องพร้อมครบถึงเริ่มได้
 
-### Core
-- Board size: minimum `50`, technical cap `5000`
-- Density: `Low`, `Medium`, `High`
-- Overflow modes:
-  - `StayPut`: if roll exceeds final cell, player stays in place
-  - `BackByOverflowX2`: move back by `overflow * 2`
-- Snakes send player down from head to tail
-- Ladders move player up from start to end
-- Finish-row pressure: generated board enforces at least 2 snakes on the finish row (up to 3 on larger boards)
-- No snake/ladder endpoint chaining in generated board
+### 2.2 กติกาเกมหลัก
+- ขนาดกระดานขั้นต่ำ `50`, เพดานระบบ `5000`
+- ความหนาแน่นงู/บันได: Low/Medium/High
+- Overflow mode:
+  - `StayPut`
+  - `BackByOverflowX2`
+- งู/บันไดสุ่มโดยเซิร์ฟเวอร์ (server authoritative)
+- มีงูโซนเส้นชัยอย่างน้อย 2-3 ตัวเพื่อกันเกมง่ายเกินไป
 
-### Ready / Start
-- Host is always ready
-- Non-host players must be connected and ready before host can start
-- Minimum 2 players required
-
-### Enabled room rule switches (UI)
+### 2.3 กติกาเสริม (เปิด/ปิดตอนสร้างห้อง)
 - Checkpoint Shield
 - Comeback Boost
 - Snake Frenzy
@@ -49,44 +46,46 @@ The project supports:
 - Round Limit
 - Marathon Speedup
 
-### Disabled in current UI flow
-- Lucky reroll
-- Fork choice
+หมายเหตุ:
+- Lucky reroll และ Fork path ถูกปิดจาก UI ปัจจุบัน (ฝั่ง client ส่ง `useLuckyReroll=false`, `forkChoice=null`)
 
-UI sends:
-- `useLuckyReroll: false`
-- `forkChoice: null`
+### 2.4 ประสบการณ์กระดานยาว (Paged Board)
+- แสดงกระดานคงที่ 10x10 (100 ช่องต่อหน้า) เสมอ
+- ช่องที่เห็นเป็นเลข absolute จริง (เช่น 201-300)
+- เปลี่ยนหน้าแบบ smooth transition (550ms)
+- โฟกัสตามคนที่ถึงตาอัตโนมัติ
+- ถ้าผู้เล่นอยู่นอกช่วงที่เห็น: มี beacon ชี้ตำแหน่งและกดกระโดดไปดูได้
 
-### End game behavior
-- Winner is announced with overlay animation
-- Server immediately resets the room to `Waiting`
-- Board is cleared
-- Host remains ready
-- Other connected players return to `Not Ready`
-- Disconnected seats are removed during reset
+### 2.5 Animation / UI
+- เดินทีละช่อง (ไม่วาร์ป)
+- ขึ้นบันได/ลงงูด้วย path animation
+- ถ้าข้ามช่วงหน้า: โชว์ jump hint ก่อนแล้วค่อยสลับหน้า
+- ตัวผู้เล่นอยู่ layer บนสุดและเด่นขึ้น
+- ปุ่มทอยอยู่ layer บนสุด (ไม่โดน token ทับ)
+- Countdown 5 วิสุดท้ายขึ้นแจ้งเตือน
+- แสดงผลแต้มเต๋ากลางจอก่อนเริ่มเดิน
 
----
+### 2.6 Chat
+- แชตในห้องแบบ Sidebar ด้านขวา (เปิด/ปิดได้)
+- เข้า room แล้วเปิดแชตค้างเป็นค่าเริ่มต้น
+- มี badge แจ้งเตือนข้อความใหม่สีแดงบนปุ่มแชต
+- ถ้าเปิดแชตอยู่ จะล้าง unread อัตโนมัติ
+- ไม่โหลดแชตเก่าหลังรีโหลด (ตาม requirement)
 
-## 3) UX Features
+### 2.7 Offline / Timer / Auto-roll
+- ผู้เล่นหลุดระหว่างเกม: คงที่นั่งไว้เป็น Offline (โทนเทา)
+- ถึงตาผู้เล่น Offline: auto-roll เร็ว (`~700ms`)
+- Worker ประมวลผล deadline ทุก `250ms`
+- `TurnResult` มี `AutoRollReason` = `Disconnected` หรือ `TimerExpired`
+- มี buffer เวลาแอนิเมชันก่อนจับเวลาหมดเทิร์นของคนถัดไป เพื่อกันโดน auto-roll ทั้งที่ยังไม่ทันกด
 
-- Snake rendering upgraded with stylized body/head/stripe visuals
-- Player tokens rendered on a top overlay layer above cells, snakes, and ladders
-- Active turn token glow/pulse
-- Dice result popup in center before movement starts
-- Movement speed tuned slower than earlier builds
-- Snake/ladder movement follows the actual path (not per-cell teleport/step)
-- Turn warning countdown appears in final 5 seconds
-- Winner popup with animation after game finish
-
----
-
-## 4) Project Structure
-
+## 3) โครงสร้างโปรเจกต์
 ```text
 SnakesLadders/
 |- SnakesLadders.sln
 |- IMPLEMENTATION_PLAN.md
 |- README.md
+|- DEPLOY_CLOUDFLARE.md
 |- compose.yaml
 `- SnakesLadders/
    |- Program.cs
@@ -108,9 +107,15 @@ SnakesLadders/
          |- sn-main.js
          |- sn-signalr.js
          |- sn-actions.js
-         |- sn-render-*.js
+         |- sn-render-main.js
+         |- sn-render-lobby.js
+         |- sn-render-game.js
+         |- sn-render-chat.js
          |- sn-room-ui.js
          |- sn-ready-ui.js
+         |- sn-board-page.js
+         |- sn-board-focus.js
+         |- sn-board-beacon.js
          |- sn-board-overlay.js
          |- sn-board-token-layer.js
          |- sn-piece-transit.js
@@ -118,15 +123,12 @@ SnakesLadders/
          `- sn-board-fx.js
 ```
 
----
+## 4) Run Local
+Prerequisites:
+- .NET SDK 10
+- (แนะนำตอนตรวจ JS) `nvm use 24.9.0`
 
-## 5) Run Locally
-
-## Prerequisites
-- .NET SDK 10.0
-
-## Commands
-
+Commands:
 ```bash
 cd /Users/lilin/Desktop/Alumilive/SnakesLadders
 dotnet restore
@@ -136,48 +138,22 @@ dotnet run --project SnakesLadders/SnakesLadders.csproj --launch-profile http
 Open:
 - `http://localhost:5248`
 
-Alternative profile:
-- `https://localhost:7135`
-
----
-
-## 6) Docker
-
-Current `compose.yaml` builds and runs the service image but does not publish host ports.
-
-If you want browser access from host, add a port mapping in `compose.yaml`, for example:
-
-```yaml
-services:
-  snakesladders:
-    image: snakesladders
-    build:
-      context: .
-      dockerfile: SnakesLadders/Dockerfile
-    ports:
-      - "8080:8080"
-```
-
-Then run:
-
+## 5) Docker
+ตัวอย่าง run:
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
----
+ถ้าต้องการเปิดจาก host ให้ map port ใน `compose.yaml` เช่น `8080:8080`
 
-## 7) HTTP Endpoints
-
+## 6) HTTP Endpoints
 - `GET /health`
 - `GET /rooms/waiting`
 - `GET /lobby/online`
 - SignalR hub: `/hubs/game`
 
----
-
-## 8) SignalR Hub Contract (Current)
-
-### Client -> Server methods
+## 7) SignalR Contract
+Client -> Server:
 - `CreateRoom(CreateRoomRequest)`
 - `JoinRoom(JoinRoomRequest)`
 - `ResumeRoom(ResumeRoomRequest)`
@@ -189,7 +165,7 @@ docker compose up --build
 - `GetRoom(string roomCode)`
 - `SetLobbyName(string displayName)`
 
-### Server -> Client events
+Server -> Client:
 - `RoomCreated`
 - `RoomJoined`
 - `RoomResumed`
@@ -201,64 +177,17 @@ docker compose up --build
 - `ChatReceived`
 - `Error`
 
----
-
-## 9) Session and Persistence
-
-Client stores:
+## 8) Client Storage
 - `snl_profile_name`
 - `snl_room_sessions`
 - `snl_last_room_code`
+- `snl_focus_mode` (ตอนนี้บังคับใช้งาน turn focus)
 
-Behavior:
-- Name is auto-filled on next visit
-- Last room/session can auto-resume on reconnect/reload
-- Chat history is room-realtime only (not restored on page reload by design)
+## 9) Deployment
+- ดูคู่มือ Cloudflare: `DEPLOY_CLOUDFLARE.md`
+- โดเมนที่ตั้งค่าไว้: `snakkes.whylin.xyz`
 
----
-
-## 10) Development Notes
-
-- Game state is in-memory; server restart clears all rooms.
-- Lobby polling runs every 8 seconds only when not in a room.
-- Turn timer auto-roll is processed by `TurnTimerBackgroundService`.
-- Frontend JS is split into small modules for easier maintenance.
-
----
-
-## 11) Quick Multiplayer Test
-
-1. Open app in two browser windows.
-2. Window A: set name, create room, share code.
-3. Window B: join by room code.
-4. Window B toggles ready.
-5. Window A starts game.
-6. Roll dice and validate:
-   - dice popup appears before movement
-   - token moves on top layer
-   - snake/ladder movement follows path
-   - winner overlay appears on finish
-   - room returns to waiting + ready flow for next round
-
----
-
-## 12) Troubleshooting
-
-### Warning: `Failed to determine the https port for redirect.`
-- Run with `--launch-profile http`, or
-- Set `ASPNETCORE_URLS` to include an https URL (the app reads it to configure redirect).
-
-### Room does not appear in lobby list
-- Lobby list only shows rooms in `Waiting` status.
-- Use refresh button if needed.
-
-### Cannot start game
-- Need at least 2 players
-- All non-host players must be connected and ready
-
----
-
-## 13) Deploy to Cloudflare
-
-- See deployment playbook: `DEPLOY_CLOUDFLARE.md`
-- Preconfigured domain target: `snakkes.whylin.xyz`
+## 10) หมายเหตุสำคัญ
+- ระบบเป็น in-memory, restart แล้วห้องหาย
+- Build artifacts (`bin/obj`) อาจเปลี่ยนทุกครั้งที่ build
+- ถ้าหน้าเว็บไม่อัปเดต ให้ hard refresh หลัง bump `?v=`

@@ -1,7 +1,7 @@
 (() => {
   const root = window.SNL;
   const { state, el } = root;
-  const { escapeHtml, shortId, densityLabel } = root.utils;
+  const { escapeHtml, shortId } = root.utils;
 
   function setConnectionStatus(text, tone) {
     el.connectionStatus.textContent = text;
@@ -63,7 +63,7 @@
       return `
         <li class="room-item">
           <strong>${escapeHtml(room.roomCode)}</strong> โดย ${escapeHtml(room.hostName)}
-          <div class="meta">ผู้เล่น: ${room.playerCount} | กระดาน: ${room.boardSize} | ความหนาแน่น: ${densityLabel(room.densityMode)}</div>
+          <div class="meta">ผู้เล่น: ${room.playerCount} | กระดาน: ${room.boardSize}</div>
           <button class="btn join-room-btn" data-room-code="${escapeHtml(room.roomCode)}" ${isCurrent ? "disabled" : ""}>
             ${isCurrent ? "ห้องที่คุณอยู่" : "เข้าห้องนี้"}
           </button>

@@ -44,29 +44,33 @@
     state.connection.on("RoomUpdated", (room) => {
       if (state.animating) {
         state.deferredRoom = room;
+        if (room?.status === root.GAME_STATUS.STARTED) {
+          state.pendingTurnChangedPlayerId = room.currentTurnPlayerId ?? "";
+        }
         return;
       }
 
       state.room = room;
+      flushPendingTurnTrigger(room);
       root.boardFocus?.onRoomBound?.(false);
       root.feedback.renderAll();
     });
 
     state.connection.on("GameStarted", (room) => {
       state.room = room;
+      seedTurnTriggerCounter(room);
       root.boardFocus?.onRoomBound?.(true);
       root.feedback.logEvent("เกมเริ่มแล้ว ลุยได้เลย");
       root.feedback.renderAll();
     });
 
     state.connection.on("TurnChanged", (playerId) => {
+      state.pendingTurnChangedPlayerId = playerId ?? "";
       if (state.animating) {
         return;
       }
 
-      const player = state.room?.players?.find((x) => x.playerId === playerId);
-      root.boardFocus?.refreshPendingBeaconTarget?.();
-      root.feedback.logEvent(`ตอนนี้เป็นตาของ ${player ? player.displayName : playerId}`);
+      flushPendingTurnTrigger(state.room);
       root.feedback.renderAll();
     });
 
@@ -84,6 +88,7 @@
       } else {
         state.lastTurn = payload.turn;
         state.room = payload.room;
+        seedTurnTriggerCounter(payload.room);
         root.feedback.renderAll();
       }
     });
@@ -128,7 +133,8 @@
     state.room = payload.room;
     state.lastTurn = null;
     state.chatMessages = [];
-    state.chatPanelOpen = false;
+    state.chatPanelOpen = true;
+    state.chatUnreadCount = 0;
     state.rollButtonHidden = false;
     state.animating = false;
     state.animPlayerId = "";
@@ -137,12 +143,16 @@
     state.animTransitActive = false;
     state.animTransitPlayerId = "";
     state.deferredRoom = null;
+    state.pendingTurnChangedPlayerId = "";
+    state.lastAnnouncedTurnCounter = -1;
     state.pendingBeaconTargetPlayerId = "";
     state.pageTransitioning = false;
     state.pageTransitionDirection = 0;
+    seedTurnTriggerCounter(payload.room);
     root.turnAnimation?.reset?.();
     root.boardFx?.reset?.();
     root.boardFocus?.onRoomBound?.(true);
+    root.roomUi?.renderChatBadge?.();
 
     el.joinRoomCode.value = payload.roomCode;
     root.storage.saveRoomSession(payload.roomCode, payload.sessionId, payload.playerId);
@@ -151,10 +161,57 @@
     root.feedback.renderAll();
   }
 
+  function flushPendingTurnTrigger(roomOverride = null) {
+    const room = roomOverride ?? state.room;
+    if (!room || room.status !== root.GAME_STATUS.STARTED) {
+      state.pendingTurnChangedPlayerId = "";
+      state.lastAnnouncedTurnCounter = -1;
+      return false;
+    }
+
+    const turnCounter = resolveTurnCounter(room.turnCounter);
+    if (turnCounter < 0 || turnCounter <= state.lastAnnouncedTurnCounter) {
+      state.pendingTurnChangedPlayerId = "";
+      return false;
+    }
+
+    const playerId = state.pendingTurnChangedPlayerId || room.currentTurnPlayerId || "";
+    state.pendingTurnChangedPlayerId = "";
+    state.lastAnnouncedTurnCounter = turnCounter;
+
+    if (!playerId) {
+      return false;
+    }
+
+    const player = room.players?.find((x) => x.playerId === playerId);
+    root.boardFocus?.refreshPendingBeaconTarget?.();
+    root.feedback.logEvent(`ตอนนี้เป็นตาของ ${player ? player.displayName : playerId}`);
+    return true;
+  }
+
+  function seedTurnTriggerCounter(room) {
+    if (!room || room.status !== root.GAME_STATUS.STARTED) {
+      state.lastAnnouncedTurnCounter = -1;
+      state.pendingTurnChangedPlayerId = "";
+      return;
+    }
+
+    state.lastAnnouncedTurnCounter = resolveTurnCounter(room.turnCounter);
+    state.pendingTurnChangedPlayerId = "";
+  }
+
+  function resolveTurnCounter(value) {
+    const parsed = Number.parseInt(String(value ?? ""), 10);
+    return Number.isFinite(parsed) ? parsed : -1;
+  }
+
   function formatDiceEvent(turn, room) {
     const baseLine = root.feedback.formatTurnLine(turn);
+    const comebackLine = formatComebackLine(turn);
+    const frenzyLine = formatFrenzyLine(turn);
+    const extraLines = [comebackLine, frenzyLine].filter(Boolean).join(" | ");
     if (!turn?.autoRollReason) {
-      return baseLine;
+      return extraLines ? `${baseLine} | ${extraLines}` : baseLine;
     }
 
     const playerName = room?.players?.find((x) => x.playerId === turn.playerId)?.displayName
@@ -162,19 +219,53 @@
       ?? turn.playerId;
 
     if (turn.autoRollReason === "Disconnected") {
-      return `${playerName} ออฟไลน์ ระบบทอยให้อัตโนมัติ (${turn.diceValue})`;
+      const line = `${playerName} ออฟไลน์ ระบบทอยให้อัตโนมัติ (${turn.diceValue})`;
+      return extraLines ? `${line} | ${extraLines}` : line;
     }
 
     if (turn.autoRollReason === "TimerExpired") {
-      return `${playerName} หมดเวลา ระบบทอยให้อัตโนมัติ (${turn.diceValue})`;
+      const line = `${playerName} หมดเวลา ระบบทอยให้อัตโนมัติ (${turn.diceValue})`;
+      return extraLines ? `${line} | ${extraLines}` : line;
     }
 
-    return baseLine;
+    return extraLines ? `${baseLine} | ${extraLines}` : baseLine;
+  }
+
+  function formatComebackLine(turn) {
+    if (!turn?.comebackBoostApplied) {
+      return "";
+    }
+
+    const baseDice = Number.parseInt(String(turn.baseDiceValue ?? turn.diceValue), 10) || turn.diceValue;
+    const boostAmount = Number.parseInt(String(turn.comebackBoostAmount ?? 0), 10) || 0;
+    if (boostAmount > 0) {
+      return `เร่งแซง +${boostAmount} (${baseDice}->${turn.diceValue})`;
+    }
+
+    return `เร่งแซงติดเพดาน (${baseDice}->${turn.diceValue})`;
+  }
+
+  function formatFrenzyLine(turn) {
+    if (!turn?.frenzySnake) {
+      return "";
+    }
+
+    if (turn.frenzySnakeTriggered) {
+      return `งูคลุ้มคลั่งทำงาน ${turn.frenzySnake.from}->${turn.frenzySnake.to}`;
+    }
+
+    if (turn.frenzySnakeBlockedByShield) {
+      return `งูคลุ้มคลั่งโผล่ที่ ${turn.frenzySnake.from} แต่โดนกันได้`;
+    }
+
+    return `งูคลุ้มคลั่งโผล่ที่ ${turn.frenzySnake.from}`;
   }
 
   root.realtime = {
     setupConnection,
     invokeHub,
-    publishLobbyName
+    publishLobbyName,
+    flushPendingTurnTrigger,
+    seedTurnTriggerCounter
   };
 })();

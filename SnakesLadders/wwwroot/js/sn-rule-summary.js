@@ -5,6 +5,7 @@
     const safeOptions = options ?? {};
     const rules = safeOptions.ruleOptions ?? {};
 
+    const gameMode = toInt(safeOptions.gameMode, 1);
     const boardSize = toInt(safeOptions.boardSize, 100);
     const turnSeconds = Math.max(3, toInt(rules.turnSeconds, 15));
     const maxRounds = Math.max(1, toInt(rules.maxRounds, 80));
@@ -15,8 +16,8 @@
     const marathonMultiplier = Math.max(1, toNumber(rules.marathonLadderMultiplier, 1.2));
 
     const lines = [
+      `โหมดห้อง: ${gameModeLabel(gameMode)}`,
       `ขนาดกระดาน: ${boardSize} ช่อง`,
-      `ความหนาแน่นงู/บันได: ${densityLabel(safeOptions.densityMode)}`,
       `ทอยเกินเส้นชัย: ${safeOptions.overflowMode === 1 ? "ถอยหลังตามแต้มเกิน x2" : "อยู่ที่เดิม"}`
     ];
 
@@ -63,10 +64,10 @@
     return lines;
   }
 
-  function densityLabel(value) {
-    if (value === 0) return "น้อย";
-    if (value === 2) return "เยอะ";
-    return "กลาง";
+  function gameModeLabel(value) {
+    if (value === 0) return "Classic";
+    if (value === 2) return "Chaos";
+    return "Custom";
   }
 
   function formatMultiplier(value) {

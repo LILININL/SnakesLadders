@@ -78,6 +78,7 @@
     state.deferredRoom = null;
     state.lastTurn = turn;
     root.boardFocus?.onRoomBound?.(false);
+    root.realtime?.flushPendingTurnTrigger?.(state.room);
     root.feedback.renderAll();
   }
 
@@ -180,7 +181,7 @@
       cursor = turn.triggeredJump.to;
     }
 
-    if (turn.frenzySnake && !turn.shieldBlockedSnake && cursor === turn.frenzySnake.from && turn.frenzySnake.to !== cursor) {
+    if (turn.frenzySnake && turn.frenzySnakeTriggered && turn.frenzySnake.to !== cursor) {
       segments.push({
         mode: "path",
         playerId: turn.playerId,

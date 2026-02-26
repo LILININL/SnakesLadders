@@ -52,29 +52,45 @@
   }
 
   function buildBoardOptions(boardSize) {
+    const gameMode = parseInt(el.gameMode?.value ?? "1", 10);
+    const classicMode = gameMode === 0;
+
+    const ruleOptions = {
+      checkpointShieldEnabled: el.ruleCheckpointShield.checked,
+      comebackBoostEnabled: el.ruleComebackBoost.checked,
+      luckyRerollEnabled: false,
+      luckyRerollPerPlayer: 0,
+      forkPathEnabled: false,
+      snakeFrenzyEnabled: el.ruleSnakeFrenzy.checked,
+      snakeFrenzyIntervalTurns: parseInt(el.frenzyInterval.value, 10),
+      mercyLadderEnabled: el.ruleMercyLadder.checked,
+      mercyLadderBoost: parseInt(el.mercyBoost.value, 10),
+      checkpointInterval: parseInt(el.checkpointInterval.value, 10),
+      turnTimerEnabled: el.ruleTurnTimer.checked,
+      turnSeconds: parseInt(el.turnSeconds.value, 10),
+      roundLimitEnabled: el.ruleRoundLimit.checked,
+      maxRounds: parseInt(el.maxRounds.value, 10),
+      marathonSpeedupEnabled: el.ruleMarathonSpeedup.checked,
+      marathonThreshold: parseInt(el.marathonThreshold.value, 10),
+      marathonLadderMultiplier: parseFloat(el.marathonMultiplier.value)
+    };
+
+    if (classicMode) {
+      ruleOptions.checkpointShieldEnabled = false;
+      ruleOptions.comebackBoostEnabled = false;
+      ruleOptions.snakeFrenzyEnabled = false;
+      ruleOptions.mercyLadderEnabled = false;
+      ruleOptions.turnTimerEnabled = false;
+      ruleOptions.roundLimitEnabled = false;
+      ruleOptions.marathonSpeedupEnabled = false;
+    }
+
     return {
       boardSize,
-      densityMode: parseInt(el.densityMode.value, 10),
+      gameMode,
+      densityMode: 0,
       overflowMode: parseInt(el.overflowMode.value, 10),
-      ruleOptions: {
-        checkpointShieldEnabled: el.ruleCheckpointShield.checked,
-        comebackBoostEnabled: el.ruleComebackBoost.checked,
-        luckyRerollEnabled: false,
-        luckyRerollPerPlayer: 0,
-        forkPathEnabled: false,
-        snakeFrenzyEnabled: el.ruleSnakeFrenzy.checked,
-        snakeFrenzyIntervalTurns: parseInt(el.frenzyInterval.value, 10),
-        mercyLadderEnabled: el.ruleMercyLadder.checked,
-        mercyLadderBoost: parseInt(el.mercyBoost.value, 10),
-        checkpointInterval: parseInt(el.checkpointInterval.value, 10),
-        turnTimerEnabled: el.ruleTurnTimer.checked,
-        turnSeconds: parseInt(el.turnSeconds.value, 10),
-        roundLimitEnabled: el.ruleRoundLimit.checked,
-        maxRounds: parseInt(el.maxRounds.value, 10),
-        marathonSpeedupEnabled: el.ruleMarathonSpeedup.checked,
-        marathonThreshold: parseInt(el.marathonThreshold.value, 10),
-        marathonLadderMultiplier: parseFloat(el.marathonMultiplier.value)
-      }
+      ruleOptions
     };
   }
 

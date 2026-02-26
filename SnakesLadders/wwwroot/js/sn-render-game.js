@@ -83,7 +83,11 @@
     state.visiblePageStart = page.start;
     root.boardFocus?.refreshPendingBeaconTarget?.();
 
-    const jumps = board.jumps ?? [];
+    const jumps = [...(board.jumps ?? [])];
+    const activeFrenzySnake = board.activeFrenzySnake;
+    if (activeFrenzySnake?.type === 0) {
+      jumps.push(activeFrenzySnake);
+    }
     const jumpsByFrom = new Map(jumps.map((jump) => [jump.from, jump]));
     const snakeHeads = new Set(jumps.filter((x) => x.type === 0).map((x) => x.from));
     const snakeTails = new Set(jumps.filter((x) => x.type === 0).map((x) => x.to));
@@ -123,7 +127,13 @@
       if (jumpCrossPage) classes.push("cross-jump");
 
       const marks = [];
-      if (isSnakeHead) marks.push("<span class='jump-tag snake'>🐍</span>");
+      if (isSnakeHead) {
+        if (activeFrenzySnake && activeFrenzySnake.from === absoluteCell) {
+          marks.push("<span class='jump-tag snake'>🐍⚡</span>");
+        } else {
+          marks.push("<span class='jump-tag snake'>🐍</span>");
+        }
+      }
       if (isLadderStart) marks.push("<span class='jump-tag ladder'>🪜</span>");
       if (isSnakeTail) marks.push("<span class='jump-tag snake-end'>▾</span>");
       if (isLadderEnd) marks.push("<span class='jump-tag ladder-end'>▴</span>");
@@ -161,11 +171,26 @@
 
     if (t.autoRollReason === "Disconnected") lines.push("ผู้เล่นออฟไลน์ ระบบทอยให้อัตโนมัติ");
     if (t.autoRollReason === "TimerExpired") lines.push("หมดเวลาเทิร์น ระบบทอยให้อัตโนมัติ");
-    if (t.comebackBoostApplied) lines.push("ได้โบนัสเร่งแซงจากกติกา");
+    if (t.comebackBoostApplied) {
+      const boostAmount = Number.parseInt(String(t.comebackBoostAmount ?? 0), 10) || 0;
+      const baseDice = Number.parseInt(String(t.baseDiceValue ?? t.diceValue), 10) || t.diceValue;
+      if (boostAmount > 0) {
+        lines.push(`ได้โบนัสเร่งแซง +${boostAmount} (${baseDice} -> ${t.diceValue})`);
+      } else {
+        lines.push(`ได้โบนัสเร่งแซงแต่แต้มชนเพดาน (${baseDice} -> ${t.diceValue})`);
+      }
+    }
     if (t.usedLuckyReroll) lines.push("ใช้สิทธิ์ทอยซ้ำ");
     if (t.overflowAmount > 0) lines.push(`แต้มเกินเส้นชัย: ${t.overflowAmount}`);
     if (t.forkCell) lines.push(`เจอทางแยกที่ช่อง ${t.forkCell.cell}: เลือกเส้น ${t.forkChoice === 1 ? "เสี่ยงดวง" : "ปลอดภัย"}`);
     if (t.triggeredJump) lines.push(`โดนทางลัด: ${t.triggeredJump.type === 0 ? "งู" : "บันได"} ${t.triggeredJump.from} -> ${t.triggeredJump.to}`);
+    if (t.frenzySnakeTriggered && t.frenzySnake) {
+      lines.push(`งูคลุ้มคลั่งทำงาน: ${t.frenzySnake.from} -> ${t.frenzySnake.to}`);
+    } else if (t.frenzySnakeBlockedByShield && t.frenzySnake) {
+      lines.push(`งูคลุ้มคลั่งโผล่ที่ ${t.frenzySnake.from} แต่โล่ช่วยกันไว้ได้`);
+    } else if (t.frenzySnake) {
+      lines.push(`งูคลุ้มคลั่งโผล่: ${t.frenzySnake.from} -> ${t.frenzySnake.to} (รอบนี้ไม่มีใครโดน)`);
+    }
     if (t.shieldBlockedSnake) lines.push("เกราะช่วยกันการโดนงูกัดได้สำเร็จ");
     if (t.mercyLadderApplied) lines.push("บันไดเมตตาช่วยดันตำแหน่งขึ้น");
     if (t.shieldsEarned > 0) lines.push(`ได้รับโล่เพิ่ม: +${t.shieldsEarned}`);

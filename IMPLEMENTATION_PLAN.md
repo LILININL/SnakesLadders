@@ -1,199 +1,189 @@
-# Snakes & Ladders Online - Implementation Plan (.NET)
+# Snakes & Ladders Online - Implementation Plan & Progress (.NET)
+
+## 0) สถานะอัปเดตล่าสุด (Done)
+เอกสารนี้อัปเดตเป็นสถานะจริงของโค้ดปัจจุบัน
+
+สิ่งที่ส่งมอบแล้ว:
+- ระบบ Lobby + Room + Ready/Not Ready + Start Game
+- ระบบ Resume ห้องเดิมด้วย session เดิม
+- สร้างกระดานจาก server ตามกติกา + ขนาดกระดาน custom
+- Overflow mode 2 แบบ: `StayPut` และ `BackByOverflowX2`
+- กระดานยาวแบบ Paged Board 100 ช่อง/หน้า
+- โฟกัสตามผู้เล่นที่ถึงตาอัตโนมัติ
+- Beacon ผู้เล่นนอกช่วง + jump hint ข้ามช่วง
+- Animation เดิน/ขึ้นบันได/ลงงูแบบ smooth
+- ปุ่มทอยและ token overlay ปรับเลเยอร์แล้ว
+- ระบบแชตในห้อง + Sidebar ด้านขวา + badge unread
+- รองรับผู้เล่นหลุดกลางเกม (offline seat) + auto-roll เร็ว
+- เพิ่ม `AutoRollReason` ใน `TurnResult`
+- ปรับ timer worker เป็น 250ms และเพิ่มเวลาเผื่อแอนิเมชันก่อนหมดเทิร์นถัดไป
+- จบเกมแล้วขึ้นผู้ชนะ + รีเซ็ตห้องกลับสู่รอ Ready
+
+## 0.1) แพลนวันนี้ (26 กุมภาพันธ์ 2026)
+โฟกัสหลักของวันนี้:
+- Stabilize `turn trigger` ก่อนเริ่มทำระบบไอเท็ม
+
+รายการงานวันนี้:
+- [x] กำหนดแนวทาง: ยึด `RoomSnapshot.CurrentTurnPlayerId` + `RoomSnapshot.TurnCounter` เป็น source หลัก
+- [x] เพิ่มกลไกกัน trigger ซ้ำจาก event order (`RoomUpdated` / `TurnChanged`)
+- [x] เพิ่ม pending turn trigger ระหว่าง animation และ flush หลัง animation จบ
+- [x] reset turn-trigger state ให้ครบตอน bind room / start game / finish game / leave room
+- [ ] ทดสอบหลายแท็บ + reconnect + auto-roll เพื่อยืนยันว่าไม่หลุดเทิร์น
+
+งานถัดไปหลังจบหัวข้อนี้:
+- ออกแบบและเริ่มลงระบบไอเท็มในด่าน (เริ่มจาก item แบบรับผลทันที ก่อน item แบบกดใช้)
+
+## 0.2) อัปเดตงานวันนี้ (ล่าสุด)
+ความคืบหน้า `turn trigger`:
+- [x] ฝั่ง client มีระบบ queue/pending ระหว่าง animation แล้ว
+- [x] เพิ่มการกัน trigger ซ้ำด้วย `TurnCounter`
+- [x] flush turn trigger ทันทีเมื่อ animation จบ
+- [x] reset state ที่เกี่ยวข้องตอน bind room / leave room
+- [ ] Manual validation เพิ่มเติม (หลายแท็บ + reconnect + auto-roll)
+
+ความคืบหน้าโหมดห้อง:
+- [x] เพิ่ม `Classic` และ `Custom` ในเมนูสร้างห้อง
+- [x] `Classic` ปิดกฏเสริมทั้งหมดทั้งฝั่ง client และ server
+- [x] `Custom` คงพฤติกรรมเดิม (เลือกกฏเสริมเองได้)
+- [ ] `Chaos` รอทำพร้อมระบบไอเท็ม
+
+---
 
 ## 1) เป้าหมายโปรเจกต์
-- ทำเกมบันไดงูแบบออนไลน์ เล่นพร้อมเพื่อนในห้องเดียวกันแบบ real-time
-- ใช้ `.NET` ฝั่งเซิร์ฟเวอร์เป็นตัวคุมเกมทั้งหมด (server authoritative) เพื่อกันโกง
-- รองรับกระดานหลายขนาด (เช่น 100, 200, 300, ... 1000 ช่อง)
+- เกมบันไดงูออนไลน์แบบ real-time เล่นกับเพื่อนในห้องเดียวกัน
+- เซิร์ฟเวอร์เป็นผู้คุมกติกาทั้งหมด (server authoritative)
+- รองรับกระดานยาวและการตั้งค่ากติกาแบบยืดหยุ่น
 
-## 2) Requirement ที่ยืนยันแล้ว
+## 2) Requirement ที่ยืนยันและทำแล้ว
 - เล่นหลายคนในห้องเดียวกัน
-- โฮสต์กำหนดขนาดกระดานเองได้ (custom size)
-- ขนาดกระดานต้องไม่ต่ำกว่า 50 ช่อง
-- เซิร์ฟเวอร์สุ่มตำแหน่งงู/บันไดให้ทั้งห้องใช้ร่วมกัน
-- งูและบันไดทำงานตามกติกาทั่วไป:
-  - ลงที่ต้นบันได -> ขึ้นปลายบันได
-  - ลงที่หัวงู -> ลงหางงู
-  - ลงที่หางงูแล้วไม่ย้อนขึ้นหัวงู
-- มีโหมดความหนาแน่นงู (งูน้อย/กลาง/งูเยอะ) ตามขนาดกระดาน
-- มีกติกาโหมดทอยเกินช่องสุดท้ายให้เลือกเปิด/ปิด
+- โฮสต์กำหนดขนาดกระดานเองได้
+- ขนาดกระดานขั้นต่ำ 50 ช่อง (technical cap 5000)
+- เซิร์ฟเวอร์สุ่มงู/บันไดให้ทั้งห้องใช้ร่วมกัน
+- โหมดความหนาแน่นงู/บันได (น้อย/กลาง/เยอะ)
+- โหมดทอยเกินเส้นชัยให้เลือก
+- ผู้เล่นที่ไม่ใช่โฮสต์ต้อง ready ครบก่อนเริ่ม
 
-## 3) กติกาหลักของเกม (Game Rules)
-- จุดเริ่มทุกคนอยู่ช่อง 1
-- เทิร์นละ 1 ผู้เล่น ทอยเต๋า 1-6
-- ชนะเมื่อถึงช่องสุดท้ายพอดี หรือเมื่อจบการคำนวณแล้วอยู่ช่องสุดท้าย
+## 3) กติกาหลัก (Current)
+- เริ่มที่ช่อง 1
+- ทอย 1-6 ต่อเทิร์น
+- งู: หัว -> หาง
+- บันได: ต้น -> ปลาย
+- ชนะเมื่อถึงเส้นชัย หรือชนะตาม Round Limit
 
-### 3.0 กติกาเพิ่มความสนุก (เปิด/ปิดได้)
-กำหนดทุกข้อเป็น toggle ใน `RuleOptions`:
-- `CheckpointShield`: ทุก 50 ช่อง รับโล่ 1 อัน (กันผลงูได้ 1 ครั้ง)
-- `ComebackBoost`: ผู้เล่นที่อยู่อันดับท้ายสุดได้บูสต์เต๋า `+1` (เพดานไม่เกิน 6)
-- `LuckyReroll`: ผู้เล่นมีสิทธิ์กด reroll จำกัดครั้งต่อเกม (ค่าเริ่มต้น 2)
-- `ForkPath`: ช่องพิเศษที่ให้เลือกเส้นทาง `Safe` หรือ `Risky`
-- `SnakeFrenzy`: ทุก N เทิร์น (ค่าเริ่มต้น 5) มีงูชั่วคราวเพิ่ม 1 ตัวในเทิร์นนั้น
-- `MercyLadder`: ถ้าผู้เล่นโดนงู 2 เทิร์นติด เทิร์นถัดไปได้บันไดช่วย
-- `TurnTimer`: จำกัดเวลาเทิร์น (เช่น 15 วินาที) หมดเวลาระบบทอยให้อัตโนมัติ
-- `RoundLimit`: จำกัดจำนวนรอบสูงสุด ถ้าเกินให้ตัดสินจากตำแหน่งใกล้เส้นชัยสุด
-- `MarathonSpeedup`: กระดานยาว (เช่น 300+ หรือ 500+) เพิ่มสัดส่วนบันได
+### Overflow Mode
+- `StayPut`
+- `BackByOverflowX2`
 
-### 3.1 กติกาทอยเกินช่องสุดท้าย (Overflow Mode)
-กำหนดเป็น enum ที่โฮสต์เลือกตอนสร้างห้อง:
+## 4) Rule Options (Current)
+เปิด/ปิดได้จากหน้า Create Room:
+- CheckpointShield
+- ComebackBoost
+- SnakeFrenzy
+- MercyLadder
+- TurnTimer
+- RoundLimit
+- MarathonSpeedup
 
-1. `StayPut` (ค่าเริ่มต้น)
-- ถ้าทอยเกินช่องสุดท้าย -> อยู่ตำแหน่งเดิม
-2.  `BackByOverflowX2` (โหมดที่ขอเพิ่ม)
-- คำนวณ `overflow = (currentPosition + dice) - lastCell`
-- ถ้า `overflow > 0` ให้ถอยหลัง `overflow * 2` จากตำแหน่งปัจจุบัน
-- สูตร: `newPosition = max(1, currentPosition - (overflow * 2))`
+หมายเหตุ:
+- LuckyReroll และ ForkPath ยังอยู่ใน domain model แต่ปิดจาก UI ปัจจุบัน
 
-ตัวอย่าง (lastCell=100):
-- อยู่ 98 ทอย 5 -> overflow=3 -> ถอย 6 -> ไป 92
+## 5) งานที่ทำเพิ่มด้านกระดานยาว (Paged Board)
+- แสดงผลคงที่ 10x10 ต่อหน้า (100 ช่อง)
+- เลขช่องในกระดานเป็น absolute ตามช่วงจริง
+- เปลี่ยนช่วงหน้าแบบ smooth 550ms
+- โฟกัสตามคนที่ถึงตาอัตโนมัติ
+- ผู้เล่นนอกช่วงแสดงผ่าน beacon และกดพาไปดูได้
+- Jump ข้ามช่วงแสดง hint ก่อนสลับหน้า
 
-> หมายเหตุ: สูตรนี้เป็นตามคำขอ "ถอยหลังเท่าจำนวนที่เกิน * 2" โดยตีความว่าถอยจากตำแหน่งปัจจุบัน หากต้องการตีความแบบเด้งจากเส้นชัย (bounce) ค่อยเพิ่ม mode แยกได้ภายหลัง
+ไฟล์หลัก:
+- `wwwroot/js/sn-board-page.js`
+- `wwwroot/js/sn-board-focus.js`
+- `wwwroot/js/sn-board-beacon.js`
+- `wwwroot/js/sn-render-game.js`
+- `wwwroot/js/sn-turn-animation.js`
 
-## 4) การสุ่มด่าน (Server Board Generation)
-### 4.1 ตัวเลือกด่าน
-- `BoardSizePreset` (optional): `100`, `200`, `300`, `500`, `1000`
-- `BoardSizeCustom` (optional): host กรอกเลขเองได้
-- เงื่อนไข:
-  - ต้องระบุขนาดกระดานออกมาสุดท้ายเป็นค่าเดียว (`BoardSize`)
-  - `BoardSize >= 50`
-  - ไม่บังคับ limit ฝั่ง UX แต่มี technical cap ฝั่งระบบ (ค่าเริ่มต้น 5000) เพื่อความเสถียร
-- `DensityMode`:
-  - `Low`
-  - `Medium`
-  - `High`
-- `OverflowMode`:
-  - `StayPut`
-  - `BackByOverflowX2`
-- `Seed` (optional) สำหรับ replay/debug
-- `RuleOptions` (toggle รายข้อทั้งหมดใน 3.0)
+## 6) งานที่ทำเพิ่มด้าน Offline/Timer
+- ผู้เล่นหลุดกลางเกมคงที่นั่งไว้เป็น Offline
+- ถึงเทิร์น offline auto-roll ภายใน ~700ms
+- `ProcessExpiredTurns` ใช้ deadline เป็นหลัก
+- Worker polling ทุก 250ms
+- เพิ่ม `TurnResult.AutoRollReason` (`Disconnected`/`TimerExpired`)
+- เพิ่ม animation buffer ให้ turn deadline คนถัดไป เพื่อกันหมดเวลาเพราะแอนิเมชัน
 
-### 4.2 จำนวนงู/บันไดตามโหมด (base ต่อ 100 ช่อง)
-- `Low`: งู 4, บันได 5
-- `Medium`: งู 6, บันได 7
-- `High`: งู 8, บันได 9
+ไฟล์หลัก:
+- `Services/GameRoomService.cs`
+- `Services/GameEngine.cs`
+- `Services/TurnTimerBackgroundService.cs`
+- `Domain/GameModels.cs`
 
-สูตรคำนวณจำนวนจริง:
-- `factor = ceil(BoardSize / 100.0)`
-- `snakeCount = baseSnake * factor`
-- `ladderCount = baseLadder * factor`
+## 7) งานที่ทำเพิ่มด้าน Board Balance
+ปรับสมดุลบันไดสำหรับกระดานยาว (`>= 200`):
+- จำกัดระยะไต่ปกติ (`~28%` ของกระดาน)
+- จำกัดระยะไต่ epic (`~35%` ของกระดาน)
+- early zone cap / late zone cap
+- epic ladder chance ประมาณ 10%
 
-### 4.3 เงื่อนไขสุ่มที่ต้องบังคับ
-- ห้ามใช้งู/บันไดที่เกี่ยวข้องกับช่อง 1 และช่องสุดท้าย
-- งู: `head > tail`
-- บันได: `start < end`
-- ห้ามมีจุดเริ่มซ้ำ (`from` ซ้ำกันไม่ได้)
-- ห้ามปลายงู/ปลายบันไดชนจุดเริ่มของรายการอื่น (ลด chain ที่ซับซ้อน)
-- ถ้าสุ่มแล้วติดเงื่อนไขซ้ำ ให้สุ่มใหม่จนกว่าจะครบ หรือครบ max attempts
+ไฟล์:
+- `Services/BoardGenerator.cs`
 
-### 4.4 Validation ตอนสร้างห้อง
-- ถ้า `BoardSize < 50` ให้ reject พร้อมข้อความ error ชัดเจน
-- ถ้า `BoardSize > TechnicalCap` ให้ reject พร้อมข้อความและค่า cap ปัจจุบัน
-- ถ้าไม่ได้ส่งขนาดกระดานมา ให้ fallback เป็น `100`
+## 8) งานที่ทำเพิ่มด้าน UI/UX
+- งู/บันได render ชัดขึ้น
+- token layer อยู่บนสุดเหนือช่อง/งู/บันได
+- ปุ่มทอยยก z-index ให้ไม่โดน token ทับ
+- แสดงผลแต้มเต๋ากลางจอก่อนเดิน
+- แจ้งเตือน 5 วิสุดท้าย
+- ผู้ชนะขึ้น overlay กลางจอ
+- แชตเป็น sidebar ขวา + เปิดค้างตั้งต้น + unread badge
 
-## 5) สถาปัตยกรรมที่แนะนำ
-- Backend: `ASP.NET Core` + `SignalR`
-- In-memory game state (MVP)
-- โครงแยกชัดเจน:
-  - `Domain`: กติกา/เอนจินเกม
-  - `Application`: use-cases เช่น create room, join, roll dice
-  - `Transport`: SignalR Hub + DTO
+ไฟล์หลัก:
+- `wwwroot/styles.css`
+- `wwwroot/index.html`
+- `wwwroot/js/sn-room-ui.js`
+- `wwwroot/js/sn-render-chat.js`
 
-## 6) ข้อมูลหลัก (Data Model)
-- `RoomState`
-  - `RoomCode`
-  - `HostConnectionId`
-  - `Players`
-  - `GameStatus` (`Waiting`, `Started`, `Finished`)
-  - `BoardConfig`
-  - `BoardJumps` (งู/บันได)
-  - `CurrentTurnPlayerId`
-- `PlayerState`
-  - `PlayerId`
-  - `DisplayName`
-  - `Position`
-  - `Connected`
-- `Jump`
-  - `From`
-  - `To`
-  - `Type` (`Snake`, `Ladder`)
+## 9) สถานะตามเฟส
+- Phase 1 Core Engine: ✅ Done
+- Phase 2 Realtime Room: ✅ Done
+- Phase 3 Basic Client: ✅ Done
+- Phase 4 UX/Hardening รอบที่ทำแล้ว: ✅ Done (ในขอบเขตที่คุย)
 
-## 7) SignalR Contract (MVP)
-Client -> Server:
-- `CreateRoom(CreateRoomRequest)`
-- `JoinRoom(JoinRoomRequest)`
-- `StartGame()`
-- `RollDice()`
-- `LeaveRoom()`
+## 10) Test / Validation ที่รันล่าสุด
+- `dotnet build SnakesLadders.sln` ผ่าน
+- syntax check JS (`node --check`) ผ่าน
+- ทดสอบ flow หลักแบบหลายแท็บได้ในรอบพัฒนา
 
-Server -> Client:
-- `RoomCreated(RoomSnapshot)`
-- `PlayerJoined(PlayerState)`
-- `GameStarted(GameSnapshot)`
-- `DiceRolled(TurnResult)`
-- `TurnChanged(playerId)`
-- `GameFinished(winner)`
-- `Error(message)`
+## 11) งานค้าง / ต่อได้ทันที
+- เพิ่มหน้าเลือกตัวละคร (avatar/gif/webp/lottie) ก่อนเข้าห้อง
+- ปรับระบบ asset ตัวละครให้โหลดเบา (แนะนำ webp sprite/lottie มากกว่า gif)
+- ถ้าต้องการ scale จริงจัง: ย้าย state จาก in-memory ไป Redis/DB
 
-## 8) ลำดับการคำนวณต่อ 1 เทิร์น (สำคัญ)
-1. ตรวจสิทธิ์ว่าเป็นเทิร์นผู้เล่นนี้จริง
-2. apply โบนัสก่อนทอย (เช่น `ComebackBoost`)
-3. สุ่มเต๋า (server) และ apply `LuckyReroll` ถ้ามีการใช้สิทธิ์
-4. คำนวณตำแหน่งใหม่ตาม `OverflowMode`
-5. ถ้าตกช่อง `ForkPath` ให้ resolve ทาง `Safe/Risky`
-6. ตรวจว่าตกงูหรือบันไดหรือไม่ แล้ว apply jump (พร้อม logic โล่)
-7. ประเมิน `MercyLadder` / `CheckpointShield` / `SnakeFrenzy`
-8. เช็คชนะหรือชน `RoundLimit`
-9. สลับเทิร์นถ้ายังไม่จบ
-10. broadcast snapshot ให้ทุกคนในห้อง
+## 12) แผนระบบไอเท็ม (Draft)
+เป้าหมาย:
+- เพิ่มจังหวะพลิกเกมโดยไม่ทำให้ยืดเยื้อหรือสุ่มเกินควบคุม
+- รักษาแนวคิด server authoritative เหมือนระบบหลัก
 
-## 9) แผนลงมือทำ (Phase Plan)
-### Phase 1 - Core engine
-- ทำ enum/config/model ทั้งหมด
-- ทำ `BoardGenerator`
-- ทำ `GameEngine.ApplyRoll(...)`
-- ทำ `RuleEngine` ครบ toggle ใน 3.0
-- เขียน unit tests สำหรับกติกาหลักทั้งหมด
+หลักการบาลานซ์:
+- ผู้เล่นถือไอเท็มได้สูงสุด 2 ชิ้น
+- เทิร์นละใช้ได้สูงสุด 1 ชิ้น
+- ไอเท็มโจมตีผู้เล่นอื่นมี cooldown ระดับห้อง 1 เทิร์น (กันโดนรุม)
+- แผนที่ 100 ช่อง: spawn โดยเฉลี่ย 6-8 จุด, กระดานยาวขึ้นให้ scale ตามสัดส่วน
 
-### Phase 2 - Real-time room
-- เพิ่ม SignalR Hub
-- เพิ่ม room manager (in-memory)
-- ต่อ flow สร้างห้อง/เข้าห้อง/เริ่ม/ทอย/จบ
-- เพิ่ม auto-roll จาก `TurnTimer` (background service)
+ชุดไอเท็มแนะนำ (มันส์ + อ่านง่าย):
+- `Rocket Boots`: ใช้ก่อนทอย ได้ +2 ระยะเดินหลังทอย
+- `Magnet Dice`: ใช้ก่อนทอย เลือกปรับค่าเต๋า +1 หรือ -1 ได้ครั้งเดียวหลังเห็นผล
+- `Snake Repellent`: กันงูครั้งถัดไป (ไม่กันตกช่องจากเอฟเฟกต์ไอเท็มโจมตี)
+- `Ladder Hack`: เปลี่ยนบันไดที่เหยียบให้พุ่งเพิ่มอีก 4 ช่อง
+- `Banana Peel`: วางกับดัก 1 เทิร์น คนที่ผ่านช่องนี้เสียระยะ -3
+- `Swap Glove`: สลับตำแหน่งกับผู้เล่นที่อยู่ติดอันดับเหนือคุณ 1 คน
+- `Anchor`: ปักตัวเอง 1 เทิร์น กันการโดนสลับ/ผลักถอย
+- `Chaos Button`: สุ่ม global event เล็ก ๆ (เช่นทุกคน +1 หรือทุกคน -1 แบบ clamp)
 
-### Phase 3 - Basic client
-- UI ง่ายๆ: lobby + board + turn + roll button
-- แสดงงู/บันได และตำแหน่งผู้เล่น
+จัดกลุ่มเพื่อทำทีละเฟส:
+- Utility: `Rocket Boots`, `Magnet Dice`, `Snake Repellent`
+- Trap/Attack: `Banana Peel`, `Swap Glove`
+- High-impact: `Ladder Hack`, `Anchor`, `Chaos Button`
 
-### Phase 4 - Hardening
-- reconnect / disconnect handling
-- turn timeout
-- audit log และ telemetry
-
-## 10) Test Cases ที่ต้องมี
-- ทอยปกติไม่เจองู/บันได
-- ทอยแล้วขึ้นบันได
-- ทอยแล้วโดนหัวงู
-- ลงหางงูแล้วไม่ย้อน
-- Overflow แบบ `StayPut`
-- Overflow แบบ `BackByOverflowX2`
-- `CheckpointShield` กันงูได้ถูกต้อง
-- `ComebackBoost` มีผลเฉพาะอันดับท้ายสุด
-- `LuckyReroll` ใช้สิทธิ์แล้วจำนวนครั้งลดลง
-- `ForkPath` เลือก `Safe`/`Risky` แล้วได้ผลต่างกัน
-- `SnakeFrenzy` สร้างงูชั่วคราวตาม interval
-- `MercyLadder` ทำงานหลังโดนงูติดกัน 2 เทิร์น
-- `TurnTimer` หมดเวลาแล้วระบบทอยแทน
-- `RoundLimit` ตัดสินผู้ชนะได้ถูกต้อง
-- `MarathonSpeedup` เพิ่มบันไดเมื่อกระดานยาวตามเงื่อนไข
-- ชนะเกมพอดีช่องสุดท้าย
-- หลายผู้เล่นสลับเทิร์นถูกต้อง
-- คนไม่ใช่เทิร์นกดทอยแล้วโดน reject
-- สร้างห้องด้วย `BoardSize < 50` ต้องโดน reject
-
-## 11) ขอบเขต MVP รอบแรก
-- ทำ online room + core rules + กติกาเสริมแบบ toggle ครบ
-- ยังไม่ทำระบบ login จริง, matchmaking สาธารณะ, ranking
-
-## 12) จุดที่ต้องคอนเฟิร์มก่อนเริ่มโค้ด
-1. `ForkPath` ตอน MVP ให้ผู้เล่นเลือกเองทันทีในคำสั่งทอย หรือ fallback เป็น `Safe`
-2. `MarathonSpeedup` ใช้ threshold เท่าไร (แนะนำ 300+)
+## 13) ลำดับลงมือทำไอเท็ม
+- Phase A: Item แบบรับผลทันที (ไม่มี target) -> ง่ายสุดและกระทบ flow น้อย
+- Phase B: Item แบบวางกับดัก/ใส่ target (เพิ่ม request/action ใหม่)
+- Phase C: Item แบบ global event + balancing + telemetry

@@ -111,7 +111,8 @@
   function setTokenIdentity(token, playerId) {
     const players = state.room?.players ?? state.deferredRoom?.players ?? [];
     const player = players.find((x) => x.playerId === playerId);
-    const marker = (player?.displayName?.[0] ?? "ผ").toUpperCase();
+    const markerMap = root.utils?.buildPlayerMarkerMap?.(players) ?? new Map();
+    const marker = root.utils?.resolvePlayerMarker?.(playerId, player?.displayName, markerMap) ?? "ผ";
     token.textContent = marker;
     token.title = player?.displayName ?? playerId;
     token.classList.toggle("me", playerId === state.playerId);

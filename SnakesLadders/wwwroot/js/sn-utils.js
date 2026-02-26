@@ -35,11 +35,61 @@
     return date.toLocaleTimeString();
   }
 
+  function getPlayerMarkerBase(displayName) {
+    const normalized = normalizeName(displayName);
+    return (normalized[0] ?? "ผ").toUpperCase();
+  }
+
+  function buildPlayerMarkerMap(players) {
+    const grouped = new Map();
+    const markerMap = new Map();
+
+    for (const player of players ?? []) {
+      if (!player?.playerId) {
+        continue;
+      }
+
+      const base = getPlayerMarkerBase(player.displayName);
+      const bucket = grouped.get(base) ?? [];
+      bucket.push(player);
+      grouped.set(base, bucket);
+    }
+
+    for (const [base, bucket] of grouped) {
+      if (bucket.length === 1) {
+        markerMap.set(bucket[0].playerId, base);
+        continue;
+      }
+
+      bucket.forEach((player, index) => {
+        markerMap.set(player.playerId, `${base}${markerSuffix(index)}`);
+      });
+    }
+
+    return markerMap;
+  }
+
+  function resolvePlayerMarker(playerId, displayName, markerMap) {
+    if (markerMap instanceof Map && markerMap.has(playerId)) {
+      return markerMap.get(playerId);
+    }
+    return getPlayerMarkerBase(displayName);
+  }
+
+  function markerSuffix(index) {
+    if (index >= 0 && index < 26) {
+      return String.fromCharCode(65 + index);
+    }
+    return String(index + 1);
+  }
+
   root.utils = {
     normalizeName,
     escapeHtml,
     shortId,
     densityLabel,
-    formatClock
+    formatClock,
+    buildPlayerMarkerMap,
+    resolvePlayerMarker
   };
 })();

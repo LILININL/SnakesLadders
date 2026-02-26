@@ -132,6 +132,7 @@
     state.lastTurn = null;
     state.rollButtonHidden = false;
     state.chatPanelOpen = false;
+    state.chatUnreadCount = 0;
     state.animating = false;
     state.animPlayerId = "";
     state.animPlayerPosition = 1;
@@ -139,6 +140,8 @@
     state.animTransitActive = false;
     state.animTransitPlayerId = "";
     state.deferredRoom = null;
+    state.pendingTurnChangedPlayerId = "";
+    state.lastAnnouncedTurnCounter = -1;
     state.pendingBeaconTargetPlayerId = "";
     state.pageTransitioning = false;
     state.pageTransitionDirection = 0;

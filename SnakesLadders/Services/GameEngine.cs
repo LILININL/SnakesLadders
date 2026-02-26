@@ -30,8 +30,9 @@ public sealed class GameEngine : IGameEngine
         room.ActiveFrenzySnake = frenzySnake;
 
         var comebackBoostApplied = rules.ComebackBoostEnabled && IsTrailingPlayer(room, player);
-        var baseDice = Random.Shared.Next(1, 7);
-        var diceValue = comebackBoostApplied ? Math.Min(6, baseDice + 1) : baseDice;
+        var baseDiceValue = Random.Shared.Next(1, 7);
+        var diceValue = comebackBoostApplied ? Math.Min(6, baseDiceValue + 1) : baseDiceValue;
+        var comebackBoostAmount = diceValue - baseDiceValue;
 
         var usedLuckyReroll = false;
         if (!isAutoRoll &&
@@ -43,7 +44,9 @@ public sealed class GameEngine : IGameEngine
             usedLuckyReroll = true;
 
             var rerolledBase = Random.Shared.Next(1, 7);
-            diceValue = comebackBoostApplied ? Math.Min(6, rerolledBase + 1) : rerolledBase;
+            baseDiceValue = rerolledBase;
+            diceValue = comebackBoostApplied ? Math.Min(6, baseDiceValue + 1) : baseDiceValue;
+            comebackBoostAmount = diceValue - baseDiceValue;
         }
 
         var rawTarget = startPosition + diceValue;
@@ -72,6 +75,8 @@ public sealed class GameEngine : IGameEngine
         Jump? triggeredJump = null;
         var shieldBlockedSnake = false;
         var snakeHit = false;
+        var frenzySnakeTriggered = false;
+        var frenzySnakeBlockedByShield = false;
 
         if (board.JumpsByFrom.TryGetValue(currentPosition, out var boardJump))
         {
@@ -99,11 +104,13 @@ public sealed class GameEngine : IGameEngine
             if (TryConsumeShield(player))
             {
                 shieldBlockedSnake = true;
+                frenzySnakeBlockedByShield = true;
             }
             else
             {
                 currentPosition = frenzySnake.To;
                 snakeHit = true;
+                frenzySnakeTriggered = true;
             }
         }
 
@@ -204,14 +211,14 @@ public sealed class GameEngine : IGameEngine
             }
         }
 
-        room.ActiveFrenzySnake = null;
-
         return new TurnResult
         {
             RoomCode = room.RoomCode,
             PlayerId = player.PlayerId,
             StartPosition = startPosition,
             DiceValue = diceValue,
+            BaseDiceValue = baseDiceValue,
+            ComebackBoostAmount = comebackBoostAmount,
             EndPosition = player.Position,
             ComebackBoostApplied = comebackBoostApplied,
             UsedLuckyReroll = usedLuckyReroll,
@@ -220,6 +227,8 @@ public sealed class GameEngine : IGameEngine
             ForkCell = triggeredForkCell,
             TriggeredJump = triggeredJump,
             FrenzySnake = frenzySnake,
+            FrenzySnakeTriggered = frenzySnakeTriggered,
+            FrenzySnakeBlockedByShield = frenzySnakeBlockedByShield,
             ShieldBlockedSnake = shieldBlockedSnake,
             MercyLadderApplied = mercyLadderApplied,
             ShieldsEarned = shieldsEarned,
