@@ -58,7 +58,8 @@
         itemStatus.push("LadderHack พร้อม");
       }
       if (!waiting && player.anchorActive) {
-        itemStatus.push("Anchor");
+        const anchorTurnsLeft = Number.parseInt(String(player.anchorTurnsLeft ?? 0), 10) || 0;
+        itemStatus.push(anchorTurnsLeft > 0 ? `Anchor ${anchorTurnsLeft}` : "Anchor");
       }
 
       const stats = waiting
@@ -83,7 +84,9 @@
   }
 
   function renderBoard() {
-    const board = state.room?.board;
+    const board = (state.animating && state.deferredRoom?.board)
+      ? state.deferredRoom.board
+      : state.room?.board;
     if (!board) {
       el.board.style.setProperty("--rows", "10");
       el.board.innerHTML = "";
@@ -201,7 +204,10 @@
     bindBoardItemTooltip();
     applyBoardTransitionClasses();
 
-    root.boardOverlay?.render(board, page);
+    const overlayBoard = activeFrenzySnake && board.activeFrenzySnake !== activeFrenzySnake
+      ? { ...board, activeFrenzySnake }
+      : board;
+    root.boardOverlay?.render(overlayBoard, page);
     root.boardTokens?.render(root.viewState.getDisplayPlayers(), displayTurnPlayerId, page);
     root.boardBeacon?.render?.();
     root.roomUi?.updateFloatingRollButton();

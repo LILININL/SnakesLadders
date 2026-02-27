@@ -44,6 +44,10 @@
         token.className = "board-token";
         if (player.playerId === state.playerId) token.classList.add("me");
         if (!player.connected) token.classList.add("offline");
+        const anchorTurnsLeft = Number.parseInt(String(player.anchorTurnsLeft ?? 0), 10) || 0;
+        if (player.playerId === turnPlayerId && player.anchorActive && anchorTurnsLeft > 0) {
+          token.classList.add("anchor-on-turn");
+        }
         const safeAvatarId = root.utils?.normalizeAvatarId?.(player.avatarId, 1) ?? 1;
         const safeAvatarSrc = root.utils?.avatarSrc?.(safeAvatarId) ?? "";
         if (safeAvatarSrc) {
@@ -56,7 +60,7 @@
         } else {
           token.textContent = root.utils?.resolvePlayerMarker?.(player.playerId, player.displayName, markerMap) ?? "ผ";
         }
-        token.title = `${player.displayName}${!player.connected ? " (ออฟไลน์)" : ""}`;
+        token.title = `${player.displayName}${!player.connected ? " (ออฟไลน์)" : ""}${player.anchorActive && anchorTurnsLeft > 0 ? ` • Anchor ${anchorTurnsLeft}` : ""}`;
 
         const offset = offsets[index] ?? { x: 0, y: 0 };
         if (placeToken(token, cellEl, offset)) {

@@ -140,6 +140,7 @@ public sealed class PlayerSnapshot
     public required int SnakeRepellentCharges { get; init; }
     public required bool LadderHackPending { get; init; }
     public required bool AnchorActive { get; init; }
+    public required int AnchorTurnsLeft { get; init; }
 }
 
 public sealed class PublicRoomSummary

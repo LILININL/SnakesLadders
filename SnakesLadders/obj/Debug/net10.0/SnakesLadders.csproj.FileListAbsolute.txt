@@ -46,7 +46,6 @@
 /Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/4t4oox4coy-{0}-jcbtvil4js-jcbtvil4js.gz
 /Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/goybzmfy3d-{0}-tsz23hvp2c-tsz23hvp2c.gz
 /Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/1k0s0malat-{0}-ff9507b6ul-ff9507b6ul.gz
-/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/0h54sess50-{0}-cdp7dqhytw-cdp7dqhytw.gz
 /Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/gicn9ns19l-{0}-n06y5xjeqa-n06y5xjeqa.gz
 /Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/9dk9qxivhr-{0}-ioq7u2mj7d-ioq7u2mj7d.gz
 /Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/aozrdmwk7b-{0}-tt84gw31a9-tt84gw31a9.gz
@@ -55,9 +54,10 @@
 /Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/ja0q8s25a3-{0}-gjvdciz5bv-gjvdciz5bv.gz
 /Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/ih98ytwfhr-{0}-larikxbncn-larikxbncn.gz
 /Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/osfqx2d4vk-{0}-vfo6ikzaon-vfo6ikzaon.gz
-/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/d5f9a41tb0-{0}-idalezjjdr-idalezjjdr.gz
-/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/cmhnjabo9i-{0}-rh6t5lwo0a-rh6t5lwo0a.gz
-/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/2n18edwxjj-{0}-pxyij21c0y-pxyij21c0y.gz
-/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/jpwsamli3k-{0}-edlc1kqf5t-edlc1kqf5t.gz
-/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/m2q3uvuyya-{0}-m6u2rmsruf-m6u2rmsruf.gz
-/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/xqzv9v5ucx-{0}-nfmn5xe9dv-nfmn5xe9dv.gz
+/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/d5f9a41tb0-{0}-mka0auscas-mka0auscas.gz
+/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/cmhnjabo9i-{0}-h6ew173pw5-h6ew173pw5.gz
+/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/0h54sess50-{0}-0u0tuyi3sz-0u0tuyi3sz.gz
+/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/2n18edwxjj-{0}-kmcn0twdi8-kmcn0twdi8.gz
+/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/jpwsamli3k-{0}-tc5epodifx-tc5epodifx.gz
+/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/m2q3uvuyya-{0}-8d6nbduhss-8d6nbduhss.gz
+/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/obj/Debug/net10.0/compressed/xqzv9v5ucx-{0}-67dv5ti0ma-67dv5ti0ma.gz

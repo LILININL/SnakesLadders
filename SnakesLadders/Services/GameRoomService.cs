@@ -211,7 +211,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                 player.MercyLadderPending = false;
                 player.SnakeRepellentCharges = 0;
                 player.LadderHackPending = false;
-                player.AnchorProtectedUntilTurnCounter = 0;
+                player.AnchorTurnsRemaining = 0;
                 player.ItemDryTurnStreak = 0;
                 player.NextCheckpoint = Math.Max(1, room.BoardOptions.RuleOptions.CheckpointInterval);
                 player.LuckyRerollsLeft = room.BoardOptions.RuleOptions.LuckyRerollEnabled
@@ -422,7 +422,7 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                 player.MercyLadderPending = false;
                 player.SnakeRepellentCharges = 0;
                 player.LadderHackPending = false;
-                player.AnchorProtectedUntilTurnCounter = 0;
+                player.AnchorTurnsRemaining = 0;
                 player.ItemDryTurnStreak = 0;
                 player.NextCheckpoint = checkpoint;
                 player.LuckyRerollsLeft = room.BoardOptions.RuleOptions.LuckyRerollEnabled
@@ -895,7 +895,8 @@ public sealed class GameRoomService(IBoardGenerator boardGenerator, IGameEngine 
                 LuckyRerollsLeft = x.LuckyRerollsLeft,
                 SnakeRepellentCharges = x.SnakeRepellentCharges,
                 LadderHackPending = x.LadderHackPending,
-                AnchorActive = x.AnchorProtectedUntilTurnCounter > room.TurnCounter
+                AnchorActive = x.AnchorTurnsRemaining > 0,
+                AnchorTurnsLeft = Math.Max(0, x.AnchorTurnsRemaining)
             }).ToArray(),
             CurrentTurnPlayerId = room.CurrentTurnPlayer?.PlayerId,
             TurnCounter = room.TurnCounter,

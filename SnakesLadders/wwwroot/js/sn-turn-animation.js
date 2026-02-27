@@ -10,13 +10,27 @@
 
   let chain = Promise.resolve();
   let queuedTurns = 0;
+  let lastFinishedTurnKey = "";
+  const queuedTurnKeys = new Set();
 
   function queue(payload) {
+    const turnKey = buildTurnKey(payload);
+    if (turnKey && (queuedTurnKeys.has(turnKey) || turnKey === lastFinishedTurnKey)) {
+      return chain;
+    }
+
+    if (turnKey) {
+      queuedTurnKeys.add(turnKey);
+    }
+
     queuedTurns += 1;
     chain = chain
       .then(() => play(payload))
       .catch(() => {})
       .finally(() => {
+        if (turnKey) {
+          queuedTurnKeys.delete(turnKey);
+        }
         queuedTurns = Math.max(0, queuedTurns - 1);
         if (queuedTurns === 0 && !state.animating) {
           root.realtime?.flushPendingTurnTrigger?.(state.room);
@@ -31,6 +45,7 @@
       return;
     }
 
+    const turnKey = buildTurnKey(payload);
     const turn = payload.turn;
     const room = payload.room;
     const boardSize = room.board?.size ?? 0;
@@ -38,6 +53,9 @@
       state.lastTurn = turn;
       state.room = room;
       root.feedback.renderAll();
+      if (turnKey) {
+        lastFinishedTurnKey = turnKey;
+      }
       return;
     }
 
@@ -58,11 +76,20 @@
       }
 
       await consumeLeftoverItemEffects(room.board.size, followPlayer, pendingItemEffects);
+      state.animPlayerPosition = clamp(
+        Number.parseInt(String(turn.endPosition ?? state.animPlayerPosition), 10) || state.animPlayerPosition,
+        1,
+        room.board.size
+      );
+      root.feedback.renderAll();
 
       if (turn.isGameFinished) {
         await root.boardFx?.showWinner?.(turn, room);
       }
     } finally {
+      if (turnKey) {
+        lastFinishedTurnKey = turnKey;
+      }
       root.pieceTransit?.reset?.();
       endAnimation(room, turn);
     }
@@ -107,6 +134,22 @@
       ? segment
       : { ...segment, from: animatedFrom };
 
+    if (animatedFrom !== segment.from) {
+      if (segment.to === animatedFrom) {
+        return;
+      }
+
+      if (segment.mode === "path") {
+        return;
+      }
+
+      const plannedDirection = Math.sign(segment.to - segment.from);
+      const liveDirection = Math.sign(segment.to - animatedFrom);
+      if (plannedDirection !== 0 && liveDirection !== 0 && plannedDirection !== liveDirection) {
+        return;
+      }
+    }
+
     if (!followPlayer) {
       state.animPlayerPosition = effectiveSegment.to;
       root.feedback.renderAll();
@@ -135,7 +178,11 @@
       }
     }
 
-    await runStepSegment(effectiveSegment.from, effectiveSegment.to, boardSize, followPlayer, pendingItemEffects);
+    const finalPos = await runStepSegment(effectiveSegment.from, effectiveSegment.to, boardSize, followPlayer, pendingItemEffects);
+    if (Number.isFinite(finalPos)) {
+      state.animPlayerPosition = clamp(finalPos, 1, boardSize);
+      root.feedback.renderAll();
+    }
   }
 
   async function runCrossPageJump(segment, boardSize, followPlayer, pendingItemEffects) {
@@ -184,6 +231,8 @@
         current = movedByEffect;
         state.animPlayerPosition = current;
         root.feedback.renderAll();
+        // Item/trap effect overrides this segment target.
+        return current;
       }
     }
 
@@ -196,7 +245,7 @@
       return [];
     }
 
-    return itemEffects.map((effect) => {
+    const normalized = itemEffects.map((effect) => {
       const cell = clamp(Number.parseInt(String(effect?.cell ?? 0), 10) || 0, 1, boardSize);
       const fromPosition = clamp(Number.parseInt(String(effect?.fromPosition ?? cell), 10) || cell, 1, boardSize);
       const toPosition = clamp(Number.parseInt(String(effect?.toPosition ?? fromPosition), 10) || fromPosition, 1, boardSize);
@@ -209,6 +258,25 @@
         isTrapTrigger: Boolean(effect?.isTrapTrigger)
       };
     });
+
+    const deduped = [];
+    const seen = new Set();
+    for (const effect of normalized) {
+      const key = [
+        effect.itemType,
+        effect.cell,
+        effect.fromPosition,
+        effect.toPosition,
+        effect.isTrapTrigger ? 1 : 0
+      ].join("|");
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      deduped.push(effect);
+    }
+
+    return deduped;
   }
 
   async function consumeItemEffectsAtCell(cell, boardSize, followPlayer, pendingItemEffects) {
@@ -223,15 +291,18 @@
         continue;
       }
 
-      await root.boardFx?.showItemPickup?.(effect);
-
       if (effect.fromPosition !== current) {
-        current = await runStepSegment(current, effect.fromPosition, boardSize, followPlayer, pendingItemEffects);
+        continue;
       }
+
+      await root.boardFx?.showItemPickup?.(effect);
+      await root.boardFx?.showItemActivation?.(effect);
 
       if (effect.toPosition !== current) {
         current = await runStepSegment(current, effect.toPosition, boardSize, followPlayer, pendingItemEffects);
       }
+
+      await root.boardFx?.showItemResult?.(effect);
     }
 
     return current;
@@ -247,8 +318,6 @@
       if (!effect) {
         continue;
       }
-
-      await root.boardFx?.showItemPickup?.(effect);
       let current = clamp(
         Number.parseInt(String(state.animPlayerPosition ?? effect.fromPosition), 10) || effect.fromPosition,
         1,
@@ -256,13 +325,17 @@
       );
 
       if (effect.fromPosition !== current) {
-        current = await runStepSegment(current, effect.fromPosition, boardSize, followPlayer, pendingItemEffects);
+        continue;
       }
 
-      if (effect.toPosition !== current) {
+      await root.boardFx?.showItemPickup?.(effect);
+      await root.boardFx?.showItemActivation?.(effect);
+
+      if (effect.fromPosition === current && effect.toPosition !== current) {
         current = await runStepSegment(current, effect.toPosition, boardSize, followPlayer, pendingItemEffects);
       }
 
+      await root.boardFx?.showItemResult?.(effect);
       state.animPlayerPosition = current;
       root.feedback.renderAll();
     }
@@ -273,7 +346,7 @@
     const segments = [];
     let cursor = turn.startPosition;
 
-    const primary = resolvePrimaryLanding(turn, room.boardOptions.overflowMode, size, pendingItemEffects);
+    const primary = resolvePrimaryLanding(turn, room.boardOptions.overflowMode, size);
     if (primary !== cursor) {
       segments.push({ mode: "step", playerId: turn.playerId, from: cursor, to: primary });
       cursor = primary;
@@ -340,11 +413,10 @@
     return segments;
   }
 
-  function resolvePrimaryLanding(turn, overflowMode, size, pendingItemEffects) {
+  function resolvePrimaryLanding(turn, overflowMode, size) {
     const rawTarget = turn.startPosition + turn.diceValue;
     if (!turn.overflowAmount || turn.overflowAmount <= 0) {
-      const diceSteps = Number.parseInt(String(turn?.diceValue ?? 0), 10) || 0;
-      return resolveLandingAfterDiceWithItems(turn.startPosition, diceSteps, size, pendingItemEffects);
+      return clamp(rawTarget, 1, size);
     }
 
     if (overflowMode === 1) {
@@ -353,39 +425,6 @@
 
     return clamp(turn.startPosition, 1, size);
   }
-
-  function resolveLandingAfterDiceWithItems(startPosition, diceSteps, boardSize, pendingItemEffects) {
-    let current = clamp(startPosition, 1, boardSize);
-    const steps = Math.max(0, diceSteps);
-    let effectIndex = 0;
-
-    for (let i = 0; i < steps; i++) {
-      if (current >= boardSize) {
-        current = boardSize;
-        break;
-      }
-
-      current += 1;
-      if (!Array.isArray(pendingItemEffects) || effectIndex >= pendingItemEffects.length) {
-        continue;
-      }
-
-      const effect = pendingItemEffects[effectIndex];
-      if (!effect || effect.isTrapTrigger) {
-        continue;
-      }
-
-      if (effect.cell !== current || effect.fromPosition !== current) {
-        continue;
-      }
-
-      current = clamp(effect.toPosition, 1, boardSize);
-      effectIndex += 1;
-    }
-
-    return clamp(current, 1, boardSize);
-  }
-
   async function ensureVisiblePage(cell, animate, boardSize) {
     const targetPageStart = root.boardPage.getPageStartForCell(cell);
     if (targetPageStart === state.visiblePageStart) {
@@ -414,9 +453,42 @@
     return Math.max(min, Math.min(max, value));
   }
 
+  function buildTurnKey(payload) {
+    if (!payload?.turn || !payload?.room) {
+      return "";
+    }
+
+    const turn = payload.turn;
+    const roomCode = payload.room.roomCode ?? "";
+    const jump = turn.triggeredJump
+      ? `${turn.triggeredJump.from}-${turn.triggeredJump.to}-${turn.triggeredJump.type}`
+      : "";
+    const frenzy = turn.frenzySnake
+      ? `${turn.frenzySnake.from}-${turn.frenzySnake.to}`
+      : "";
+    const itemPart = Array.isArray(turn.itemEffects)
+      ? turn.itemEffects
+        .map((effect) => `${effect?.itemType ?? ""}:${effect?.cell ?? ""}:${effect?.fromPosition ?? ""}:${effect?.toPosition ?? ""}`)
+        .join(",")
+      : "";
+
+    return [
+      roomCode,
+      turn.playerId ?? "",
+      turn.startPosition ?? "",
+      turn.diceValue ?? "",
+      turn.endPosition ?? "",
+      jump,
+      frenzy,
+      itemPart
+    ].join("|");
+  }
+
   function reset() {
     chain = Promise.resolve();
     queuedTurns = 0;
+    lastFinishedTurnKey = "";
+    queuedTurnKeys.clear();
     state.animFrenzySnake = null;
     root.pieceTransit?.reset?.();
     root.boardFx?.reset?.();

@@ -60,7 +60,7 @@ public sealed class PlayerState
     public bool MercyLadderPending { get; set; }
     public int SnakeRepellentCharges { get; set; }
     public bool LadderHackPending { get; set; }
-    public int AnchorProtectedUntilTurnCounter { get; set; }
+    public int AnchorTurnsRemaining { get; set; }
     public int ItemDryTurnStreak { get; set; }
 }
 

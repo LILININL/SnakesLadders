@@ -26,7 +26,7 @@
     4: {
       name: "Banana Peel",
       imageSrc: "/assets/item/BananaPeel.png",
-      desc: "วางกับดักให้คนเหยียบแล้วถอยหลัง",
+      desc: "วางกับดักถาวรหน้าคนที่นำหน้า จนมีคนเหยียบ",
     },
     5: {
       name: "Swap Glove",
@@ -36,7 +36,7 @@
     6: {
       name: "Anchor",
       imageSrc: "/assets/item/Anchor.png",
-      desc: "กันโดนสลับ/ผลักถอยจนถึงตาถัดไป",
+      desc: "กันโดนสลับ/ผลักถอย 3 เทิร์นของผู้ใช้",
     },
     7: {
       name: "Chaos Button",
