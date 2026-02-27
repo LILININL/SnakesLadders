@@ -4,6 +4,10 @@ namespace SnakesLadders.Services;
 
 public sealed partial class GameEngine
 {
+    private const int ItemRowWidth = 10;
+    private const int ItemRowHardCap = 6;
+    private const double ItemRowSpawnChance = 0.78d;
+
     private static void PruneExpiredTransientState(GameRoom room)
     {
         room.TemporaryJumps.RemoveAll(x => x.ExpiresAtTurnCounter <= room.TurnCounter);
@@ -99,14 +103,22 @@ public sealed partial class GameEngine
             return;
         }
 
+        var rowCaps = BuildRowSpawnCaps(room, board);
+        if (rowCaps.Count > 0)
+        {
+            targetCount = Math.Min(targetCount, rowCaps.Values.Sum());
+        }
+
         var attempts = 0;
         while (room.ActiveItems.Count < targetCount && attempts++ < MaxItemSpawnAttempts)
         {
             var anchor = SelectAnchorPlayer(room, priorityPlayer, attempts);
-            if (!TrySpawnItemAheadOfPlayer(room, board, anchor, maxItemsAhead: 2))
+            if (TrySpawnItemAheadOfPlayer(room, board, anchor, maxItemsAhead: 2, rowCaps))
             {
                 continue;
             }
+
+            TrySpawnItemByRowQuota(room, board, rowCaps);
         }
     }
 
@@ -203,7 +215,12 @@ public sealed partial class GameEngine
         return room.ActiveItems.Count(x => x.Cell >= minCell && x.Cell <= maxCell);
     }
 
-    private static bool TrySpawnItemAheadOfPlayer(GameRoom room, BoardState board, PlayerState player, int maxItemsAhead = 1)
+    private static bool TrySpawnItemAheadOfPlayer(
+        GameRoom room,
+        BoardState board,
+        PlayerState player,
+        int maxItemsAhead = 1,
+        IReadOnlyDictionary<int, int>? rowCaps = null)
     {
         if (maxItemsAhead > 0 && CountItemsAheadOfPlayer(room, player.Position) >= maxItemsAhead)
         {
@@ -223,7 +240,7 @@ public sealed partial class GameEngine
 
         foreach (var cell in candidates)
         {
-            if (!IsAllowedItemCell(room, board, cell))
+            if (!IsAllowedItemCell(room, board, cell, rowCaps))
             {
                 continue;
             }
@@ -233,6 +250,82 @@ public sealed partial class GameEngine
                 cell,
                 RollItemTypeForSpawn(room)));
             return true;
+        }
+
+        return false;
+    }
+
+    private static Dictionary<int, int> BuildRowSpawnCaps(GameRoom room, BoardState board)
+    {
+        var caps = new Dictionary<int, int>();
+        if (room.Players.Count == 0)
+        {
+            return caps;
+        }
+
+        var minimumPosition = room.Players.Min(x => x.Position);
+        var minimumRow = GetRowIndex(minimumPosition);
+        var lastSpawnCell = Math.Max(3, board.Size - NearFinishItemGuardCells - 1);
+        var lastRow = GetRowIndex(lastSpawnCell);
+
+        for (var row = minimumRow; row <= lastRow; row++)
+        {
+            var mustKeepForTrailingRow = row == minimumRow;
+            if (!mustKeepForTrailingRow && Random.Shared.NextDouble() > ItemRowSpawnChance)
+            {
+                continue;
+            }
+
+            caps[row] = Random.Shared.Next(1, ItemRowHardCap + 1);
+        }
+
+        if (caps.Count == 0)
+        {
+            caps[minimumRow] = 1;
+        }
+
+        return caps;
+    }
+
+    private static bool TrySpawnItemByRowQuota(GameRoom room, BoardState board, IReadOnlyDictionary<int, int> rowCaps)
+    {
+        if (rowCaps.Count == 0)
+        {
+            return false;
+        }
+
+        var rows = rowCaps.Keys
+            .Where(row => CountItemsInRow(room, row) < rowCaps[row])
+            .OrderBy(row => CountItemsInRow(room, row))
+            .ThenBy(_ => Random.Shared.Next())
+            .ToArray();
+
+        foreach (var row in rows)
+        {
+            var minCell = row * ItemRowWidth + 1;
+            var maxCell = Math.Min(board.Size - 1, minCell + ItemRowWidth - 1);
+            if (maxCell < minCell)
+            {
+                continue;
+            }
+
+            var candidates = Enumerable.Range(minCell, maxCell - minCell + 1)
+                .OrderBy(_ => Random.Shared.Next())
+                .ToArray();
+
+            foreach (var cell in candidates)
+            {
+                if (!IsAllowedItemCell(room, board, cell, rowCaps))
+                {
+                    continue;
+                }
+
+                room.ActiveItems.Add(new BoardItem(
+                    Guid.NewGuid().ToString("N")[..10],
+                    cell,
+                    RollItemTypeForSpawn(room)));
+                return true;
+            }
         }
 
         return false;
@@ -281,7 +374,11 @@ public sealed partial class GameEngine
         return weights[^1].Type;
     }
 
-    private static bool IsAllowedItemCell(GameRoom room, BoardState board, int cell)
+    private static bool IsAllowedItemCell(
+        GameRoom room,
+        BoardState board,
+        int cell,
+        IReadOnlyDictionary<int, int>? rowCaps = null)
     {
         if (cell <= 2 || cell >= board.Size)
         {
@@ -299,7 +396,9 @@ public sealed partial class GameEngine
             return false;
         }
 
-        if (board.JumpsByFrom.ContainsKey(cell) || board.ForksByCell.ContainsKey(cell))
+        if (board.JumpsByFrom.ContainsKey(cell) ||
+            board.Jumps.Any(x => x.To == cell) ||
+            board.ForksByCell.ContainsKey(cell))
         {
             return false;
         }
@@ -321,6 +420,20 @@ public sealed partial class GameEngine
             return false;
         }
 
+        var row = GetRowIndex(cell);
+        var rowItemCount = CountItemsInRow(room, row);
+        if (rowItemCount >= ItemRowHardCap)
+        {
+            return false;
+        }
+
+        if (rowCaps is not null &&
+            rowCaps.TryGetValue(row, out var rowCap) &&
+            rowItemCount >= Math.Max(1, Math.Min(ItemRowHardCap, rowCap)))
+        {
+            return false;
+        }
+
         return true;
     }
 
@@ -332,14 +445,30 @@ public sealed partial class GameEngine
 
     private static int ResolveTargetItemCount(int boardSize, int playerCount)
     {
-        var byBoard = (int)Math.Ceiling(boardSize / 34d);
-        var byPlayers = (int)Math.Ceiling(Math.Max(2, playerCount) * 0.75d);
-        return Math.Clamp(byBoard + byPlayers, 4, 14);
+        var rowCount = GetBoardRowCount(boardSize);
+        var byRows = (int)Math.Ceiling(rowCount * 1.8d);
+        var byPlayers = (int)Math.Ceiling(Math.Max(2, playerCount) * 1.1d);
+        var maxCap = Math.Min(120, rowCount * ItemRowHardCap);
+        return Math.Clamp(byRows + byPlayers, Math.Min(10, maxCap), Math.Max(10, maxCap));
     }
 
     private static int ResolveMaxLiveItemCount(int boardSize, int playerCount)
     {
         var target = ResolveTargetItemCount(boardSize, playerCount);
-        return Math.Max(target + 2, (int)Math.Ceiling(target * 1.25d));
+        var padded = Math.Max(target + Math.Max(8, playerCount * 2), (int)Math.Ceiling(target * 1.25d));
+        return Math.Clamp(padded, 12, 150);
+    }
+
+    private static int GetBoardRowCount(int boardSize)
+        => Math.Max(1, (int)Math.Ceiling(boardSize / (double)ItemRowWidth));
+
+    private static int GetRowIndex(int cell)
+        => Math.Max(0, (cell - 1) / ItemRowWidth);
+
+    private static int CountItemsInRow(GameRoom room, int row)
+    {
+        var minCell = row * ItemRowWidth + 1;
+        var maxCell = minCell + ItemRowWidth - 1;
+        return room.ActiveItems.Count(x => x.Cell >= minCell && x.Cell <= maxCell);
     }
 }
