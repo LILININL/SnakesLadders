@@ -84,9 +84,7 @@
   }
 
   function renderBoard() {
-    const board = (state.animating && state.deferredRoom?.board)
-      ? state.deferredRoom.board
-      : state.room?.board;
+    const board = state.room?.board;
     if (!board) {
       el.board.style.setProperty("--rows", "10");
       el.board.innerHTML = "";
