@@ -127,6 +127,8 @@ public sealed class BoardSnapshot
     public required IReadOnlyList<Jump> TemporaryJumps { get; init; }
     public required IReadOnlyList<BoardItem> Items { get; init; }
     public required IReadOnlyList<int> BananaTrapCells { get; init; }
+    public IReadOnlyList<MonopolyCellSnapshot>? MonopolyCells { get; init; }
+    public int MonopolyFreeParkingPot { get; init; }
 }
 
 public sealed class PlayerSnapshot
@@ -143,6 +145,21 @@ public sealed class PlayerSnapshot
     public required bool LadderHackPending { get; init; }
     public required bool AnchorActive { get; init; }
     public required int AnchorTurnsLeft { get; init; }
+    public int Cash { get; init; }
+    public bool IsBankrupt { get; init; }
+    public int JailTurnsRemaining { get; init; }
+}
+
+public sealed class MonopolyCellSnapshot
+{
+    public required int Cell { get; init; }
+    public required string Name { get; init; }
+    public required MonopolyCellType Type { get; init; }
+    public string? ColorGroup { get; init; }
+    public int Price { get; init; }
+    public int Rent { get; init; }
+    public int Fee { get; init; }
+    public string? OwnerPlayerId { get; init; }
 }
 
 public sealed class PublicRoomSummary

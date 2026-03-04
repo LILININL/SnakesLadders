@@ -245,7 +245,10 @@ public sealed partial class GameRoomService
                 SnakeRepellentCharges = x.SnakeRepellentCharges,
                 LadderHackPending = x.LadderHackPending,
                 AnchorActive = x.AnchorTurnsRemaining > 0,
-                AnchorTurnsLeft = Math.Max(0, x.AnchorTurnsRemaining)
+                AnchorTurnsLeft = Math.Max(0, x.AnchorTurnsRemaining),
+                Cash = x.Cash,
+                IsBankrupt = x.IsBankrupt,
+                JailTurnsRemaining = Math.Max(0, x.JailTurnsRemaining)
             }).ToArray(),
             CurrentTurnPlayerId = room.CurrentTurnPlayer?.PlayerId,
             TurnCounter = room.TurnCounter,
@@ -263,7 +266,22 @@ public sealed partial class GameRoomService
                     ActiveFrenzySnake = room.ActiveFrenzySnake,
                     TemporaryJumps = room.TemporaryJumps.Select(x => x.Jump).ToArray(),
                     Items = room.ActiveItems.ToArray(),
-                    BananaTrapCells = room.BananaTraps.Select(x => x.Cell).Distinct().OrderBy(x => x).ToArray()
+                    BananaTrapCells = room.BananaTraps.Select(x => x.Cell).Distinct().OrderBy(x => x).ToArray(),
+                    MonopolyCells = room.Monopoly?.Cells
+                        .OrderBy(x => x.Cell)
+                        .Select(x => new MonopolyCellSnapshot
+                        {
+                            Cell = x.Cell,
+                            Name = x.Name,
+                            Type = x.Type,
+                            ColorGroup = x.ColorGroup,
+                            Price = x.Price,
+                            Rent = x.Rent,
+                            Fee = x.Fee,
+                            OwnerPlayerId = x.OwnerPlayerId
+                        })
+                        .ToArray(),
+                    MonopolyFreeParkingPot = room.Monopoly?.FreeParkingPot ?? 0
                 }
         };
     }

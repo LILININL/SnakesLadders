@@ -102,6 +102,9 @@ SnakesLadders/
    |- Contracts/GameContracts.cs
    |- Domain/GameCatalog.cs
    |- Games/
+   |  |- Monopoly/
+   |  |  |- Domain/MonopolyDefinitions.cs
+   |  |  `- Services/MonopolyGameRoomModule.cs
    |  `- SnakesLadders/
    |     |- Domain/
    |     |  |- GameEnums.cs
@@ -120,6 +123,10 @@ SnakesLadders/
       |- index.html
       |- styles.css
       `- games/
+         |- monopoly/
+         |  |- assets/
+         |  |- styles/
+         |  `- js/
          `- snakes-ladders/
             |- assets/
             |- styles/
@@ -155,6 +162,8 @@ docker compose up -d --build
 - `GET /rooms/waiting`
 - `GET /lobby/online`
 - SignalR hub: `/hubs/game`
+
+`GET /games` จะส่งรายการเกมพร้อมสถานะ `isAvailable` เพื่อให้ UI เปิด/ปิดปุ่มสร้างห้องแต่ละเกมได้
 
 ## 7) SignalR Contract
 Client -> Server:

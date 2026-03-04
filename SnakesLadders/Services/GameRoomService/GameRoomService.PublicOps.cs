@@ -255,6 +255,10 @@ public sealed partial class GameRoomService
                 {
                     continue;
                 }
+                if (!gameModule.IsAvailable)
+                {
+                    continue;
+                }
 
                 var result = gameModule.ResolveTurn(
                     room,

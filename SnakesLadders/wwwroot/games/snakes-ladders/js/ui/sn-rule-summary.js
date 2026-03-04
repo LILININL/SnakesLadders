@@ -1,7 +1,18 @@
 (() => {
   const root = window.SNL;
+  const MONOPOLY_GAME_KEY = "monopoly";
 
-  function buildRoomRuleLines(options) {
+  function buildRoomRuleLines(options, gameKey) {
+    if (String(gameKey ?? "").trim().toLowerCase() === MONOPOLY_GAME_KEY) {
+      return [
+        "โหมด: Monopoly พื้นฐาน",
+        "จำนวนช่อง: 40 ช่อง",
+        "เงินตั้งต้น: $1500 ต่อคน",
+        "ผ่าน GO รับเงิน $200",
+        "รองรับ: ซื้อที่ดิน / ค่าเช่า / ภาษี / Chance / Community Chest / Free Parking / Jail",
+      ];
+    }
+
     const safeOptions = options ?? {};
     const rules = safeOptions.ruleOptions ?? {};
 

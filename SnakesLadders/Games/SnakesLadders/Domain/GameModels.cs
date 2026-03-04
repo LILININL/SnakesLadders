@@ -62,6 +62,10 @@ public sealed class PlayerState
     public bool LadderHackPending { get; set; }
     public int AnchorTurnsRemaining { get; set; }
     public int ItemDryTurnStreak { get; set; }
+
+    public int Cash { get; set; }
+    public bool IsBankrupt { get; set; }
+    public int JailTurnsRemaining { get; set; }
 }
 
 public sealed class GameRoom
@@ -89,6 +93,7 @@ public sealed class GameRoom
     public List<BoardItem> ActiveItems { get; } = new();
     public List<TemporaryJumpState> TemporaryJumps { get; } = new();
     public List<BananaTrapState> BananaTraps { get; } = new();
+    public MonopolyRoomState? Monopoly { get; set; }
     public DateTimeOffset? TurnDeadlineUtc { get; set; }
 
     public PlayerState? CurrentTurnPlayer =>
@@ -136,4 +141,6 @@ public sealed class TurnResult
     public string? WinnerPlayerId { get; init; }
     public string? FinishReason { get; init; }
     public string? AutoRollReason { get; init; }
+    public string? ActionSummary { get; init; }
+    public IReadOnlyList<string> ActionLogs { get; init; } = Array.Empty<string>();
 }

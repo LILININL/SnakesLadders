@@ -3,6 +3,7 @@
 
   root.GAME_KEYS = {
     SNAKES_LADDERS: "snakes-ladders",
+    MONOPOLY: "monopoly",
   };
 
   root.GAME_STATUS = {
@@ -129,6 +130,9 @@
     playerList: document.getElementById("playerList"),
     boardWrap: document.getElementById("boardWrap"),
     boardLegend: document.getElementById("boardLegend"),
+    monopolyTableWrap: document.getElementById("monopolyTableWrap"),
+    monopolyTableMeta: document.getElementById("monopolyTableMeta"),
+    monopolyTable: document.getElementById("monopolyTable"),
     focusModeMeBtn: document.getElementById("focusModeMeBtn"),
     focusModeTurnBtn: document.getElementById("focusModeTurnBtn"),
     turnBanner: document.getElementById("turnBanner"),

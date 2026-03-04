@@ -5,6 +5,7 @@
   const DEFAULT_GAME_KEY = "snakes-ladders";
   const GAME_LABELS = {
     "snakes-ladders": "Snakes & Ladders",
+    monopoly: "เกมเศรษฐี",
   };
   const ITEM_META = {
     0: {

@@ -100,6 +100,6 @@
   root.boardBeacon = {
     init,
     render,
-    hide
+    hide,
   };
 })();

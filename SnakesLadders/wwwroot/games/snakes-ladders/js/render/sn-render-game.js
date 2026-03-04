@@ -9,6 +9,7 @@
     gameLabel,
     boardItemMeta,
   } = root.utils;
+  const MONOPOLY_GAME_KEY = root.GAME_KEYS?.MONOPOLY ?? "monopoly";
   let boardItemTooltipBound = false;
 
   function renderRoomHeader() {
@@ -44,10 +45,14 @@
       return;
     }
 
+    const monopoly = isMonopolyGame();
     const waiting = state.room.status === GAME_STATUS.WAITING;
     const hostId = state.room.hostPlayerId;
     const displayTurnPlayerId = root.viewState.getDisplayTurnPlayerId();
     const displayPlayers = root.viewState.getDisplayPlayers();
+    const monopolyCells = Array.isArray(state.room.board?.monopolyCells)
+      ? state.room.board.monopolyCells
+      : [];
 
     const rows = displayPlayers.map((player) => {
       const classes = ["player-item"];
@@ -98,9 +103,26 @@
         );
       }
 
-      const stats = waiting
-        ? `สถานะ: <span class="inline-pill ${tone}">${escapeHtml(label)}</span>`
-        : `ตำแหน่ง: ${player.position} | โล่: ${player.shields}${itemStatus.length ? ` | ${escapeHtml(itemStatus.join(" / "))}` : ""}`;
+      let stats = "";
+      if (waiting) {
+        stats = `สถานะ: <span class="inline-pill ${tone}">${escapeHtml(label)}</span>`;
+      } else if (monopoly) {
+        const ownedCount = countMonopolyAssets(monopolyCells, player.playerId);
+        const cash = Number.parseInt(String(player.cash ?? 0), 10) || 0;
+        const jailTurns = Number.parseInt(
+          String(player.jailTurnsRemaining ?? 0),
+          10,
+        ) || 0;
+        const bankrupt = Boolean(player.isBankrupt);
+        const extra = bankrupt
+          ? " | สถานะ: ล้มละลาย"
+          : jailTurns > 0
+            ? ` | ติดคุกอีก ${jailTurns} ตา`
+            : "";
+        stats = `เงิน: $${cash} | ช่อง: ${player.position} | ทรัพย์สิน: ${ownedCount}${extra}`;
+      } else {
+        stats = `ตำแหน่ง: ${player.position} | โล่: ${player.shields}${itemStatus.length ? ` | ${escapeHtml(itemStatus.join(" / "))}` : ""}`;
+      }
       const safeAvatarId = normalizeAvatarId(player.avatarId, 1);
 
       return `
@@ -125,6 +147,7 @@
       el.board.style.setProperty("--rows", "10");
       el.board.innerHTML = "";
       el.boardLegend.textContent = "";
+      hideMonopolyTable();
       hideBoardItemTooltip();
       clearBoardClasses();
       root.boardOverlay?.clear();
@@ -132,6 +155,26 @@
       root.boardBeacon?.hide?.();
       return;
     }
+
+    if (isMonopolyGame()) {
+      renderMonopolyTable(board);
+      el.board.style.setProperty("--rows", "10");
+      el.board.innerHTML = "";
+      clearBoardClasses();
+      hideBoardItemTooltip();
+      root.boardOverlay?.clear();
+      root.boardTokens?.clear();
+      root.boardBeacon?.hide?.();
+      root.roomUi?.updateFloatingRollButton();
+
+      const tableCellCount = Array.isArray(board.monopolyCells) &&
+          board.monopolyCells.length > 0
+        ? board.monopolyCells.length
+        : board.size;
+      el.boardLegend.textContent = `ตารางเกมเศรษฐี ${tableCellCount} ช่อง`;
+      return;
+    }
+    hideMonopolyTable();
 
     const page = root.boardPage.getVisibleRange(
       board.size,
@@ -288,6 +331,19 @@
     }
 
     const t = state.lastTurn;
+    if (isMonopolyGame()) {
+      const logs = Array.isArray(t.actionLogs) && t.actionLogs.length > 0
+        ? t.actionLogs
+        : [t.actionSummary || `${playerName(t.playerId)} เดินจาก ${t.startPosition} ไป ${t.endPosition}`];
+      if (t.isGameFinished) {
+        logs.push(`ผู้ชนะ: ${playerName(t.winnerPlayerId)}`);
+      }
+      el.turnSummary.innerHTML = logs
+        .map((line) => `<div>${escapeHtml(String(line ?? ""))}</div>`)
+        .join("");
+      return;
+    }
+
     const lines = [
       `${playerName(t.playerId)} ทอยได้ ${t.diceValue} เดินจาก ${t.startPosition} -> ${t.endPosition}`,
     ];
@@ -520,6 +576,113 @@
     }
     const player = state.room?.players.find((x) => x.playerId === playerId);
     return player?.displayName ?? playerId;
+  }
+
+  function isMonopolyGame() {
+    return (
+      String(state.room?.gameKey ?? "").trim().toLowerCase() ===
+      String(MONOPOLY_GAME_KEY).trim().toLowerCase()
+    );
+  }
+
+  function hideMonopolyTable() {
+    if (el.monopolyTableWrap) {
+      el.monopolyTableWrap.classList.add("hidden");
+    }
+    if (el.monopolyTable) {
+      el.monopolyTable.innerHTML = "";
+    }
+    if (el.monopolyTableMeta) {
+      el.monopolyTableMeta.textContent = "Free Parking: $0";
+    }
+  }
+
+  function renderMonopolyTable(board) {
+    if (!el.monopolyTableWrap || !el.monopolyTable || !el.monopolyTableMeta) {
+      return;
+    }
+
+    const cells = Array.isArray(board.monopolyCells) ? board.monopolyCells : [];
+    if (cells.length === 0) {
+      hideMonopolyTable();
+      return;
+    }
+
+    el.monopolyTableWrap.classList.remove("hidden");
+    const freeParkingPot = Number.parseInt(
+      String(board.monopolyFreeParkingPot ?? 0),
+      10,
+    ) || 0;
+    el.monopolyTableMeta.textContent = `Free Parking: $${freeParkingPot}`;
+
+    const rows = cells
+      .slice()
+      .sort((a, b) => (a.cell || 0) - (b.cell || 0))
+      .map((cell) => {
+        const ownerName = playerName(cell.ownerPlayerId);
+        const typeLabel = monopolyCellTypeLabel(cell.type);
+        return `
+          <tr>
+            <td>${cell.cell}</td>
+            <td>${escapeHtml(cell.name ?? "-")}</td>
+            <td>${escapeHtml(typeLabel)}</td>
+            <td>${cell.price ?? 0}</td>
+            <td>${cell.rent ?? 0}</td>
+            <td>${cell.fee ?? 0}</td>
+            <td>${escapeHtml(ownerName === "-" ? "-" : ownerName)}</td>
+          </tr>
+        `;
+      });
+
+    el.monopolyTable.innerHTML = `
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>ช่อง</th>
+          <th>ประเภท</th>
+          <th>ราคา</th>
+          <th>ค่าเช่า</th>
+          <th>ภาษี/ค่าปรับ</th>
+          <th>เจ้าของ</th>
+        </tr>
+      </thead>
+      <tbody>${rows.join("")}</tbody>
+    `;
+  }
+
+  function monopolyCellTypeLabel(type) {
+    switch (type) {
+      case 0:
+        return "GO";
+      case 1:
+        return "Property";
+      case 2:
+        return "Railroad";
+      case 3:
+        return "Utility";
+      case 4:
+        return "Tax";
+      case 5:
+        return "Chance";
+      case 6:
+        return "Community";
+      case 7:
+        return "Jail";
+      case 8:
+        return "Free Parking";
+      case 9:
+        return "Go To Jail";
+      default:
+        return "Cell";
+    }
+  }
+
+  function countMonopolyAssets(cells, playerId) {
+    if (!Array.isArray(cells) || !playerId) {
+      return 0;
+    }
+
+    return cells.filter((cell) => cell.ownerPlayerId === playerId).length;
   }
 
   root.renderGame = {

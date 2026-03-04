@@ -1,6 +1,6 @@
 # Games Folder Convention
 
-แต่ละเกมให้แยกโฟลเดอร์ของตัวเองดังนี้
+แนะนำให้แยกแต่ละเกมเป็นโมดูลของตัวเองใต้ `Games/<GameName>/`:
 
 ```text
 SnakesLadders/
@@ -10,17 +10,14 @@ SnakesLadders/
       `- Services/
 ```
 
-- `Domain/` เก็บ model/enum/options เฉพาะเกมนั้น
-- `Services/` เก็บ game engine / board generator logic ของเกมนั้น
-- สร้างโมดูลเกมให้ implement `IGameRoomModule` เพื่อให้ service กลางเรียกใช้งานได้
+- `Domain/` เก็บ model/constants ที่เฉพาะเกมนั้น
+- `Services/` เก็บ game module/engine ของเกมนั้น
+- โมดูลเกมต้อง implement `IGameRoomModule` เพื่อให้ service กลางเรียกใช้งานได้
 
-ฝั่งเว็บให้แยกไฟล์ตาม `gameKey` ที่ `wwwroot/games/<game-key>/...` เช่น:
+หมายเหตุ:
+- model/contract ที่ใช้ร่วมทุกเกมจะอยู่ใน `SnakesLadders/Domain` และ `SnakesLadders/Contracts`
+- ฝั่งเว็บยังใช้หน้า lobby/room กลางร่วมกัน และเก็บ assets เฉพาะเกมที่ `wwwroot/games/<game-key>/...`
 
-```text
-wwwroot/games/snakes-ladders/
-|- assets/
-|- styles/
-`- js/
-```
-
-ตอนนี้ `gameKey` ที่รองรับในระบบคือ `snakes-ladders` (กำหนดใน `Domain/GameCatalog.cs`)
+สถานะ `gameKey` ปัจจุบัน:
+- `snakes-ladders` (เปิดใช้งาน)
+- `monopoly` (เปิดใช้งาน)

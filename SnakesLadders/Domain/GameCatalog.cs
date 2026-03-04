@@ -3,11 +3,13 @@ namespace SnakesLadders.Domain;
 public static class GameCatalog
 {
     public const string SnakesLadders = "snakes-ladders";
+    public const string Monopoly = "monopoly";
     public const string DefaultGameKey = SnakesLadders;
 
     private static readonly HashSet<string> SupportedGameKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        SnakesLadders
+        SnakesLadders,
+        Monopoly
     };
 
     public static string Normalize(string? gameKey)

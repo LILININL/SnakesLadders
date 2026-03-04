@@ -37,6 +37,10 @@ public sealed partial class GameRoomService : IGameRoomService
             {
                 return ServiceResult<CreateRoomResponse>.Fail($"ยังไม่รองรับเกม {gameKey}");
             }
+            if (!gameModule.IsAvailable)
+            {
+                return ServiceResult<CreateRoomResponse>.Fail($"เกม {gameModule.DisplayName} ยังไม่เปิดใช้งาน");
+            }
 
             var optionsResult = gameModule.BuildBoardOptionsForCreate(request);
             if (!optionsResult.Success || optionsResult.Value is null)
@@ -210,6 +214,10 @@ public sealed partial class GameRoomService : IGameRoomService
             {
                 return ServiceResult<RoomSnapshot>.Fail($"ยังไม่รองรับเกม {room.GameKey}");
             }
+            if (!gameModule.IsAvailable)
+            {
+                return ServiceResult<RoomSnapshot>.Fail($"เกม {gameModule.DisplayName} ยังไม่เปิดใช้งาน");
+            }
 
             var validation = gameModule.ValidateRoomBeforeStart(room);
             if (validation is not null)
@@ -275,6 +283,10 @@ public sealed partial class GameRoomService : IGameRoomService
             if (!TryGetGameModule(room.GameKey, out var gameModule))
             {
                 return ServiceResult<TurnEnvelope>.Fail($"ยังไม่รองรับเกม {room.GameKey}");
+            }
+            if (!gameModule.IsAvailable)
+            {
+                return ServiceResult<TurnEnvelope>.Fail($"เกม {gameModule.DisplayName} ยังไม่เปิดใช้งาน");
             }
 
             var result = gameModule.ResolveTurn(room, actor, request, isAutoRoll);

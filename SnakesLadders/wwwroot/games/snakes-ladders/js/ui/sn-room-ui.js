@@ -67,7 +67,7 @@
     }
 
     const options = state.room.boardOptions;
-    const lines = root.ruleSummary?.buildRoomRuleLines?.(options) ?? [];
+    const lines = root.ruleSummary?.buildRoomRuleLines?.(options, state.room.gameKey) ?? [];
 
     el.roomRuleList.innerHTML = lines
       .map((line) => `<li>${escapeHtml(line)}</li>`)
