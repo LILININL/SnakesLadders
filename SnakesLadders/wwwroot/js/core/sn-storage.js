@@ -7,7 +7,7 @@
     profileAvatarId: "snl_profile_avatar_id",
     roomSessions: "snl_room_sessions",
     lastRoomCode: "snl_last_room_code",
-    focusMode: "snl_focus_mode"
+    focusMode: "snl_focus_mode",
   };
 
   function loadProfileName() {
@@ -50,7 +50,9 @@
   }
 
   function saveRoomSession(roomCode, sessionId, playerId) {
-    const code = String(roomCode ?? "").trim().toUpperCase();
+    const code = String(roomCode ?? "")
+      .trim()
+      .toUpperCase();
     if (!code || !sessionId) {
       return;
     }
@@ -59,7 +61,7 @@
     map[code] = {
       sessionId: String(sessionId),
       playerId: String(playerId ?? ""),
-      savedAtUtc: new Date().toISOString()
+      savedAtUtc: new Date().toISOString(),
     };
 
     saveSessionMap(map);
@@ -67,7 +69,9 @@
   }
 
   function getRoomSession(roomCode) {
-    const code = String(roomCode ?? "").trim().toUpperCase();
+    const code = String(roomCode ?? "")
+      .trim()
+      .toUpperCase();
     if (!code) {
       return null;
     }
@@ -81,12 +85,14 @@
     return {
       roomCode: code,
       sessionId: String(entry.sessionId),
-      playerId: String(entry.playerId ?? "")
+      playerId: String(entry.playerId ?? ""),
     };
   }
 
   function getLastRoomSession() {
-    const code = String(localStorage.getItem(keys.lastRoomCode) ?? "").trim().toUpperCase();
+    const code = String(localStorage.getItem(keys.lastRoomCode) ?? "")
+      .trim()
+      .toUpperCase();
     if (!code) {
       return null;
     }
@@ -94,7 +100,9 @@
   }
 
   function clearRoomSession(roomCode) {
-    const code = String(roomCode ?? "").trim().toUpperCase();
+    const code = String(roomCode ?? "")
+      .trim()
+      .toUpperCase();
     if (!code) {
       return;
     }
@@ -103,14 +111,18 @@
     delete map[code];
     saveSessionMap(map);
 
-    const last = String(localStorage.getItem(keys.lastRoomCode) ?? "").trim().toUpperCase();
+    const last = String(localStorage.getItem(keys.lastRoomCode) ?? "")
+      .trim()
+      .toUpperCase();
     if (last === code) {
       localStorage.removeItem(keys.lastRoomCode);
     }
   }
 
   function loadFocusMode() {
-    const value = String(localStorage.getItem(keys.focusMode) ?? "").trim().toLowerCase();
+    const value = String(localStorage.getItem(keys.focusMode) ?? "")
+      .trim()
+      .toLowerCase();
     return value === "turn" ? "turn" : "me";
   }
 
@@ -129,6 +141,6 @@
     getLastRoomSession,
     clearRoomSession,
     loadFocusMode,
-    saveFocusMode
+    saveFocusMode,
   };
 })();

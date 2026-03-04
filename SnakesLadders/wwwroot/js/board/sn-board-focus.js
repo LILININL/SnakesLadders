@@ -5,7 +5,6 @@
   const PAGE_TRANSITION_MS = 550;
 
   function init() {
-    // Keep one behavior only: focus current turn player.
     state.focusMode = "turn";
     state.pendingBeaconTargetPlayerId = "";
     root.storage?.saveFocusMode?.("turn");
@@ -55,7 +54,6 @@
   }
 
   function refreshPendingBeaconTarget() {
-    // Auto-focus by turn is always enabled, no pending beacon target needed.
     state.pendingBeaconTargetPlayerId = "";
   }
 

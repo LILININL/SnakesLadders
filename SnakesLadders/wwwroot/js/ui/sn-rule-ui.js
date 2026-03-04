@@ -9,7 +9,7 @@
     { ruleId: "ruleCheckpointShield", settingId: "settingCheckpointInterval" },
     { ruleId: "ruleMercyLadder", settingId: "settingMercyBoost" },
     { ruleId: "ruleMarathonSpeedup", settingId: "settingMarathonThreshold" },
-    { ruleId: "ruleMarathonSpeedup", settingId: "settingMarathonMultiplier" }
+    { ruleId: "ruleMarathonSpeedup", settingId: "settingMarathonMultiplier" },
   ];
 
   function init() {
@@ -84,6 +84,6 @@
 
   root.ruleUi = {
     init,
-    syncAll
+    syncAll,
   };
 })();

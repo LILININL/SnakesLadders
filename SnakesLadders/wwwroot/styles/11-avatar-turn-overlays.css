@@ -1,0 +1,124 @@
+/* Avatar rendering: keep original image look with no forced round frame/background */
+.form-avatar-picker {
+  grid-template-columns: repeat(8, minmax(0, 40px));
+  justify-content: start;
+}
+
+.board-token.avatar.me,
+.transit-token.avatar.me {
+  border: none;
+  background: transparent;
+}
+
+.board-token.avatar .token-avatar-img,
+.transit-token.avatar .token-avatar-img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 0;
+  object-fit: contain;
+  background: transparent;
+}
+
+.first-turn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 118;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(
+    circle at center,
+    rgba(102, 194, 248, 0.24),
+    rgba(236, 248, 255, 0.76)
+  );
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.first-turn-overlay.anchor-active {
+  background: radial-gradient(
+    circle at center,
+    rgba(89, 224, 176, 0.22),
+    rgba(235, 252, 246, 0.8)
+  );
+}
+
+.first-turn-card {
+  width: min(430px, calc(100% - 24px));
+  padding: 20px 18px;
+}
+
+.first-turn-overlay.anchor-active .first-turn-card {
+  border-color: #67cfa7;
+  box-shadow:
+    0 16px 34px rgba(51, 155, 116, 0.24),
+    0 0 0 1px rgba(109, 215, 174, 0.36);
+}
+
+.first-turn-badge {
+  letter-spacing: 0.06em;
+}
+
+.first-turn-overlay.anchor-active .first-turn-badge {
+  color: #0b6f53;
+  border-color: #79d8b4;
+  background: rgba(230, 255, 247, 0.95);
+}
+
+.first-turn-avatar {
+  width: min(120px, 34vw);
+  height: min(120px, 34vw);
+  object-fit: contain;
+  display: block;
+  margin: 2px auto 10px;
+}
+
+#firstTurnNameText {
+  margin: 0;
+}
+
+.first-turn-overlay.anchor-active .first-turn-avatar {
+  animation: anchor-turn-avatar-pulse 0.9s ease-in-out infinite;
+}
+
+.first-turn-overlay.show .first-turn-card {
+  animation: first-turn-pop 0.42s ease-out both;
+}
+
+@keyframes first-turn-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes anchor-turn-avatar-pulse {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(88, 209, 170, 0));
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(88, 209, 170, 0.46));
+    transform: translateY(-1px) scale(1.03);
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(88, 209, 170, 0));
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 900px) {
+  .first-turn-card {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .first-turn-badge {
+    font-size: 0.75rem;
+  }
+}

@@ -1,32 +1,79 @@
 (() => {
   const root = window.SNL;
   const { state, el } = root;
-  const { escapeHtml, avatarSrc, normalizeAvatarId, boardItemMeta } = root.utils;
+  const { escapeHtml, avatarSrc, normalizeAvatarId, boardItemMeta } =
+    root.utils;
   let diceChain = Promise.resolve();
   let turnStartChain = Promise.resolve();
   const ITEM_ACTIVATION = {
-    0: { toneClass: "fx-rocket", stageClass: "item-fx-stage-zoom", label: "Rocket Boots!" },
-    1: { toneClass: "fx-magnet", stageClass: "item-fx-stage-pulse", label: "Magnet Dice!" },
-    2: { toneClass: "fx-repellent", stageClass: "item-fx-stage-pulse", label: "Snake Repellent!" },
-    3: { toneClass: "fx-ladder", stageClass: "item-fx-stage-zoom", label: "Ladder Hack!" },
-    4: { toneClass: "fx-banana", stageClass: "item-fx-stage-shake", label: "Banana Peel!" },
-    5: { toneClass: "fx-swap", stageClass: "item-fx-stage-warp", label: "Swap Glove!" },
-    6: { toneClass: "fx-anchor", stageClass: "item-fx-stage-pulse", label: "Anchor!" },
-    7: { toneClass: "fx-chaos", stageClass: "item-fx-stage-chaos", label: "Chaos Button!" },
-    8: { toneClass: "fx-snake-row", stageClass: "item-fx-stage-shake", label: "Snake Row!" },
-    9: { toneClass: "fx-bridge", stageClass: "item-fx-stage-zoom", label: "Bridge to Leader!" },
-    10: { toneClass: "fx-global-snake", stageClass: "item-fx-stage-chaos", label: "Global Snake Round!" }
+    0: {
+      toneClass: "fx-rocket",
+      stageClass: "item-fx-stage-zoom",
+      label: "Rocket Boots!",
+    },
+    1: {
+      toneClass: "fx-magnet",
+      stageClass: "item-fx-stage-pulse",
+      label: "Magnet Dice!",
+    },
+    2: {
+      toneClass: "fx-repellent",
+      stageClass: "item-fx-stage-pulse",
+      label: "Snake Repellent!",
+    },
+    3: {
+      toneClass: "fx-ladder",
+      stageClass: "item-fx-stage-zoom",
+      label: "Ladder Hack!",
+    },
+    4: {
+      toneClass: "fx-banana",
+      stageClass: "item-fx-stage-shake",
+      label: "Banana Peel!",
+    },
+    5: {
+      toneClass: "fx-swap",
+      stageClass: "item-fx-stage-warp",
+      label: "Swap Glove!",
+    },
+    6: {
+      toneClass: "fx-anchor",
+      stageClass: "item-fx-stage-pulse",
+      label: "Anchor!",
+    },
+    7: {
+      toneClass: "fx-chaos",
+      stageClass: "item-fx-stage-chaos",
+      label: "Chaos Button!",
+    },
+    8: {
+      toneClass: "fx-snake-row",
+      stageClass: "item-fx-stage-shake",
+      label: "Snake Row!",
+    },
+    9: {
+      toneClass: "fx-bridge",
+      stageClass: "item-fx-stage-zoom",
+      label: "Bridge to Leader!",
+    },
+    10: {
+      toneClass: "fx-global-snake",
+      stageClass: "item-fx-stage-chaos",
+      label: "Global Snake Round!",
+    },
   };
   const ITEM_FX_STAGE_CLASSES = [
     "item-fx-stage-zoom",
     "item-fx-stage-pulse",
     "item-fx-stage-shake",
     "item-fx-stage-warp",
-    "item-fx-stage-chaos"
+    "item-fx-stage-chaos",
   ];
 
   function showDice(playerId, diceValue) {
-    diceChain = diceChain.then(() => animateDice(playerId, diceValue)).catch(() => {});
+    diceChain = diceChain
+      .then(() => animateDice(playerId, diceValue))
+      .catch(() => {});
     return diceChain;
   }
 
@@ -60,7 +107,13 @@
 
   function showTurnStart(room, playerId = null, badge = "ถึงเทิร์นของ") {
     turnStartChain = turnStartChain
-      .then(() => animateTurnStart(room, playerId ?? room?.currentTurnPlayerId ?? "", badge))
+      .then(() =>
+        animateTurnStart(
+          room,
+          playerId ?? room?.currentTurnPlayerId ?? "",
+          badge,
+        ),
+      )
       .catch(() => {});
     return turnStartChain;
   }
@@ -134,7 +187,13 @@
   }
 
   async function animateTurnStart(room, playerId, badge) {
-    if (!el.firstTurnOverlay || !el.firstTurnBadge || !el.firstTurnAvatar || !el.firstTurnNameText || !room) {
+    if (
+      !el.firstTurnOverlay ||
+      !el.firstTurnBadge ||
+      !el.firstTurnAvatar ||
+      !el.firstTurnNameText ||
+      !room
+    ) {
       return;
     }
 
@@ -148,7 +207,8 @@
     }
 
     const safeAvatarId = normalizeAvatarId(player.avatarId, 1);
-    const anchorTurnsLeft = Number.parseInt(String(player.anchorTurnsLeft ?? 0), 10) || 0;
+    const anchorTurnsLeft =
+      Number.parseInt(String(player.anchorTurnsLeft ?? 0), 10) || 0;
     const anchorActive = Boolean(player.anchorActive) && anchorTurnsLeft > 0;
     const badgeText = String(badge ?? "ถึงเทิร์นของ");
     el.firstTurnBadge.textContent = anchorActive
@@ -197,7 +257,7 @@
       itemType,
       meta: boardItemMeta(itemType),
       summary: String(effect?.summary ?? "").trim(),
-      trapTriggered: Boolean(effect?.isTrapTrigger)
+      trapTriggered: Boolean(effect?.isTrapTrigger),
     };
   }
 
@@ -207,7 +267,9 @@
       return;
     }
 
-    const summaryHtml = detail ? `<span class="item-pickup-summary">${escapeHtml(detail)}</span>` : "";
+    const summaryHtml = detail
+      ? `<span class="item-pickup-summary">${escapeHtml(detail)}</span>`
+      : "";
     if (meta.imageSrc) {
       el.jumpHintBadge.innerHTML = `
         <span class="item-pickup-row">
@@ -240,15 +302,26 @@
   async function showItemPickup(effect, durationMs = 980) {
     const { meta, summary, trapTriggered } = normalizeItemFxNotice(effect);
     const title = trapTriggered ? "โดน Banana Trap" : `เก็บ ${meta.name}`;
-    const detail = summary || (trapTriggered ? "กับดักกำลังเริ่มทำงาน" : "กำลังเปิดใช้ไอเท็ม");
-    await showItemBadge(meta, title, detail, "item-pickup", Math.max(760, durationMs));
+    const detail =
+      summary ||
+      (trapTriggered ? "กับดักกำลังเริ่มทำงาน" : "กำลังเปิดใช้ไอเท็ม");
+    await showItemBadge(
+      meta,
+      title,
+      detail,
+      "item-pickup",
+      Math.max(760, durationMs),
+    );
   }
 
   async function showItemResult(effect, durationMs = 1500) {
     const { meta, summary, trapTriggered } = normalizeItemFxNotice(effect);
     const title = trapTriggered ? "ผลของ Banana Trap" : `ผลของ ${meta.name}`;
     const detail = summary || "ไอเท็มทำงานแล้ว";
-    const holdMs = Math.max(durationMs, detail ? Math.min(3200, 1350 + (detail.length * 18)) : 1200);
+    const holdMs = Math.max(
+      durationMs,
+      detail ? Math.min(3200, 1350 + detail.length * 18) : 1200,
+    );
     await showItemBadge(meta, title, detail, "item-result", holdMs);
   }
 
@@ -258,14 +331,19 @@
       return;
     }
 
-    const { itemType, meta, summary, trapTriggered } = normalizeItemFxNotice(effect);
+    const { itemType, meta, summary, trapTriggered } =
+      normalizeItemFxNotice(effect);
     const activation = ITEM_ACTIVATION[itemType] ?? {
       toneClass: "fx-generic",
       stageClass: "",
-      label: "Item Activated!"
+      label: "Item Activated!",
     };
-    const title = trapTriggered ? "Banana Trap!" : (activation.label || meta.name);
-    const sub = trapTriggered ? "กับดักกำลังทำงาน..." : (summary || "กำลังแสดงพลังไอเท็ม");
+    const title = trapTriggered
+      ? "Banana Trap!"
+      : activation.label || meta.name;
+    const sub = trapTriggered
+      ? "กับดักกำลังทำงาน..."
+      : summary || "กำลังแสดงพลังไอเท็ม";
     const holdMs = Math.max(380, durationMs);
     const fxEl = document.createElement("div");
     fxEl.className = `item-cast-fx ${activation.toneClass}`;
@@ -283,7 +361,6 @@
       el.boardStage.classList.add(activation.stageClass);
     }
     el.boardStage.appendChild(fxEl);
-    // Force transition start on inserted element.
     void fxEl.offsetWidth;
     fxEl.classList.add("show");
     await wait(holdMs);
@@ -304,6 +381,6 @@
     showItemActivation,
     showItemPickup,
     showItemResult,
-    reset
+    reset,
   };
 })();

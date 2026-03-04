@@ -51,6 +51,6 @@
   root.feedback = {
     logEvent,
     renderAll,
-    formatTurnLine
+    formatTurnLine,
   };
 })();

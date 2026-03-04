@@ -34,13 +34,13 @@
 
     return state.room.players.map((player) => ({
       ...player,
-      position: getPlayerPosition(player.playerId) ?? player.position
+      position: getPlayerPosition(player.playerId) ?? player.position,
     }));
   }
 
   root.viewState = {
     getDisplayTurnPlayerId,
     getPlayerPosition,
-    getDisplayPlayers
+    getDisplayPlayers,
   };
 })();

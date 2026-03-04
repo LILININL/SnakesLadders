@@ -4,9 +4,12 @@
   const { escapeHtml, formatClock } = root.utils;
 
   function renderChat() {
-    const messages = Array.isArray(state.chatMessages) ? state.chatMessages : [];
+    const messages = Array.isArray(state.chatMessages)
+      ? state.chatMessages
+      : [];
     if (messages.length === 0) {
-      el.chatList.innerHTML = "<li class='chat-item'><div class='meta'>ยังไม่มีข้อความแชต</div></li>";
+      el.chatList.innerHTML =
+        "<li class='chat-item'><div class='meta'>ยังไม่มีข้อความแชต</div></li>";
       return;
     }
 
@@ -57,6 +60,6 @@
   root.renderChat = {
     renderChat,
     clearChat,
-    addChatMessage
+    addChatMessage,
   };
 })();

@@ -4,7 +4,7 @@
   root.GAME_STATUS = {
     WAITING: 0,
     STARTED: 1,
-    FINISHED: 2
+    FINISHED: 2,
   };
 
   root.state = {
@@ -39,7 +39,7 @@
     focusMode: "me",
     pendingBeaconTargetPlayerId: "",
     pageTransitioning: false,
-    pageTransitionDirection: 0
+    pageTransitionDirection: 0,
   };
 
   root.el = {
@@ -149,7 +149,7 @@
     clearChatBtn: document.getElementById("clearChatBtn"),
 
     eventSection: document.getElementById("eventSection"),
-    eventFeed: document.getElementById("eventFeed")
+    eventFeed: document.getElementById("eventFeed"),
   };
 
   window.SNL = root;

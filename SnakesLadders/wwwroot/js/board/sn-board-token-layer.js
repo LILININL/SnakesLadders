@@ -11,13 +11,19 @@
       return;
     }
 
-    const markerMap = root.utils?.buildPlayerMarkerMap?.(players ?? []) ?? new Map();
+    const markerMap =
+      root.utils?.buildPlayerMarkerMap?.(players ?? []) ?? new Map();
 
-    const visibleRange = range ?? root.boardPage.getVisibleRange(board.size, state.visiblePageStart);
+    const visibleRange =
+      range ??
+      root.boardPage.getVisibleRange(board.size, state.visiblePageStart);
     const grouped = new Map();
 
     for (const player of players ?? []) {
-      if (state.animTransitActive && state.animTransitPlayerId === player.playerId) {
+      if (
+        state.animTransitActive &&
+        state.animTransitPlayerId === player.playerId
+      ) {
         continue;
       }
 
@@ -44,11 +50,17 @@
         token.className = "board-token";
         if (player.playerId === state.playerId) token.classList.add("me");
         if (!player.connected) token.classList.add("offline");
-        const anchorTurnsLeft = Number.parseInt(String(player.anchorTurnsLeft ?? 0), 10) || 0;
-        if (player.playerId === turnPlayerId && player.anchorActive && anchorTurnsLeft > 0) {
+        const anchorTurnsLeft =
+          Number.parseInt(String(player.anchorTurnsLeft ?? 0), 10) || 0;
+        if (
+          player.playerId === turnPlayerId &&
+          player.anchorActive &&
+          anchorTurnsLeft > 0
+        ) {
           token.classList.add("anchor-on-turn");
         }
-        const safeAvatarId = root.utils?.normalizeAvatarId?.(player.avatarId, 1) ?? 1;
+        const safeAvatarId =
+          root.utils?.normalizeAvatarId?.(player.avatarId, 1) ?? 1;
         const safeAvatarSrc = root.utils?.avatarSrc?.(safeAvatarId) ?? "";
         if (safeAvatarSrc) {
           token.classList.add("avatar");
@@ -58,7 +70,12 @@
           avatar.alt = `Avatar ${safeAvatarId}`;
           token.replaceChildren(avatar);
         } else {
-          token.textContent = root.utils?.resolvePlayerMarker?.(player.playerId, player.displayName, markerMap) ?? "ผ";
+          token.textContent =
+            root.utils?.resolvePlayerMarker?.(
+              player.playerId,
+              player.displayName,
+              markerMap,
+            ) ?? "ผ";
         }
         token.title = `${player.displayName}${!player.connected ? " (ออฟไลน์)" : ""}${player.anchorActive && anchorTurnsLeft > 0 ? ` • Anchor ${anchorTurnsLeft}` : ""}`;
 
@@ -80,7 +97,7 @@
     render(
       root.viewState.getDisplayPlayers(),
       root.viewState.getDisplayTurnPlayerId(),
-      root.boardPage.getVisibleRange(board.size, state.visiblePageStart)
+      root.boardPage.getVisibleRange(board.size, state.visiblePageStart),
     );
   }
 
@@ -96,14 +113,21 @@
     const stageRect = stageEl.getBoundingClientRect();
     const cellRect = cellEl.getBoundingClientRect();
 
-    const left = cellRect.left - stageRect.left + (cellRect.width / 2) + offset.x;
-    const top = cellRect.top - stageRect.top + (cellRect.height / 2) + offset.y;
+    const left = cellRect.left - stageRect.left + cellRect.width / 2 + offset.x;
+    const top = cellRect.top - stageRect.top + cellRect.height / 2 + offset.y;
 
-    if (![left, top, stageRect.width, stageRect.height].every(Number.isFinite)) {
+    if (
+      ![left, top, stageRect.width, stageRect.height].every(Number.isFinite)
+    ) {
       return false;
     }
 
-    if (left < -40 || top < -40 || left > stageRect.width + 40 || top > stageRect.height + 40) {
+    if (
+      left < -40 ||
+      top < -40 ||
+      left > stageRect.width + 40 ||
+      top > stageRect.height + 40
+    ) {
       return false;
     }
 
@@ -120,10 +144,10 @@
     const radius = Math.min(16, 5 + count * 2.2);
     const offsets = [];
     for (let i = 0; i < count; i++) {
-      const angle = ((Math.PI * 2) / count) * i - (Math.PI / 2);
+      const angle = ((Math.PI * 2) / count) * i - Math.PI / 2;
       offsets.push({
         x: Math.cos(angle) * radius,
-        y: Math.sin(angle) * radius
+        y: Math.sin(angle) * radius,
       });
     }
     return offsets;
@@ -155,6 +179,6 @@
   root.boardTokens = {
     render,
     updateFromState,
-    clear
+    clear,
   };
 })();

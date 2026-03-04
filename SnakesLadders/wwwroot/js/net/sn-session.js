@@ -83,7 +83,10 @@
     for (const button of container.querySelectorAll("[data-avatar-id]")) {
       const buttonId = normalizeAvatarId(button.dataset.avatarId, 1);
       button.classList.toggle("selected", buttonId === safeAvatarId);
-      button.setAttribute("aria-selected", buttonId === safeAvatarId ? "true" : "false");
+      button.setAttribute(
+        "aria-selected",
+        buttonId === safeAvatarId ? "true" : "false",
+      );
     }
   }
 
@@ -123,7 +126,7 @@
       maxRounds: parseInt(el.maxRounds.value, 10),
       marathonSpeedupEnabled: el.ruleMarathonSpeedup.checked,
       marathonThreshold: parseInt(el.marathonThreshold.value, 10),
-      marathonLadderMultiplier: parseFloat(el.marathonMultiplier.value)
+      marathonLadderMultiplier: parseFloat(el.marathonMultiplier.value),
     };
 
     if (classicMode) {
@@ -135,8 +138,7 @@
       ruleOptions.turnTimerEnabled = false;
       ruleOptions.roundLimitEnabled = false;
       ruleOptions.marathonSpeedupEnabled = false;
-    }
-    else if (chaosMode) {
+    } else if (chaosMode) {
       applyChaosRuleProfile(ruleOptions);
     }
 
@@ -145,7 +147,7 @@
       gameMode,
       densityMode: 0,
       overflowMode: parseInt(el.overflowMode.value, 10),
-      ruleOptions
+      ruleOptions,
     };
   }
 
@@ -173,6 +175,6 @@
     ensureProfileAvatarId,
     applyProfileAvatarId,
     syncProfileAvatarFromRoom,
-    buildBoardOptions
+    buildBoardOptions,
   };
 })();

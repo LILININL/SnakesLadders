@@ -1,0 +1,295 @@
+:root {
+  --bg: #eef9ff;
+  --bg-soft: #daf0ff;
+  --card: rgba(255, 255, 255, 0.9);
+  --card-border: #b8dcf7;
+  --text: #123a57;
+  --muted: #4f7894;
+  --accent: #2f9ff8;
+  --accent-soft: #2385d8;
+  --good: #21bf91;
+  --bad: #ef6e88;
+  --ladder: #21c089;
+  --snake: #f36d89;
+  --fork: #3db8ff;
+  --turn: #6fdb8e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Barlow", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(
+      circle at 18% 16%,
+      rgba(149, 218, 255, 0.8) 0%,
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 82% 6%,
+      rgba(157, 236, 214, 0.74) 0%,
+      transparent 40%
+    ),
+    linear-gradient(160deg, var(--bg) 0%, #dcf2ff 100%);
+  min-height: 100vh;
+}
+
+.bg-glow {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 62% 76%,
+    rgba(123, 212, 255, 0.22),
+    transparent 45%
+  );
+  z-index: -1;
+}
+
+.app-shell {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: clamp(2rem, 3.2vw, 3rem);
+  letter-spacing: 0.02em;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--accent-soft);
+  letter-spacing: 0.18em;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.sub {
+  margin: 8px 0 14px;
+  color: var(--muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 18px;
+}
+
+.layout.in-room {
+  grid-template-columns: 1fr;
+}
+
+.panel {
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  border-radius: 16px;
+  padding: 16px;
+  backdrop-filter: blur(8px);
+}
+
+.panel h2,
+.panel h3 {
+  margin: 0 0 10px;
+  font-family: "Chakra Petch", sans-serif;
+}
+
+.stack {
+  display: grid;
+  gap: 10px;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  background: rgba(2, 10, 18, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.modal-overlay.hidden {
+  display: none;
+}
+
+.modal-card {
+  width: min(460px, calc(100% - 28px));
+  border: 1px solid #3e6285;
+  border-radius: 16px;
+  padding: 18px;
+  background: linear-gradient(180deg, #10253b, #0a1d30);
+}
+
+.modal-card h2 {
+  margin: 0 0 6px;
+  font-family: "Chakra Petch", sans-serif;
+}
+
+.modal-card p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.lobby-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.open-rooms-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.open-rooms-header h3 {
+  margin: 0;
+}
+
+.meta-chip {
+  border: 1px solid #3a5f81;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: rgba(7, 23, 37, 0.72);
+}
+
+.room-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.room-item {
+  border: 1px solid #345979;
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(8, 27, 43, 0.72);
+  display: grid;
+  gap: 6px;
+}
+
+.room-item .meta {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.room-item .join-room-btn {
+  width: 100%;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+input,
+select {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #3d6387;
+  background: #0e2236;
+  color: var(--text);
+  padding: 8px 10px;
+}
+
+.rule-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  padding: 8px;
+  border: 1px solid #284767;
+  border-radius: 12px;
+  background: rgba(5, 18, 29, 0.35);
+}
+
+.rule-grid.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.rule-grid label {
+  font-size: 0.82rem;
+}
+
+.rule-grid input[type="checkbox"] {
+  width: auto;
+}
+
+.rule-option {
+  border: 1px solid #365f83;
+  border-radius: 10px;
+  padding: 7px 8px;
+  background: rgba(12, 31, 49, 0.55);
+}
+
+.rule-option-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rule-option-desc {
+  display: block;
+  font-size: 0.74rem;
+  line-height: 1.38;
+  color: var(--muted);
+}
+
+.rule-setting {
+  font-size: 0.8rem;
+}
+
+.rule-grid.compact .rule-setting.hidden {
+  display: none !important;
+}
+
+#createForm:has(#ruleTurnTimer:checked) #settingTurnSeconds,
+#createForm:has(#ruleRoundLimit:checked) #settingMaxRounds,
+#createForm:has(#ruleSnakeFrenzy:checked) #settingFrenzyInterval,
+#createForm:has(#ruleCheckpointShield:checked) #settingCheckpointInterval,
+#createForm:has(#ruleMercyLadder:checked) #settingMercyBoost,
+#createForm:has(#ruleMarathonSpeedup:checked) #settingMarathonThreshold,
+#createForm:has(#ruleMarathonSpeedup:checked) #settingMarathonMultiplier {
+  display: grid !important;
+}
+
+.rule-help-note {
+  margin: 8px 2px 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.chaos-rule-info {
+  border: 1px dashed #4c7396;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(11, 32, 50, 0.46);
+  color: var(--muted);
+}

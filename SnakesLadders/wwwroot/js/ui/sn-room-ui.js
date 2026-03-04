@@ -41,7 +41,10 @@
     el.statusSplit.classList.toggle("hidden", !inRoom || !waiting);
     el.statusSplit.classList.toggle("waiting", waiting);
     el.turnSection.classList.toggle("hidden", waiting);
-    el.waitingRoomActions.classList.toggle("hidden", !inRoom || started || !host);
+    el.waitingRoomActions.classList.toggle(
+      "hidden",
+      !inRoom || started || !host,
+    );
     el.leaveRoomBtn.classList.toggle("hidden", !inRoom);
 
     if (el.chatFabBtn) {
@@ -66,7 +69,9 @@
     const options = state.room.boardOptions;
     const lines = root.ruleSummary?.buildRoomRuleLines?.(options) ?? [];
 
-    el.roomRuleList.innerHTML = lines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+    el.roomRuleList.innerHTML = lines
+      .map((line) => `<li>${escapeHtml(line)}</li>`)
+      .join("");
   }
 
   function renderTurnBanner() {
@@ -82,14 +87,18 @@
     }
 
     const displayTurnPlayerId = root.viewState.getDisplayTurnPlayerId();
-    const current = state.room.players.find((x) => x.playerId === displayTurnPlayerId);
+    const current = state.room.players.find(
+      (x) => x.playerId === displayTurnPlayerId,
+    );
     if (!current) {
       hideTurnBanner();
       return;
     }
 
     const mine = current.playerId === state.playerId;
-    el.turnBanner.textContent = mine ? "ถึงตาคุณแล้ว" : `ตาของ ${current.displayName}`;
+    el.turnBanner.textContent = mine
+      ? "ถึงตาคุณแล้ว"
+      : `ตาของ ${current.displayName}`;
     el.turnBanner.className = `turn-banner ${mine ? "mine" : "other"}`;
   }
 
@@ -102,7 +111,7 @@
     const myTurn = Boolean(
       isStarted() &&
       !state.animating &&
-      root.viewState.getDisplayTurnPlayerId() === state.playerId
+      root.viewState.getDisplayTurnPlayerId() === state.playerId,
     );
     if (!myTurn || !state.room?.board) {
       state.rollButtonHidden = false;
@@ -180,7 +189,10 @@
       return;
     }
 
-    const unread = Math.max(0, Number.parseInt(String(state.chatUnreadCount ?? 0), 10) || 0);
+    const unread = Math.max(
+      0,
+      Number.parseInt(String(state.chatUnreadCount ?? 0), 10) || 0,
+    );
     if (unread <= 0 || state.chatPanelOpen || !isInRoom()) {
       el.chatFabBadge.textContent = "0";
       el.chatFabBadge.classList.add("hidden");
@@ -204,7 +216,11 @@
   }
 
   function updateChatSidebarLayout() {
-    if (!isInRoom() || !el.chatSection || !el.chatSection.classList.contains("chat-sidebar")) {
+    if (
+      !isInRoom() ||
+      !el.chatSection ||
+      !el.chatSection.classList.contains("chat-sidebar")
+    ) {
       resetChatSidebarLayout();
       return;
     }
@@ -221,13 +237,18 @@
     }
 
     const rect = anchor.getBoundingClientRect();
-    if (!Number.isFinite(rect.top) || !Number.isFinite(rect.height) || rect.height <= 0) {
+    if (
+      !Number.isFinite(rect.top) ||
+      !Number.isFinite(rect.height) ||
+      rect.height <= 0
+    ) {
       resetChatSidebarLayout();
       return;
     }
 
     const minTop = 76;
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    const viewportHeight =
+      window.innerHeight || document.documentElement.clientHeight || 0;
     const top = Math.max(minTop, Math.round(rect.top));
     const maxHeight = Math.max(280, viewportHeight - top - 12);
     const height = Math.max(300, Math.min(Math.round(rect.height), maxHeight));
@@ -268,9 +289,13 @@
     }, 80);
   });
 
-  window.addEventListener("scroll", () => {
-    updateChatSidebarLayout();
-  }, { passive: true });
+  window.addEventListener(
+    "scroll",
+    () => {
+      updateChatSidebarLayout();
+    },
+    { passive: true },
+  );
 
   window.setInterval(updateDeadlineAlert, 200);
 
@@ -280,6 +305,6 @@
     toggleRollButton,
     toggleChatPanel,
     updateDeadlineAlert,
-    renderChatBadge
+    renderChatBadge,
   };
 })();

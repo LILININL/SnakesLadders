@@ -33,7 +33,7 @@
   async function fetchJson(path) {
     try {
       const response = await fetch(path, {
-        headers: { Accept: "application/json" }
+        headers: { Accept: "application/json" },
       });
 
       if (!response.ok) {
@@ -52,6 +52,6 @@
 
   root.api = {
     refreshWaitingRooms,
-    refreshLobbyOnline
+    refreshLobbyOnline,
   };
 })();

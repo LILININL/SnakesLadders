@@ -21,12 +21,16 @@
       }
 
       if (state.roomCode && state.sessionId) {
-        await invokeHub("ResumeRoom", {
-          roomCode: state.roomCode,
-          sessionId: state.sessionId,
-          playerName: state.profileName,
-          avatarId: state.profileAvatarId
-        }, true);
+        await invokeHub(
+          "ResumeRoom",
+          {
+            roomCode: state.roomCode,
+            sessionId: state.sessionId,
+            playerName: state.profileName,
+            avatarId: state.profileAvatarId,
+          },
+          true,
+        );
       }
     });
 
@@ -38,9 +42,15 @@
       root.feedback.logEvent(`เซิร์ฟเวอร์: ${message}`, true);
     });
 
-    state.connection.on("RoomCreated", (payload) => bindRoomPayload(payload, "สร้างห้องสำเร็จ"));
-    state.connection.on("RoomJoined", (payload) => bindRoomPayload(payload, "เข้าห้องสำเร็จ"));
-    state.connection.on("RoomResumed", (payload) => bindRoomPayload(payload, "กลับเข้าห้องเดิมแล้ว"));
+    state.connection.on("RoomCreated", (payload) =>
+      bindRoomPayload(payload, "สร้างห้องสำเร็จ"),
+    );
+    state.connection.on("RoomJoined", (payload) =>
+      bindRoomPayload(payload, "เข้าห้องสำเร็จ"),
+    );
+    state.connection.on("RoomResumed", (payload) =>
+      bindRoomPayload(payload, "กลับเข้าห้องเดิมแล้ว"),
+    );
 
     state.connection.on("RoomUpdated", (room) => {
       if (root.turnAnimation?.isBusy?.()) {
@@ -65,7 +75,11 @@
       root.boardFocus?.onRoomBound?.(true);
       root.feedback.logEvent("เกมเริ่มแล้ว ลุยได้เลย");
       root.feedback.renderAll();
-      root.boardFx?.showTurnStart?.(room, room.currentTurnPlayerId, "ผู้เริ่มเกม");
+      root.boardFx?.showTurnStart?.(
+        room,
+        room.currentTurnPlayerId,
+        "ผู้เริ่มเกม",
+      );
     });
 
     state.connection.on("TurnChanged", (playerId) => {
@@ -85,7 +99,11 @@
 
     state.connection.on("GameFinished", (payload) => {
       const winnerId = payload.turn.winnerPlayerId ?? "";
-      const winnerName = payload.room?.players?.find((x) => x.playerId === winnerId)?.displayName ?? winnerId ?? "-";
+      const winnerName =
+        payload.room?.players?.find((x) => x.playerId === winnerId)
+          ?.displayName ??
+        winnerId ??
+        "-";
       root.feedback.logEvent(`จบเกมแล้ว ผู้ชนะคือ ${winnerName || "-"}`);
       if (state.animating) {
         state.deferredRoom = payload.room;
@@ -115,7 +133,10 @@
       return true;
     } catch (error) {
       if (!suppressError) {
-        root.feedback.logEvent(`คำสั่งไม่สำเร็จ: ${error.message ?? String(error)}`, true);
+        root.feedback.logEvent(
+          `คำสั่งไม่สำเร็จ: ${error.message ?? String(error)}`,
+          true,
+        );
       }
       return false;
     }
@@ -123,7 +144,11 @@
 
   async function publishLobbyName() {
     const name = normalizeName(state.profileName);
-    if (!name || !state.connection || state.connection.state !== signalR.HubConnectionState.Connected) {
+    if (
+      !name ||
+      !state.connection ||
+      state.connection.state !== signalR.HubConnectionState.Connected
+    ) {
       return;
     }
 
@@ -161,7 +186,11 @@
     root.roomUi?.renderChatBadge?.();
 
     el.joinRoomCode.value = payload.roomCode;
-    root.storage.saveRoomSession(payload.roomCode, payload.sessionId, payload.playerId);
+    root.storage.saveRoomSession(
+      payload.roomCode,
+      payload.sessionId,
+      payload.playerId,
+    );
     root.feedback.logEvent(`${label}: ${payload.roomCode}`);
 
     root.feedback.renderAll();
@@ -185,7 +214,8 @@
       return false;
     }
 
-    const playerId = state.pendingTurnChangedPlayerId || room.currentTurnPlayerId || "";
+    const playerId =
+      state.pendingTurnChangedPlayerId || room.currentTurnPlayerId || "";
     state.pendingTurnChangedPlayerId = "";
     state.lastAnnouncedTurnCounter = turnCounter;
 
@@ -195,7 +225,9 @@
 
     const player = room.players?.find((x) => x.playerId === playerId);
     root.boardFocus?.refreshPendingBeaconTarget?.();
-    root.feedback.logEvent(`ตอนนี้เป็นตาของ ${player ? player.displayName : playerId}`);
+    root.feedback.logEvent(
+      `ตอนนี้เป็นตาของ ${player ? player.displayName : playerId}`,
+    );
     root.boardFx?.showTurnStart?.(room, playerId, "ถึงเทิร์นของ");
     return true;
   }
@@ -221,14 +253,18 @@
     const comebackLine = formatComebackLine(turn);
     const frenzyLine = formatFrenzyLine(turn);
     const itemLine = formatItemLine(turn);
-    const extraLines = [comebackLine, frenzyLine, itemLine].filter(Boolean).join(" | ");
+    const extraLines = [comebackLine, frenzyLine, itemLine]
+      .filter(Boolean)
+      .join(" | ");
     if (!turn?.autoRollReason) {
       return extraLines ? `${baseLine} | ${extraLines}` : baseLine;
     }
 
-    const playerName = room?.players?.find((x) => x.playerId === turn.playerId)?.displayName
-      ?? state.room?.players?.find((x) => x.playerId === turn.playerId)?.displayName
-      ?? turn.playerId;
+    const playerName =
+      room?.players?.find((x) => x.playerId === turn.playerId)?.displayName ??
+      state.room?.players?.find((x) => x.playerId === turn.playerId)
+        ?.displayName ??
+      turn.playerId;
 
     if (turn.autoRollReason === "Disconnected") {
       const line = `${playerName} ออฟไลน์ ระบบทอยให้อัตโนมัติ (${turn.diceValue})`;
@@ -248,8 +284,11 @@
       return "";
     }
 
-    const baseDice = Number.parseInt(String(turn.baseDiceValue ?? turn.diceValue), 10) || turn.diceValue;
-    const boostAmount = Number.parseInt(String(turn.comebackBoostAmount ?? 0), 10) || 0;
+    const baseDice =
+      Number.parseInt(String(turn.baseDiceValue ?? turn.diceValue), 10) ||
+      turn.diceValue;
+    const boostAmount =
+      Number.parseInt(String(turn.comebackBoostAmount ?? 0), 10) || 0;
     if (boostAmount > 0) {
       return `เร่งแซง +${boostAmount} (${baseDice}->${turn.diceValue})`;
     }
@@ -304,6 +343,6 @@
     invokeHub,
     publishLobbyName,
     flushPendingTurnTrigger,
-    seedTurnTriggerCounter
+    seedTurnTriggerCounter,
   };
 })();

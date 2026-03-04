@@ -3,11 +3,21 @@
   const { state, el } = root;
 
   async function run(segment) {
-    if (!canRenderSegment(segment) || !root.boardOverlay?.getJumpPathData || !root.boardOverlay?.pointAtPath || !el.board) {
+    if (
+      !canRenderSegment(segment) ||
+      !root.boardOverlay?.getJumpPathData ||
+      !root.boardOverlay?.pointAtPath ||
+      !el.board
+    ) {
       return false;
     }
 
-    const pathData = root.boardOverlay.getJumpPathData(segment.from, segment.to, segment.jumpType, segment.seed);
+    const pathData = root.boardOverlay.getJumpPathData(
+      segment.from,
+      segment.to,
+      segment.jumpType,
+      segment.seed,
+    );
     if (!pathData) {
       return false;
     }
@@ -35,13 +45,20 @@
   }
 
   function canRenderSegment(segment) {
-    const boardSize = state.room?.board?.size ?? state.deferredRoom?.board?.size ?? 0;
+    const boardSize =
+      state.room?.board?.size ?? state.deferredRoom?.board?.size ?? 0;
     if (!boardSize || !segment) {
       return false;
     }
 
-    const range = root.boardPage.getVisibleRange(boardSize, state.visiblePageStart);
-    return root.boardPage.isCellVisible(segment.from, range) && root.boardPage.isCellVisible(segment.to, range);
+    const range = root.boardPage.getVisibleRange(
+      boardSize,
+      state.visiblePageStart,
+    );
+    return (
+      root.boardPage.isCellVisible(segment.from, range) &&
+      root.boardPage.isCellVisible(segment.to, range)
+    );
   }
 
   function reset() {
@@ -54,7 +71,7 @@
       const start = performance.now();
       const frame = (now) => {
         const raw = clamp((now - start) / duration, 0, 1);
-        const t = 0.5 - (Math.cos(Math.PI * raw) / 2);
+        const t = 0.5 - Math.cos(Math.PI * raw) / 2;
         const point = root.boardOverlay.pointAtPath(pathData, t);
         const angle = root.boardOverlay.angleAtPath(pathData, t);
         if (point) {
@@ -112,7 +129,8 @@
     const players = state.room?.players ?? state.deferredRoom?.players ?? [];
     const player = players.find((x) => x.playerId === playerId);
     const markerMap = root.utils?.buildPlayerMarkerMap?.(players) ?? new Map();
-    const safeAvatarId = root.utils?.normalizeAvatarId?.(player?.avatarId, 1) ?? 1;
+    const safeAvatarId =
+      root.utils?.normalizeAvatarId?.(player?.avatarId, 1) ?? 1;
     const safeAvatarSrc = root.utils?.avatarSrc?.(safeAvatarId) ?? "";
     if (safeAvatarSrc) {
       token.classList.add("avatar");
@@ -122,7 +140,12 @@
       avatar.alt = `Avatar ${safeAvatarId}`;
       token.replaceChildren(avatar);
     } else {
-      const marker = root.utils?.resolvePlayerMarker?.(playerId, player?.displayName, markerMap) ?? "ผ";
+      const marker =
+        root.utils?.resolvePlayerMarker?.(
+          playerId,
+          player?.displayName,
+          markerMap,
+        ) ?? "ผ";
       token.classList.remove("avatar");
       token.replaceChildren();
       token.textContent = marker;
@@ -135,8 +158,10 @@
     const stageEl = el.boardStage ?? el.board.parentElement ?? el.board;
     const stageRect = stageEl.getBoundingClientRect();
 
-    const left = point.x + (el.board.getBoundingClientRect().left - stageRect.left);
-    const top = point.y + (el.board.getBoundingClientRect().top - stageRect.top);
+    const left =
+      point.x + (el.board.getBoundingClientRect().left - stageRect.left);
+    const top =
+      point.y + (el.board.getBoundingClientRect().top - stageRect.top);
 
     if (![left, top].every(Number.isFinite)) {
       return;
@@ -176,6 +201,6 @@
 
   root.pieceTransit = {
     run,
-    reset
+    reset,
   };
 })();

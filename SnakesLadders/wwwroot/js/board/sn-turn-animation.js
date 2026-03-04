@@ -15,7 +15,10 @@
 
   function queue(payload) {
     const turnKey = buildTurnKey(payload);
-    if (turnKey && (queuedTurnKeys.has(turnKey) || turnKey === lastFinishedTurnKey)) {
+    if (
+      turnKey &&
+      (queuedTurnKeys.has(turnKey) || turnKey === lastFinishedTurnKey)
+    ) {
       return chain;
     }
 
@@ -59,9 +62,19 @@
       return;
     }
 
-    const followPlayer = shouldFollowPlayer(turn.playerId, turn.startPosition, room);
+    const followPlayer = shouldFollowPlayer(
+      turn.playerId,
+      turn.startPosition,
+      room,
+    );
 
-    beginAnimation(turn.playerId, turn.startPosition, room, turn.playerId, turn);
+    beginAnimation(
+      turn.playerId,
+      turn.startPosition,
+      room,
+      turn.playerId,
+      turn,
+    );
     try {
       await root.boardFx?.showDice?.(turn.playerId, turn.diceValue);
 
@@ -69,17 +82,32 @@
         await ensureVisiblePage(turn.startPosition, false, room.board.size);
       }
 
-      const pendingItemEffects = normalizeItemEffects(turn.itemEffects, room.board.size);
+      const pendingItemEffects = normalizeItemEffects(
+        turn.itemEffects,
+        room.board.size,
+      );
       const segments = buildSegments(turn, room, pendingItemEffects);
       for (const segment of segments) {
-        await runSegment(segment, room.board.size, followPlayer, pendingItemEffects);
+        await runSegment(
+          segment,
+          room.board.size,
+          followPlayer,
+          pendingItemEffects,
+        );
       }
 
-      await consumeLeftoverItemEffects(room.board.size, followPlayer, pendingItemEffects);
+      await consumeLeftoverItemEffects(
+        room.board.size,
+        followPlayer,
+        pendingItemEffects,
+      );
       state.animPlayerPosition = clamp(
-        Number.parseInt(String(turn.endPosition ?? state.animPlayerPosition), 10) || state.animPlayerPosition,
+        Number.parseInt(
+          String(turn.endPosition ?? state.animPlayerPosition),
+          10,
+        ) || state.animPlayerPosition,
         1,
-        room.board.size
+        room.board.size,
       );
       root.feedback.renderAll();
 
@@ -99,7 +127,13 @@
     return true;
   }
 
-  function beginAnimation(playerId, startPosition, room, turnPlayerId, turn = null) {
+  function beginAnimation(
+    playerId,
+    startPosition,
+    room,
+    turnPlayerId,
+    turn = null,
+  ) {
     state.animating = true;
     state.animPlayerId = playerId;
     state.animPlayerPosition = startPosition;
@@ -124,15 +158,22 @@
     root.feedback.renderAll();
   }
 
-  async function runSegment(segment, boardSize, followPlayer, pendingItemEffects) {
+  async function runSegment(
+    segment,
+    boardSize,
+    followPlayer,
+    pendingItemEffects,
+  ) {
     const animatedFrom = clamp(
-      Number.parseInt(String(state.animPlayerPosition ?? segment.from), 10) || segment.from,
+      Number.parseInt(String(state.animPlayerPosition ?? segment.from), 10) ||
+        segment.from,
       1,
-      boardSize
+      boardSize,
     );
-    const effectiveSegment = animatedFrom === segment.from
-      ? segment
-      : { ...segment, from: animatedFrom };
+    const effectiveSegment =
+      animatedFrom === segment.from
+        ? segment
+        : { ...segment, from: animatedFrom };
 
     if (animatedFrom !== segment.from) {
       if (segment.to === animatedFrom) {
@@ -145,7 +186,11 @@
 
       const plannedDirection = Math.sign(segment.to - segment.from);
       const liveDirection = Math.sign(segment.to - animatedFrom);
-      if (plannedDirection !== 0 && liveDirection !== 0 && plannedDirection !== liveDirection) {
+      if (
+        plannedDirection !== 0 &&
+        liveDirection !== 0 &&
+        plannedDirection !== liveDirection
+      ) {
         return;
       }
     }
@@ -154,21 +199,38 @@
       state.animPlayerPosition = effectiveSegment.to;
       root.feedback.renderAll();
       await wait(90);
-      await consumeItemEffectsAtCell(effectiveSegment.to, boardSize, followPlayer, pendingItemEffects);
+      await consumeItemEffectsAtCell(
+        effectiveSegment.to,
+        boardSize,
+        followPlayer,
+        pendingItemEffects,
+      );
       return;
     }
 
     if (effectiveSegment.mode === "path") {
-      const crossPage = root.boardPage.getPageStartForCell(effectiveSegment.from) !== root.boardPage.getPageStartForCell(effectiveSegment.to);
+      const crossPage =
+        root.boardPage.getPageStartForCell(effectiveSegment.from) !==
+        root.boardPage.getPageStartForCell(effectiveSegment.to);
       if (crossPage) {
-        await runCrossPageJump(effectiveSegment, boardSize, followPlayer, pendingItemEffects);
+        await runCrossPageJump(
+          effectiveSegment,
+          boardSize,
+          followPlayer,
+          pendingItemEffects,
+        );
         return;
       }
 
       await ensureVisiblePage(effectiveSegment.from, false, boardSize);
       const completed = await root.pieceTransit?.run?.(effectiveSegment);
       if (completed) {
-        const movedTo = await consumeItemEffectsAtCell(effectiveSegment.to, boardSize, followPlayer, pendingItemEffects);
+        const movedTo = await consumeItemEffectsAtCell(
+          effectiveSegment.to,
+          boardSize,
+          followPlayer,
+          pendingItemEffects,
+        );
         if (movedTo !== effectiveSegment.to) {
           state.animPlayerPosition = movedTo;
           root.feedback.renderAll();
@@ -178,20 +240,39 @@
       }
     }
 
-    const finalPos = await runStepSegment(effectiveSegment.from, effectiveSegment.to, boardSize, followPlayer, pendingItemEffects);
+    const finalPos = await runStepSegment(
+      effectiveSegment.from,
+      effectiveSegment.to,
+      boardSize,
+      followPlayer,
+      pendingItemEffects,
+    );
     if (Number.isFinite(finalPos)) {
       state.animPlayerPosition = clamp(finalPos, 1, boardSize);
       root.feedback.renderAll();
     }
   }
 
-  async function runCrossPageJump(segment, boardSize, followPlayer, pendingItemEffects) {
+  async function runCrossPageJump(
+    segment,
+    boardSize,
+    followPlayer,
+    pendingItemEffects,
+  ) {
     const icon = segment.jumpType === "snake" ? "🐍" : "🪜";
-    await root.boardFx?.showJumpHint?.(`${icon} ไปช่อง ${segment.to}`, JUMP_HINT_MS);
+    await root.boardFx?.showJumpHint?.(
+      `${icon} ไปช่อง ${segment.to}`,
+      JUMP_HINT_MS,
+    );
     await ensureVisiblePage(segment.to, true, boardSize);
     state.animPlayerPosition = segment.to;
     root.feedback.renderAll();
-    const movedTo = await consumeItemEffectsAtCell(segment.to, boardSize, followPlayer, pendingItemEffects);
+    const movedTo = await consumeItemEffectsAtCell(
+      segment.to,
+      boardSize,
+      followPlayer,
+      pendingItemEffects,
+    );
     if (movedTo !== segment.to) {
       state.animPlayerPosition = movedTo;
       root.feedback.renderAll();
@@ -199,9 +280,20 @@
     await wait(SEGMENT_END_WAIT_MS);
   }
 
-  async function runStepSegment(from, to, boardSize, followPlayer, pendingItemEffects) {
+  async function runStepSegment(
+    from,
+    to,
+    boardSize,
+    followPlayer,
+    pendingItemEffects,
+  ) {
     if (from === to) {
-      await consumeItemEffectsAtCell(to, boardSize, followPlayer, pendingItemEffects);
+      await consumeItemEffectsAtCell(
+        to,
+        boardSize,
+        followPlayer,
+        pendingItemEffects,
+      );
       await wait(STAY_WAIT_MS);
       return to;
     }
@@ -216,7 +308,7 @@
         await root.boardPage.setVisiblePageStart(nextPageStart, {
           animate: true,
           durationMs: PAGE_TRANSITION_MS,
-          boardSize
+          boardSize,
         });
         await wait(CROSS_PAGE_PAUSE_MS);
       }
@@ -226,7 +318,12 @@
       root.feedback.renderAll();
       await wait(delay);
 
-      const movedByEffect = await consumeItemEffectsAtCell(current, boardSize, followPlayer, pendingItemEffects);
+      const movedByEffect = await consumeItemEffectsAtCell(
+        current,
+        boardSize,
+        followPlayer,
+        pendingItemEffects,
+      );
       if (movedByEffect !== current) {
         current = movedByEffect;
         state.animPlayerPosition = current;
@@ -246,16 +343,29 @@
     }
 
     const normalized = itemEffects.map((effect) => {
-      const cell = clamp(Number.parseInt(String(effect?.cell ?? 0), 10) || 0, 1, boardSize);
-      const fromPosition = clamp(Number.parseInt(String(effect?.fromPosition ?? cell), 10) || cell, 1, boardSize);
-      const toPosition = clamp(Number.parseInt(String(effect?.toPosition ?? fromPosition), 10) || fromPosition, 1, boardSize);
+      const cell = clamp(
+        Number.parseInt(String(effect?.cell ?? 0), 10) || 0,
+        1,
+        boardSize,
+      );
+      const fromPosition = clamp(
+        Number.parseInt(String(effect?.fromPosition ?? cell), 10) || cell,
+        1,
+        boardSize,
+      );
+      const toPosition = clamp(
+        Number.parseInt(String(effect?.toPosition ?? fromPosition), 10) ||
+          fromPosition,
+        1,
+        boardSize,
+      );
       return {
         itemType: effect?.itemType,
         cell,
         fromPosition,
         toPosition,
         summary: effect?.summary ?? "",
-        isTrapTrigger: Boolean(effect?.isTrapTrigger)
+        isTrapTrigger: Boolean(effect?.isTrapTrigger),
       };
     });
 
@@ -267,7 +377,7 @@
         effect.cell,
         effect.fromPosition,
         effect.toPosition,
-        effect.isTrapTrigger ? 1 : 0
+        effect.isTrapTrigger ? 1 : 0,
       ].join("|");
       if (seen.has(key)) {
         continue;
@@ -279,13 +389,21 @@
     return deduped;
   }
 
-  async function consumeItemEffectsAtCell(cell, boardSize, followPlayer, pendingItemEffects) {
+  async function consumeItemEffectsAtCell(
+    cell,
+    boardSize,
+    followPlayer,
+    pendingItemEffects,
+  ) {
     if (!Array.isArray(pendingItemEffects) || pendingItemEffects.length === 0) {
       return cell;
     }
 
     let current = cell;
-    while (pendingItemEffects.length > 0 && pendingItemEffects[0].cell === cell) {
+    while (
+      pendingItemEffects.length > 0 &&
+      pendingItemEffects[0].cell === cell
+    ) {
       const effect = pendingItemEffects.shift();
       if (!effect) {
         continue;
@@ -299,7 +417,13 @@
       await root.boardFx?.showItemActivation?.(effect);
 
       if (effect.toPosition !== current) {
-        current = await runStepSegment(current, effect.toPosition, boardSize, followPlayer, pendingItemEffects);
+        current = await runStepSegment(
+          current,
+          effect.toPosition,
+          boardSize,
+          followPlayer,
+          pendingItemEffects,
+        );
       }
 
       await root.boardFx?.showItemResult?.(effect);
@@ -308,7 +432,11 @@
     return current;
   }
 
-  async function consumeLeftoverItemEffects(boardSize, followPlayer, pendingItemEffects) {
+  async function consumeLeftoverItemEffects(
+    boardSize,
+    followPlayer,
+    pendingItemEffects,
+  ) {
     if (!Array.isArray(pendingItemEffects) || pendingItemEffects.length === 0) {
       return;
     }
@@ -319,9 +447,12 @@
         continue;
       }
       let current = clamp(
-        Number.parseInt(String(state.animPlayerPosition ?? effect.fromPosition), 10) || effect.fromPosition,
+        Number.parseInt(
+          String(state.animPlayerPosition ?? effect.fromPosition),
+          10,
+        ) || effect.fromPosition,
         1,
-        boardSize
+        boardSize,
       );
 
       if (effect.fromPosition !== current) {
@@ -332,7 +463,13 @@
       await root.boardFx?.showItemActivation?.(effect);
 
       if (effect.fromPosition === current && effect.toPosition !== current) {
-        current = await runStepSegment(current, effect.toPosition, boardSize, followPlayer, pendingItemEffects);
+        current = await runStepSegment(
+          current,
+          effect.toPosition,
+          boardSize,
+          followPlayer,
+          pendingItemEffects,
+        );
       }
 
       await root.boardFx?.showItemResult?.(effect);
@@ -346,16 +483,31 @@
     const segments = [];
     let cursor = turn.startPosition;
 
-    const primary = resolvePrimaryLanding(turn, room.boardOptions.overflowMode, size);
+    const primary = resolvePrimaryLanding(
+      turn,
+      room.boardOptions.overflowMode,
+      size,
+    );
     if (primary !== cursor) {
-      segments.push({ mode: "step", playerId: turn.playerId, from: cursor, to: primary });
+      segments.push({
+        mode: "step",
+        playerId: turn.playerId,
+        from: cursor,
+        to: primary,
+      });
       cursor = primary;
     }
 
     if (turn.forkCell) {
-      const forkTarget = turn.forkChoice === 1 ? turn.forkCell.riskyTo : turn.forkCell.safeTo;
+      const forkTarget =
+        turn.forkChoice === 1 ? turn.forkCell.riskyTo : turn.forkCell.safeTo;
       if (forkTarget !== cursor) {
-        segments.push({ mode: "step", playerId: turn.playerId, from: cursor, to: forkTarget });
+        segments.push({
+          mode: "step",
+          playerId: turn.playerId,
+          from: cursor,
+          to: forkTarget,
+        });
         cursor = forkTarget;
       }
     }
@@ -367,7 +519,12 @@
       const jumpFrom = clamp(turn.triggeredJump.from, 1, size);
       const jumpTo = clamp(turn.triggeredJump.to, 1, size);
       if (jumpFrom !== cursor) {
-        segments.push({ mode: "step", playerId: turn.playerId, from: cursor, to: jumpFrom });
+        segments.push({
+          mode: "step",
+          playerId: turn.playerId,
+          from: cursor,
+          to: jumpFrom,
+        });
         cursor = jumpFrom;
       }
 
@@ -379,7 +536,7 @@
           jumpType,
           seed: turn.triggeredJump.from + turn.triggeredJump.to,
           from: cursor,
-          to: jumpTo
+          to: jumpTo,
         });
         cursor = jumpTo;
       }
@@ -389,7 +546,12 @@
       const frenzyFrom = clamp(turn.frenzySnake.from, 1, size);
       const frenzyTo = clamp(turn.frenzySnake.to, 1, size);
       if (frenzyFrom !== cursor) {
-        segments.push({ mode: "step", playerId: turn.playerId, from: cursor, to: frenzyFrom });
+        segments.push({
+          mode: "step",
+          playerId: turn.playerId,
+          from: cursor,
+          to: frenzyFrom,
+        });
         cursor = frenzyFrom;
       }
 
@@ -400,14 +562,19 @@
           jumpType: "snake",
           seed: turn.frenzySnake.from + turn.frenzySnake.to + 5,
           from: cursor,
-          to: frenzyTo
+          to: frenzyTo,
         });
         cursor = frenzyTo;
       }
     }
 
     if (cursor !== turn.endPosition) {
-      segments.push({ mode: "step", playerId: turn.playerId, from: cursor, to: turn.endPosition });
+      segments.push({
+        mode: "step",
+        playerId: turn.playerId,
+        from: cursor,
+        to: turn.endPosition,
+      });
     }
 
     return segments;
@@ -420,7 +587,7 @@
     }
 
     if (overflowMode === 1) {
-      return clamp(turn.startPosition - (turn.overflowAmount * 2), 1, size);
+      return clamp(turn.startPosition - turn.overflowAmount * 2, 1, size);
     }
 
     return clamp(turn.startPosition, 1, size);
@@ -434,7 +601,7 @@
     await root.boardPage.setVisiblePageStart(targetPageStart, {
       animate,
       durationMs: PAGE_TRANSITION_MS,
-      boardSize
+      boardSize,
     });
   }
 
@@ -468,8 +635,11 @@
       : "";
     const itemPart = Array.isArray(turn.itemEffects)
       ? turn.itemEffects
-        .map((effect) => `${effect?.itemType ?? ""}:${effect?.cell ?? ""}:${effect?.fromPosition ?? ""}:${effect?.toPosition ?? ""}`)
-        .join(",")
+          .map(
+            (effect) =>
+              `${effect?.itemType ?? ""}:${effect?.cell ?? ""}:${effect?.fromPosition ?? ""}:${effect?.toPosition ?? ""}`,
+          )
+          .join(",")
       : "";
 
     return [
@@ -480,7 +650,7 @@
       turn.endPosition ?? "",
       jump,
       frenzy,
-      itemPart
+      itemPart,
     ].join("|");
   }
 
@@ -501,6 +671,6 @@
   root.turnAnimation = {
     queue,
     reset,
-    isBusy
+    isBusy,
   };
 })();

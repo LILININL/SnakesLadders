@@ -6,7 +6,10 @@
   const DEFAULT_TRANSITION_MS = 550;
 
   function getPageSize() {
-    const raw = Number.parseInt(String(state.pageSize ?? DEFAULT_PAGE_SIZE), 10);
+    const raw = Number.parseInt(
+      String(state.pageSize ?? DEFAULT_PAGE_SIZE),
+      10,
+    );
     return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_PAGE_SIZE;
   }
 
@@ -18,24 +21,36 @@
 
   function getPageStartForCell(cell, pageSize = getPageSize()) {
     const safeCell = Math.max(1, Number.parseInt(String(cell ?? 1), 10) || 1);
-    return (Math.floor((safeCell - 1) / pageSize) * pageSize) + 1;
+    return Math.floor((safeCell - 1) / pageSize) * pageSize + 1;
   }
 
   function getLastPageStart(boardSize, pageSize = getPageSize()) {
-    const safeBoardSize = Math.max(1, Number.parseInt(String(boardSize ?? 1), 10) || 1);
+    const safeBoardSize = Math.max(
+      1,
+      Number.parseInt(String(boardSize ?? 1), 10) || 1,
+    );
     return getPageStartForCell(safeBoardSize, pageSize);
   }
 
-  function normalizeVisiblePageStart(boardSize, start = state.visiblePageStart) {
+  function normalizeVisiblePageStart(
+    boardSize,
+    start = state.visiblePageStart,
+  ) {
     const pageSize = getPageSize();
-    const safeBoardSize = Math.max(1, Number.parseInt(String(boardSize ?? 1), 10) || 1);
+    const safeBoardSize = Math.max(
+      1,
+      Number.parseInt(String(boardSize ?? 1), 10) || 1,
+    );
     const safeStart = Math.max(1, Number.parseInt(String(start ?? 1), 10) || 1);
     const lastStart = getLastPageStart(safeBoardSize, pageSize);
     return Math.min(getPageStartForCell(safeStart, pageSize), lastStart);
   }
 
   function getVisibleRange(boardSize, start = state.visiblePageStart) {
-    const safeBoardSize = Math.max(1, Number.parseInt(String(boardSize ?? 1), 10) || 1);
+    const safeBoardSize = Math.max(
+      1,
+      Number.parseInt(String(boardSize ?? 1), 10) || 1,
+    );
     const pageSize = getPageSize();
     const normalizedStart = normalizeVisiblePageStart(safeBoardSize, start);
     return {
@@ -43,34 +58,37 @@
       end: Math.min(safeBoardSize, normalizedStart + pageSize - 1),
       pageSize,
       totalPages: Math.max(1, Math.ceil(safeBoardSize / pageSize)),
-      pageIndex: Math.floor((normalizedStart - 1) / pageSize) + 1
+      pageIndex: Math.floor((normalizedStart - 1) / pageSize) + 1,
     };
   }
 
   function isCellVisible(cell, rangeOrBoardSize) {
-    const range = typeof rangeOrBoardSize === "object" && rangeOrBoardSize
-      ? rangeOrBoardSize
-      : getVisibleRange(rangeOrBoardSize ?? state.room?.board?.size ?? 1);
+    const range =
+      typeof rangeOrBoardSize === "object" && rangeOrBoardSize
+        ? rangeOrBoardSize
+        : getVisibleRange(rangeOrBoardSize ?? state.room?.board?.size ?? 1);
     const safeCell = Number.parseInt(String(cell ?? 0), 10) || 0;
     return safeCell >= range.start && safeCell <= range.end;
   }
 
   function toVisibleIndex(cell, rangeOrBoardSize) {
-    const range = typeof rangeOrBoardSize === "object" && rangeOrBoardSize
-      ? rangeOrBoardSize
-      : getVisibleRange(rangeOrBoardSize ?? state.room?.board?.size ?? 1);
+    const range =
+      typeof rangeOrBoardSize === "object" && rangeOrBoardSize
+        ? rangeOrBoardSize
+        : getVisibleRange(rangeOrBoardSize ?? state.room?.board?.size ?? 1);
 
     if (!isCellVisible(cell, range)) {
       return null;
     }
 
-    return (Number.parseInt(String(cell), 10) - range.start) + 1;
+    return Number.parseInt(String(cell), 10) - range.start + 1;
   }
 
   function fromVisibleIndex(index, rangeOrBoardSize) {
-    const range = typeof rangeOrBoardSize === "object" && rangeOrBoardSize
-      ? rangeOrBoardSize
-      : getVisibleRange(rangeOrBoardSize ?? state.room?.board?.size ?? 1);
+    const range =
+      typeof rangeOrBoardSize === "object" && rangeOrBoardSize
+        ? rangeOrBoardSize
+        : getVisibleRange(rangeOrBoardSize ?? state.room?.board?.size ?? 1);
 
     const safe = Number.parseInt(String(index ?? 1), 10) || 1;
     const absolute = range.start + safe - 1;
@@ -89,8 +107,17 @@
   }
 
   async function setVisiblePageStart(start, options = {}) {
-    const boardSize = Math.max(1, Number.parseInt(String(options.boardSize ?? state.room?.board?.size ?? 1), 10) || 1);
-    const current = normalizeVisiblePageStart(boardSize, state.visiblePageStart);
+    const boardSize = Math.max(
+      1,
+      Number.parseInt(
+        String(options.boardSize ?? state.room?.board?.size ?? 1),
+        10,
+      ) || 1,
+    );
+    const current = normalizeVisiblePageStart(
+      boardSize,
+      state.visiblePageStart,
+    );
     const target = normalizeVisiblePageStart(boardSize, start);
 
     state.visiblePageStart = target;
@@ -123,14 +150,20 @@
   }
 
   function jumpToCell(cell, options = {}) {
-    const boardSize = Math.max(1, Number.parseInt(String(options.boardSize ?? state.room?.board?.size ?? 1), 10) || 1);
+    const boardSize = Math.max(
+      1,
+      Number.parseInt(
+        String(options.boardSize ?? state.room?.board?.size ?? 1),
+        10,
+      ) || 1,
+    );
     const targetCell = clampCell(cell, boardSize);
     const targetPageStart = getPageStartForCell(targetCell);
     return setVisiblePageStart(targetPageStart, {
       animate: Boolean(options.animate),
       durationMs: options.durationMs ?? DEFAULT_TRANSITION_MS,
       boardSize,
-      renderNow: options.renderNow
+      renderNow: options.renderNow,
     });
   }
 
@@ -165,6 +198,6 @@
     getGridPositionByVisibleIndex,
     setVisiblePageStart,
     jumpToCell,
-    getPageStartForPlayer
+    getPageStartForPlayer,
   };
 })();

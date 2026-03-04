@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="th">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,293 +8,295 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=20260226r15">
+  <link rel="stylesheet" href="/styles.css?v=20260227r1">
 </head>
+
 <body>
-<div class="bg-glow"></div>
+  <div class="bg-glow"></div>
 
-<div id="nameModal" class="modal-overlay">
-  <div class="modal-card">
-    <h2>ตั้งชื่อของคุณก่อนเริ่ม</h2>
-    <p>ขอตั้งชื่อสักนิด จะได้เห็นกันชัดๆ ทั้งหน้าโถงและในห้องเกม</p>
-    <form id="nameForm" class="stack">
-      <label>
-        ชื่อที่แสดง
-        <input id="profileNameInput" type="text" maxlength="24" placeholder="เช่น คุณลิน" required>
-      </label>
-      <button type="submit" class="btn btn-primary">บันทึกชื่อ</button>
-    </form>
-  </div>
-</div>
-
-<main class="app-shell">
-  <header class="hero">
-    <p class="eyebrow">เล่นหลายคน</p>
-    <h1>บันไดงูออนไลน์</h1>
-    <p class="sub">สร้างห้อง ชวนเพื่อน แล้วลุ้นกันแบบเรียลไทม์</p>
-    <div id="connectionStatus" class="status-chip">กำลังเชื่อมต่อ...</div>
-  </header>
-
-  <section id="layoutRoot" class="layout">
-    <aside id="lobbyPanel" class="panel">
-      <h2>ล็อบบี้</h2>
-      <div class="lobby-actions">
-        <button id="showCreatePanelBtn" class="btn btn-primary">สร้างห้อง (ตั้งค่าเกม)</button>
-        <button id="hideCreatePanelBtn" class="btn hidden">ซ่อนตัวเลือก</button>
-      </div>
-
-      <div id="createPanel" class="hidden">
-        <form id="createForm" class="stack">
-          <label>
-            ชื่อผู้สร้าง
-            <input id="createName" type="text" maxlength="24" value="หัวห้อง">
-          </label>
-          <label>
-            ขนาดกระดาน (อย่างน้อย 50 ช่อง)
-            <input id="boardSize" type="number" min="50" max="5000" value="100">
-          </label>
-          <label>
-            โหมดห้อง
-            <select id="gameMode">
-              <option value="0">Classic (กติกาพื้นฐาน)</option>
-              <option value="1" selected>Custom (เลือกกฏเสริมเอง)</option>
-              <option value="2">Chaos (ไอเท็มปั่น + กฏตายตัว)</option>
-            </select>
-          </label>
-          <label>
-            กติกาเมื่อทอยเกินช่องเส้นชัย
-            <select id="overflowMode">
-              <option value="0" selected>อยู่ที่เดิม</option>
-              <option value="1">ถอยหลังตามแต้มเกิน x2</option>
-            </select>
-          </label>
-
-          <div id="customRuleOptionsBlock">
-            <div id="createRuleToggleGrid" class="rule-grid">
-              <label class="rule-option">
-                <span class="rule-option-title"><input id="ruleItemsEnabled" type="checkbox"> เปิดระบบไอเท็ม</span>
-                <small class="rule-option-desc">สุ่มไอเท็มบนกระดาน เหยียบแล้วใช้ทันที (สำหรับโหมด Custom)</small>
-              </label>
-              <label class="rule-option">
-                <span class="rule-option-title"><input id="ruleCheckpointShield" type="checkbox"> เกราะเช็กพอยต์</span>
-                <small class="rule-option-desc">ผ่านทุก ๆ N ช่อง รับโล่ 1 ชั้นไว้กันงูได้ 1 ครั้ง</small>
-              </label>
-              <label class="rule-option">
-                <span class="rule-option-title"><input id="ruleComebackBoost" type="checkbox"> เร่งแซงคนตาม</span>
-                <small class="rule-option-desc">ผู้เล่นที่รั้งท้ายจริง ๆ จะได้โบนัสแต้มทอย +1 (ไม่เกิน 6)</small>
-              </label>
-              <label class="rule-option">
-                <span class="rule-option-title"><input id="ruleSnakeFrenzy" type="checkbox"> งูคลุ้มคลั่ง</span>
-                <small class="rule-option-desc">ทุก ๆ N เทิร์น จะมีงูชั่วคราวโผล่มาเพิ่มความปั่นป่วน</small>
-              </label>
-              <label class="rule-option">
-                <span class="rule-option-title"><input id="ruleMercyLadder" type="checkbox"> บันไดเมตตา</span>
-                <small class="rule-option-desc">โดนงูกัดติดกัน 2 ครั้ง เทิร์นถัดไปจะได้แรงส่งพิเศษ</small>
-              </label>
-              <label class="rule-option">
-                <span class="rule-option-title"><input id="ruleTurnTimer" type="checkbox"> จับเวลาเทิร์น</span>
-                <small class="rule-option-desc">ถ้าหมดเวลาแล้วยังไม่ทอย ระบบจะทอยให้อัตโนมัติ</small>
-              </label>
-              <label class="rule-option">
-                <span class="rule-option-title"><input id="ruleRoundLimit" type="checkbox"> จำกัดรอบ</span>
-                <small class="rule-option-desc">ครบจำนวนรอบที่ตั้งไว้แล้ว ตัดสินจากคนที่ขึ้นไปไกลสุด</small>
-              </label>
-              <label class="rule-option">
-                <span class="rule-option-title"><input id="ruleMarathonSpeedup" type="checkbox"> เร่งเกมช่วงท้าย</span>
-                <small class="rule-option-desc">กระดานยาวจะเพิ่มจำนวนบันไดตอนสร้างด่านให้เกมไหลไวขึ้น</small>
-              </label>
-            </div>
-
-            <div id="createRuleSettingGrid" class="rule-grid compact">
-              <label id="settingTurnSeconds" class="rule-setting hidden">เวลาเทิร์น (วินาที) <input id="turnSeconds" type="number" min="3" max="120" value="15"></label>
-              <label id="settingMaxRounds" class="rule-setting hidden">รอบสูงสุด <input id="maxRounds" type="number" min="10" max="500" value="80"></label>
-              <label id="settingFrenzyInterval" class="rule-setting hidden">งูคลุ้มคลั่งทุก ๆ N เทิร์น <input id="frenzyInterval" type="number" min="2" max="30" value="5"></label>
-              <label id="settingCheckpointInterval" class="rule-setting hidden">เช็กพอยต์ทุก ๆ N ช่อง <input id="checkpointInterval" type="number" min="10" max="200" value="50"></label>
-              <label id="settingMercyBoost" class="rule-setting hidden">ระยะแซงจากบันไดเมตตา <input id="mercyBoost" type="number" min="3" max="100" value="12"></label>
-              <label id="settingMarathonThreshold" class="rule-setting hidden">เริ่มเร่งเกมเมื่อกระดานอย่างน้อย (ช่อง) <input id="marathonThreshold" type="number" min="50" max="5000" value="300"></label>
-              <label id="settingMarathonMultiplier" class="rule-setting hidden">ตัวคูณจำนวนบันไดช่วงเร่งเกม <input id="marathonMultiplier" type="number" min="1" max="3" step="0.05" value="1.2"></label>
-            </div>
-            <p id="createRuleHelpNote" class="rule-help-note">เลือกเฉพาะกฏที่อยากใช้ได้เลย ค่าตัวเลขจะมีผลเฉพาะกฏที่เปิดไว้เท่านั้น</p>
-          </div>
-
-          <div id="chaosRuleInfoBlock" class="chaos-rule-info hidden">
-            <strong>Chaos Profile</strong>
-            <p>โหมดนี้ล็อกค่ากติกาหลักอัตโนมัติ (เช่น จับเวลา/จำกัดรอบ/งูคลุ้มคลั่ง) และเปิดระบบไอเท็มเสมอ</p>
-          </div>
-
-          <button type="submit" class="btn btn-primary">เปิดห้อง</button>
-        </form>
-      </div>
-
-      <hr>
-
-      <form id="joinForm" class="stack">
+  <div id="nameModal" class="modal-overlay">
+    <div class="modal-card">
+      <h2>ตั้งชื่อของคุณก่อนเริ่ม</h2>
+      <p>ขอตั้งชื่อสักนิด จะได้เห็นกันชัดๆ ทั้งหน้าโถงและในห้องเกม</p>
+      <form id="nameForm" class="stack">
         <label>
-          ชื่อผู้เล่น
-          <input id="joinName" type="text" maxlength="24" value="ผู้เล่น">
+          ชื่อที่แสดง
+          <input id="profileNameInput" type="text" maxlength="24" placeholder="เช่น คุณลิน" required>
         </label>
-        <label>
-          รหัสห้อง
-          <input id="joinRoomCode" type="text" maxlength="8" placeholder="ABC123">
-        </label>
-        <button type="submit" class="btn">เข้าห้อง</button>
+        <button type="submit" class="btn btn-primary">บันทึกชื่อ</button>
       </form>
+    </div>
+  </div>
 
-      <hr>
+  <main class="app-shell">
+    <header class="hero">
+      <p class="eyebrow">เล่นหลายคน</p>
+      <h1>บันไดงูออนไลน์</h1>
+      <p class="sub">สร้างห้อง ชวนเพื่อน แล้วลุ้นกันแบบเรียลไทม์</p>
+      <div id="connectionStatus" class="status-chip">กำลังเชื่อมต่อ...</div>
+    </header>
 
-      <div class="stack">
-        <div class="open-rooms-header">
-          <h3>คนที่ออนไลน์ตอนนี้</h3>
-          <div id="onlineUsersCount" class="meta-chip">ออนไลน์ 0 คน</div>
-        </div>
-        <ul id="onlineUsersList" class="room-list"></ul>
-      </div>
-    </aside>
-
-    <section class="panel panel-main">
-      <div id="mainLobbyRooms" class="main-lobby-rooms">
-        <div class="open-rooms-header">
-          <h2>ห้องที่เปิดรอ</h2>
-          <button id="refreshRoomsMainBtn" class="btn">รีเฟรช</button>
-        </div>
-        <p class="sub">เลือกห้องที่ต้องการ แล้วกดเข้าร่วมได้ทันที</p>
-        <ul id="mainWaitingRoomList" class="room-list room-list-main"></ul>
-      </div>
-
-      <div id="roomGameShell">
-        <div class="toolbar">
-          <div>
-            <h2 id="roomTitle">ห้อง: -</h2>
-            <p id="roomMeta">ยังไม่ได้เข้าห้อง</p>
-          </div>
-          <div class="toolbar-actions">
-            <div id="waitingRoomActions" class="toolbar-actions">
-              <button id="refreshRoomBtn" class="btn">รีเฟรช</button>
-              <button id="startGameBtn" class="btn btn-primary">เริ่มเกม</button>
-            </div>
-            <button id="leaveRoomBtn" class="btn btn-danger">ออกห้อง</button>
-          </div>
+    <section id="layoutRoot" class="layout">
+      <aside id="lobbyPanel" class="panel">
+        <h2>ล็อบบี้</h2>
+        <div class="lobby-actions">
+          <button id="showCreatePanelBtn" class="btn btn-primary">สร้างห้อง (ตั้งค่าเกม)</button>
+          <button id="hideCreatePanelBtn" class="btn hidden">ซ่อนตัวเลือก</button>
         </div>
 
-        <div id="roomRulesCard" class="summary-card rules-card hidden">
-          <details id="roomRulesDetails" class="rules-details">
-            <summary>กติกาห้อง</summary>
-            <ul id="roomRuleList" class="rule-list"></ul>
-          </details>
-          <div id="readyPanel" class="ready-panel hidden">
-            <div class="ready-head">
-              <strong>เช็กความพร้อม</strong>
-              <span id="readySummary" class="meta-chip">พร้อม 0/0 คน</span>
-            </div>
-            <ul id="readyList" class="ready-list"></ul>
-            <div id="readyAvatarSection" class="ready-avatar-section hidden">
-              <div class="ready-avatar-head">
-                <strong>Avatar ของคุณ</strong>
-                <span id="readyAvatarHint" class="meta-chip">เลือกได้จนกว่าจะกดพร้อม</span>
+        <div id="createPanel" class="hidden">
+          <form id="createForm" class="stack">
+            <label>
+              ชื่อผู้สร้าง
+              <input id="createName" type="text" maxlength="24" value="หัวห้อง">
+            </label>
+            <label>
+              ขนาดกระดาน (อย่างน้อย 50 ช่อง)
+              <input id="boardSize" type="number" min="50" max="5000" value="100">
+            </label>
+            <label>
+              โหมดห้อง
+              <select id="gameMode">
+                <option value="0">Classic (กติกาพื้นฐาน)</option>
+                <option value="1" selected>Custom (เลือกกฏเสริมเอง)</option>
+                <option value="2">Chaos (ไอเท็มปั่น + กฏตายตัว)</option>
+              </select>
+            </label>
+            <label>
+              กติกาเมื่อทอยเกินช่องเส้นชัย
+              <select id="overflowMode">
+                <option value="0" selected>อยู่ที่เดิม</option>
+                <option value="1">ถอยหลังตามแต้มเกิน x2</option>
+              </select>
+            </label>
+
+            <div id="customRuleOptionsBlock">
+              <div id="createRuleToggleGrid" class="rule-grid">
+                <label class="rule-option">
+                  <span class="rule-option-title"><input id="ruleItemsEnabled" type="checkbox"> เปิดระบบไอเท็ม</span>
+                  <small class="rule-option-desc">สุ่มไอเท็มบนกระดาน เหยียบแล้วใช้ทันที (สำหรับโหมด Custom)</small>
+                </label>
+                <label class="rule-option">
+                  <span class="rule-option-title"><input id="ruleCheckpointShield" type="checkbox"> เกราะเช็กพอยต์</span>
+                  <small class="rule-option-desc">ผ่านทุก ๆ N ช่อง รับโล่ 1 ชั้นไว้กันงูได้ 1 ครั้ง</small>
+                </label>
+                <label class="rule-option">
+                  <span class="rule-option-title"><input id="ruleComebackBoost" type="checkbox"> เร่งแซงคนตาม</span>
+                  <small class="rule-option-desc">ผู้เล่นที่รั้งท้ายจริง ๆ จะได้โบนัสแต้มทอย +1 (ไม่เกิน 6)</small>
+                </label>
+                <label class="rule-option">
+                  <span class="rule-option-title"><input id="ruleSnakeFrenzy" type="checkbox"> งูคลุ้มคลั่ง</span>
+                  <small class="rule-option-desc">ทุก ๆ N เทิร์น จะมีงูชั่วคราวโผล่มาเพิ่มความปั่นป่วน</small>
+                </label>
+                <label class="rule-option">
+                  <span class="rule-option-title"><input id="ruleMercyLadder" type="checkbox"> บันไดเมตตา</span>
+                  <small class="rule-option-desc">โดนงูกัดติดกัน 2 ครั้ง เทิร์นถัดไปจะได้แรงส่งพิเศษ</small>
+                </label>
+                <label class="rule-option">
+                  <span class="rule-option-title"><input id="ruleTurnTimer" type="checkbox"> จับเวลาเทิร์น</span>
+                  <small class="rule-option-desc">ถ้าหมดเวลาแล้วยังไม่ทอย ระบบจะทอยให้อัตโนมัติ</small>
+                </label>
+                <label class="rule-option">
+                  <span class="rule-option-title"><input id="ruleRoundLimit" type="checkbox"> จำกัดรอบ</span>
+                  <small class="rule-option-desc">ครบจำนวนรอบที่ตั้งไว้แล้ว ตัดสินจากคนที่ขึ้นไปไกลสุด</small>
+                </label>
+                <label class="rule-option">
+                  <span class="rule-option-title"><input id="ruleMarathonSpeedup" type="checkbox"> เร่งเกมช่วงท้าย</span>
+                  <small class="rule-option-desc">กระดานยาวจะเพิ่มจำนวนบันไดตอนสร้างด่านให้เกมไหลไวขึ้น</small>
+                </label>
               </div>
-              <div id="readyAvatarPicker" class="avatar-picker"></div>
+
+              <div id="createRuleSettingGrid" class="rule-grid compact">
+                <label id="settingTurnSeconds" class="rule-setting hidden">เวลาเทิร์น (วินาที) <input id="turnSeconds" type="number" min="3" max="120" value="15"></label>
+                <label id="settingMaxRounds" class="rule-setting hidden">รอบสูงสุด <input id="maxRounds" type="number" min="10" max="500" value="80"></label>
+                <label id="settingFrenzyInterval" class="rule-setting hidden">งูคลุ้มคลั่งทุก ๆ N เทิร์น <input id="frenzyInterval" type="number" min="2" max="30" value="5"></label>
+                <label id="settingCheckpointInterval" class="rule-setting hidden">เช็กพอยต์ทุก ๆ N ช่อง <input id="checkpointInterval" type="number" min="10" max="200" value="50"></label>
+                <label id="settingMercyBoost" class="rule-setting hidden">ระยะแซงจากบันไดเมตตา <input id="mercyBoost" type="number" min="3" max="100" value="12"></label>
+                <label id="settingMarathonThreshold" class="rule-setting hidden">เริ่มเร่งเกมเมื่อกระดานอย่างน้อย (ช่อง) <input id="marathonThreshold" type="number" min="50" max="5000" value="300"></label>
+                <label id="settingMarathonMultiplier" class="rule-setting hidden">ตัวคูณจำนวนบันไดช่วงเร่งเกม <input id="marathonMultiplier" type="number" min="1" max="3" step="0.05" value="1.2"></label>
+              </div>
+              <p id="createRuleHelpNote" class="rule-help-note">เลือกเฉพาะกฏที่อยากใช้ได้เลย ค่าตัวเลขจะมีผลเฉพาะกฏที่เปิดไว้เท่านั้น</p>
             </div>
-            <button id="toggleReadyBtn" class="btn hidden" type="button">ฉันพร้อมแล้ว</button>
-          </div>
-        </div>
 
-        <div id="statusSplit" class="split">
-          <div id="playersSection">
-            <h3>ผู้เล่น</h3>
-            <ul id="playerList" class="player-list"></ul>
-          </div>
-          <div id="turnSection">
-            <h3>ตาเมื่อครู่</h3>
-            <div id="turnSummary" class="summary-card">ยังไม่มีการทอย</div>
-          </div>
-        </div>
+            <div id="chaosRuleInfoBlock" class="chaos-rule-info hidden">
+              <strong>Chaos Profile</strong>
+              <p>โหมดนี้ล็อกค่ากติกาหลักอัตโนมัติ (เช่น จับเวลา/จำกัดรอบ/งูคลุ้มคลั่ง) และเปิดระบบไอเท็มเสมอ</p>
+            </div>
 
-        <div id="boardWrap" class="board-wrap">
-          <h3>กระดาน</h3>
-          <div class="board-head">
-            <div id="boardLegend" class="legend"></div>
-          </div>
-          <div id="turnBanner" class="turn-banner hidden"></div>
-          <div id="boardStage" class="board-stage">
-            <div id="board" class="board"></div>
-            <div id="boardTokenLayer" class="board-token-layer"></div>
-            <div id="boardBeaconList" class="board-beacon-list hidden"></div>
-            <div id="jumpHintBadge" class="jump-hint-badge hidden"></div>
-            <div id="boardItemTooltip" class="board-item-tooltip hidden"></div>
-            <div id="turnDeadlineAlert" class="turn-deadline-alert hidden"></div>
-            <div id="diceResultFx" class="dice-result-fx hidden"></div>
-            <button id="rollDiceFloatingBtn" class="btn btn-primary roll-fab hidden">🎲 ทอยเลย</button>
-            <button id="toggleRollBtn" class="btn roll-toggle hidden">ซ่อนปุ่มทอย</button>
-          </div>
-        </div>
-
-        <button id="chatFabBtn" class="btn chat-sidebar-toggle hidden" type="button" aria-label="OpenChat">
-          <span id="chatFabLabel" class="chat-sidebar-toggle-label">OpenChat</span>
-          <span id="chatFabBadge" class="chat-badge hidden">0</span>
-        </button>
-
-        <div id="chatSection" class="chat-wrap">
-          <h3>แชตในห้อง</h3>
-          <ul id="chatList" class="chat-list"></ul>
-          <form id="chatForm" class="chat-form">
-            <input id="chatInput" type="text" maxlength="300" placeholder="พิมพ์ข้อความ..." autocomplete="off">
-            <button type="submit" class="btn btn-primary">ส่ง</button>
-            <button id="clearChatBtn" type="button" class="btn">ล้างแชต</button>
+            <button type="submit" class="btn btn-primary">เปิดห้อง</button>
           </form>
         </div>
 
-        <div id="eventSection">
-          <h3>ความเคลื่อนไหว</h3>
-          <ul id="eventFeed" class="feed"></ul>
+        <hr>
+
+        <form id="joinForm" class="stack">
+          <label>
+            ชื่อผู้เล่น
+            <input id="joinName" type="text" maxlength="24" value="ผู้เล่น">
+          </label>
+          <label>
+            รหัสห้อง
+            <input id="joinRoomCode" type="text" maxlength="8" placeholder="ABC123">
+          </label>
+          <button type="submit" class="btn">เข้าห้อง</button>
+        </form>
+
+        <hr>
+
+        <div class="stack">
+          <div class="open-rooms-header">
+            <h3>คนที่ออนไลน์ตอนนี้</h3>
+            <div id="onlineUsersCount" class="meta-chip">ออนไลน์ 0 คน</div>
+          </div>
+          <ul id="onlineUsersList" class="room-list"></ul>
         </div>
-      </div>
+      </aside>
+
+      <section class="panel panel-main">
+        <div id="mainLobbyRooms" class="main-lobby-rooms">
+          <div class="open-rooms-header">
+            <h2>ห้องที่เปิดรอ</h2>
+            <button id="refreshRoomsMainBtn" class="btn">รีเฟรช</button>
+          </div>
+          <p class="sub">เลือกห้องที่ต้องการ แล้วกดเข้าร่วมได้ทันที</p>
+          <ul id="mainWaitingRoomList" class="room-list room-list-main"></ul>
+        </div>
+
+        <div id="roomGameShell">
+          <div class="toolbar">
+            <div>
+              <h2 id="roomTitle">ห้อง: -</h2>
+              <p id="roomMeta">ยังไม่ได้เข้าห้อง</p>
+            </div>
+            <div class="toolbar-actions">
+              <div id="waitingRoomActions" class="toolbar-actions">
+                <button id="refreshRoomBtn" class="btn">รีเฟรช</button>
+                <button id="startGameBtn" class="btn btn-primary">เริ่มเกม</button>
+              </div>
+              <button id="leaveRoomBtn" class="btn btn-danger">ออกห้อง</button>
+            </div>
+          </div>
+
+          <div id="roomRulesCard" class="summary-card rules-card hidden">
+            <details id="roomRulesDetails" class="rules-details">
+              <summary>กติกาห้อง</summary>
+              <ul id="roomRuleList" class="rule-list"></ul>
+            </details>
+            <div id="readyPanel" class="ready-panel hidden">
+              <div class="ready-head">
+                <strong>เช็กความพร้อม</strong>
+                <span id="readySummary" class="meta-chip">พร้อม 0/0 คน</span>
+              </div>
+              <ul id="readyList" class="ready-list"></ul>
+              <div id="readyAvatarSection" class="ready-avatar-section hidden">
+                <div class="ready-avatar-head">
+                  <strong>Avatar ของคุณ</strong>
+                  <span id="readyAvatarHint" class="meta-chip">เลือกได้จนกว่าจะกดพร้อม</span>
+                </div>
+                <div id="readyAvatarPicker" class="avatar-picker"></div>
+              </div>
+              <button id="toggleReadyBtn" class="btn hidden" type="button">ฉันพร้อมแล้ว</button>
+            </div>
+          </div>
+
+          <div id="statusSplit" class="split">
+            <div id="playersSection">
+              <h3>ผู้เล่น</h3>
+              <ul id="playerList" class="player-list"></ul>
+            </div>
+            <div id="turnSection">
+              <h3>ตาเมื่อครู่</h3>
+              <div id="turnSummary" class="summary-card">ยังไม่มีการทอย</div>
+            </div>
+          </div>
+
+          <div id="boardWrap" class="board-wrap">
+            <h3>กระดาน</h3>
+            <div class="board-head">
+              <div id="boardLegend" class="legend"></div>
+            </div>
+            <div id="turnBanner" class="turn-banner hidden"></div>
+            <div id="boardStage" class="board-stage">
+              <div id="board" class="board"></div>
+              <div id="boardTokenLayer" class="board-token-layer"></div>
+              <div id="boardBeaconList" class="board-beacon-list hidden"></div>
+              <div id="jumpHintBadge" class="jump-hint-badge hidden"></div>
+              <div id="boardItemTooltip" class="board-item-tooltip hidden"></div>
+              <div id="turnDeadlineAlert" class="turn-deadline-alert hidden"></div>
+              <div id="diceResultFx" class="dice-result-fx hidden"></div>
+              <button id="rollDiceFloatingBtn" class="btn btn-primary roll-fab hidden">🎲 ทอยเลย</button>
+              <button id="toggleRollBtn" class="btn roll-toggle hidden">ซ่อนปุ่มทอย</button>
+            </div>
+          </div>
+
+          <button id="chatFabBtn" class="btn chat-sidebar-toggle hidden" type="button" aria-label="OpenChat">
+            <span id="chatFabLabel" class="chat-sidebar-toggle-label">OpenChat</span>
+            <span id="chatFabBadge" class="chat-badge hidden">0</span>
+          </button>
+
+          <div id="chatSection" class="chat-wrap">
+            <h3>แชตในห้อง</h3>
+            <ul id="chatList" class="chat-list"></ul>
+            <form id="chatForm" class="chat-form">
+              <input id="chatInput" type="text" maxlength="300" placeholder="พิมพ์ข้อความ..." autocomplete="off">
+              <button type="submit" class="btn btn-primary">ส่ง</button>
+              <button id="clearChatBtn" type="button" class="btn">ล้างแชต</button>
+            </form>
+          </div>
+
+          <div id="eventSection">
+            <h3>ความเคลื่อนไหว</h3>
+            <ul id="eventFeed" class="feed"></ul>
+          </div>
+        </div>
+      </section>
     </section>
-  </section>
-</main>
+  </main>
 
-<div id="winnerOverlay" class="winner-overlay hidden" aria-hidden="true">
-  <div class="winner-card">
-    <div class="winner-badge">ผู้ชนะ</div>
-    <img id="winnerAvatar" class="winner-avatar" alt="Avatar ผู้ชนะ">
-    <h2 id="winnerNameText">ผู้เล่น</h2>
-    <p id="winnerMetaText">คว้าชัยไปอย่างสวยงาม</p>
+  <div id="winnerOverlay" class="winner-overlay hidden" aria-hidden="true">
+    <div class="winner-card">
+      <div class="winner-badge">ผู้ชนะ</div>
+      <img id="winnerAvatar" class="winner-avatar" alt="Avatar ผู้ชนะ">
+      <h2 id="winnerNameText">ผู้เล่น</h2>
+      <p id="winnerMetaText">คว้าชัยไปอย่างสวยงาม</p>
+    </div>
   </div>
-</div>
 
-<div id="firstTurnOverlay" class="first-turn-overlay hidden" aria-hidden="true">
-  <div class="first-turn-card winner-card">
-    <div id="firstTurnBadge" class="first-turn-badge winner-badge">ผู้เริ่มเกม</div>
-    <img id="firstTurnAvatar" class="first-turn-avatar" alt="Avatar ผู้เริ่มเกม">
-    <h2 id="firstTurnNameText">ผู้เล่น</h2>
+  <div id="firstTurnOverlay" class="first-turn-overlay hidden" aria-hidden="true">
+    <div class="first-turn-card winner-card">
+      <div id="firstTurnBadge" class="first-turn-badge winner-badge">ผู้เริ่มเกม</div>
+      <img id="firstTurnAvatar" class="first-turn-avatar" alt="Avatar ผู้เริ่มเกม">
+      <h2 id="firstTurnNameText">ผู้เล่น</h2>
+    </div>
   </div>
-</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
-<script src="/js/core/sn-state.js?v=20260226r10"></script>
-<script src="/js/core/sn-utils.js?v=20260226r9"></script>
-<script src="/js/core/sn-view-state.js?v=20260226r6"></script>
-<script src="/js/core/sn-storage.js?v=20260226r6"></script>
-<script src="/js/board/sn-board-page.js?v=20260226r6"></script>
-<script src="/js/board/sn-board-focus.js?v=20260226r6"></script>
-<script src="/js/board/sn-board-beacon.js?v=20260226r6"></script>
-<script src="/js/render/sn-render-lobby.js?v=20260226r6"></script>
-<script src="/js/render/sn-render-game.js?v=20260226r14"></script>
-<script src="/js/board/sn-jump-geometry.js?v=20260226r6"></script>
-<script src="/js/board/sn-board-overlay.js?v=20260226r6"></script>
-<script src="/js/board/sn-board-token-layer.js?v=20260226r7"></script>
-<script src="/js/ui/sn-rule-summary.js?v=20260226r6"></script>
-<script src="/js/ui/sn-room-ui.js?v=20260226r9"></script>
-<script src="/js/ui/sn-ready-ui.js?v=20260226r6"></script>
-<script src="/js/ui/sn-rule-ui.js?v=20260226r6"></script>
-<script src="/js/board/sn-board-fx.js?v=20260226r16"></script>
-<script src="/js/board/sn-piece-transit.js?v=20260226r6"></script>
-<script src="/js/board/sn-turn-animation.js?v=20260226r19"></script>
-<script src="/js/render/sn-render-chat.js?v=20260226r6"></script>
-<script src="/js/render/sn-render-main.js?v=20260226r6"></script>
-<script src="/js/net/sn-api.js?v=20260226r6"></script>
-<script src="/js/net/sn-signalr.js?v=20260226r10"></script>
-<script src="/js/net/sn-session.js?v=20260226r6"></script>
-<script src="/js/app/sn-actions.js?v=20260226r10"></script>
-<script src="/js/app/sn-main.js?v=20260226r6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+  <script src="/js/core/sn-state.js?v=20260226r10"></script>
+  <script src="/js/core/sn-utils.js?v=20260226r9"></script>
+  <script src="/js/core/sn-view-state.js?v=20260226r6"></script>
+  <script src="/js/core/sn-storage.js?v=20260226r6"></script>
+  <script src="/js/board/sn-board-page.js?v=20260226r6"></script>
+  <script src="/js/board/sn-board-focus.js?v=20260226r6"></script>
+  <script src="/js/board/sn-board-beacon.js?v=20260226r6"></script>
+  <script src="/js/render/sn-render-lobby.js?v=20260226r6"></script>
+  <script src="/js/render/sn-render-game.js?v=20260226r14"></script>
+  <script src="/js/board/sn-jump-geometry.js?v=20260226r6"></script>
+  <script src="/js/board/sn-board-overlay.js?v=20260226r6"></script>
+  <script src="/js/board/sn-board-token-layer.js?v=20260226r7"></script>
+  <script src="/js/ui/sn-rule-summary.js?v=20260226r6"></script>
+  <script src="/js/ui/sn-room-ui.js?v=20260226r9"></script>
+  <script src="/js/ui/sn-ready-ui.js?v=20260226r6"></script>
+  <script src="/js/ui/sn-rule-ui.js?v=20260226r6"></script>
+  <script src="/js/board/sn-board-fx.js?v=20260226r16"></script>
+  <script src="/js/board/sn-piece-transit.js?v=20260226r6"></script>
+  <script src="/js/board/sn-turn-animation.js?v=20260226r19"></script>
+  <script src="/js/render/sn-render-chat.js?v=20260226r6"></script>
+  <script src="/js/render/sn-render-main.js?v=20260226r6"></script>
+  <script src="/js/net/sn-api.js?v=20260226r6"></script>
+  <script src="/js/net/sn-signalr.js?v=20260226r10"></script>
+  <script src="/js/net/sn-session.js?v=20260226r6"></script>
+  <script src="/js/app/sn-actions.js?v=20260226r10"></script>
+  <script src="/js/app/sn-main.js?v=20260226r6"></script>
 </body>
+
 </html>
