@@ -39,6 +39,10 @@
   padding: 10px 16px;
 }
 
+.game-selector-block {
+  margin-bottom: 12px;
+}
+
 .game-create-list {
   display: grid;
   gap: 10px;
@@ -63,6 +67,11 @@
 .game-create-card.is-unavailable {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.game-create-card.is-active {
+  border-color: #2f9ff8;
+  box-shadow: 0 0 0 2px rgba(47, 159, 248, 0.18);
 }
 
 .game-create-title {

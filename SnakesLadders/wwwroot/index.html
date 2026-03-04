@@ -45,15 +45,11 @@
         </div>
 
         <div id="createPanel" class="hidden">
-          <div id="createGameListShell" class="stack">
-            <h3>เลือกเกมที่อยากเปิดห้อง</h3>
-            <div id="createGameList" class="game-create-list"></div>
-          </div>
-
+          <p id="createPanelHint" class="sub">เลือกเกมจากส่วน "ห้องที่เปิดรอ" ด้านขวาก่อน แล้วค่อยตั้งค่าห้อง</p>
           <form id="createForm" class="stack hidden">
             <input id="gameKey" type="hidden" value="">
             <div class="create-game-head">
-              <button id="createBackToGamesBtn" class="btn" type="button">กลับไปเลือกเกม</button>
+              <button id="createBackToGamesBtn" class="btn" type="button">ล้างตัวเลือกเกม</button>
               <div id="selectedCreateGameTitle" class="meta-chip">เกม: Snakes &amp; Ladders</div>
             </div>
             <label>
@@ -166,6 +162,15 @@
 
       <section class="panel panel-main">
         <div id="mainLobbyRooms" class="main-lobby-rooms">
+          <div id="createGameListShell" class="stack game-selector-block">
+            <div class="open-rooms-header">
+              <h3>เลือกเกมที่อยากเปิดห้อง</h3>
+              <div id="selectedLobbyGameChip" class="meta-chip">กำลังดู: ทุกเกม</div>
+            </div>
+            <p class="sub">เลือกเกมก่อน แล้วค่อยเลือกห้องเกมที่อยากเข้าเล่น</p>
+            <div id="createGameList" class="game-create-list"></div>
+          </div>
+
           <div class="open-rooms-header">
             <h2>ห้องที่เปิดรอ</h2>
             <button id="refreshRoomsMainBtn" class="btn">รีเฟรช</button>

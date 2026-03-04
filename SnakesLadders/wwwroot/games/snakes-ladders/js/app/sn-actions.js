@@ -32,7 +32,6 @@
 
     el.showCreatePanelBtn.addEventListener("click", () => {
       state.createPanelVisible = true;
-      state.createGameKey = "";
       root.renderLobby.renderCreatePanel();
       root.ruleUi?.syncAll?.();
       void root.api.refreshAvailableGames?.();
@@ -40,7 +39,6 @@
 
     el.hideCreatePanelBtn.addEventListener("click", () => {
       state.createPanelVisible = false;
-      state.createGameKey = "";
       root.renderLobby.renderCreatePanel();
       root.ruleUi?.syncAll?.();
     });
@@ -466,6 +464,7 @@
       el.gameKey.value = gameKey;
     }
     root.renderLobby.renderCreatePanel();
+    root.renderLobby.renderWaitingRooms();
     root.ruleUi?.syncAll?.();
   }
 
@@ -475,6 +474,7 @@
       el.gameKey.value = "";
     }
     root.renderLobby.renderCreatePanel();
+    root.renderLobby.renderWaitingRooms();
     root.ruleUi?.syncAll?.();
   }
 

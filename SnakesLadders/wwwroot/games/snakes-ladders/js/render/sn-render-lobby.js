@@ -21,9 +21,10 @@
     renderCreateGameList(games);
 
     const selected = resolveSelectedCreateGame(games);
+    updateSelectedLobbyGameChip(selected);
     const selectingGame = !selected;
-    if (el.createGameListShell) {
-      el.createGameListShell.classList.toggle("hidden", !selectingGame);
+    if (el.createPanelHint) {
+      el.createPanelHint.classList.toggle("hidden", !selectingGame);
     }
     if (el.createForm) {
       el.createForm.classList.toggle("hidden", selectingGame);
@@ -99,6 +100,7 @@
       return;
     }
 
+    const activeGameKey = normalizeGameKey(state.createGameKey, "");
     const rows = games.map((game) => {
       const gameKey = normalizeGameKey(game.gameKey);
       const available = Boolean(game.isAvailable);
@@ -106,9 +108,10 @@
       const desc = escapeHtml(String(game.description ?? ""));
       const disabled = available ? "" : "disabled";
       const stateClass = available ? "is-available" : "is-unavailable";
+      const activeClass = gameKey === activeGameKey ? "is-active" : "";
       const cta = available ? "สร้างห้องเกมนี้" : "ยังไม่พร้อมใช้งาน";
       return `
-        <button type="button" class="game-create-card ${stateClass}" data-game-key="${escapeHtml(gameKey)}" ${disabled}>
+        <button type="button" class="game-create-card ${stateClass} ${activeClass}" data-game-key="${escapeHtml(gameKey)}" ${disabled}>
           <span class="game-create-title">${title}</span>
           <span class="game-create-desc">${desc}</span>
           <span class="game-create-cta">${escapeHtml(cta)}</span>
@@ -117,6 +120,19 @@
     });
 
     el.createGameList.innerHTML = rows.join("");
+  }
+
+  function updateSelectedLobbyGameChip(selected) {
+    if (!el.selectedLobbyGameChip) {
+      return;
+    }
+
+    if (!selected) {
+      el.selectedLobbyGameChip.textContent = "กำลังดู: ทุกเกม";
+      return;
+    }
+
+    el.selectedLobbyGameChip.textContent = `กำลังดู: ${selected.displayName}`;
   }
 
   function renderLobbyOnline() {
@@ -147,20 +163,35 @@
   }
 
   function renderWaitingRooms() {
-    const rooms = Array.isArray(state.waitingRooms) ? state.waitingRooms : [];
+    const allRooms = Array.isArray(state.waitingRooms) ? state.waitingRooms : [];
+    const selectedGameKey = normalizeGameKey(state.createGameKey, "");
+    const rooms = selectedGameKey
+      ? allRooms.filter((room) =>
+        normalizeGameKey(room.gameKey, "") === selectedGameKey
+      )
+      : allRooms;
     const currentRoomCode = state.room?.roomCode ?? "";
+    const selectedGameLabel = selectedGameKey
+      ? gameLabel(selectedGameKey)
+      : "";
+    const asideEmptyMessage = selectedGameLabel
+      ? `ยังไม่มีห้อง ${selectedGameLabel} ที่เปิดรอ`
+      : "ยังไม่มีห้องที่เปิดรอ";
+    const mainEmptyMessage = selectedGameLabel
+      ? `ยังไม่มีห้อง ${selectedGameLabel} ที่เปิดรอ ลองสร้างห้องแรกได้เลย`
+      : "ตอนนี้ยังไม่มีห้องที่เปิดรอ ลองกดสร้างห้องแรกได้เลย";
 
     renderWaitingRoomList(
       el.waitingRoomList,
       rooms,
       currentRoomCode,
-      "ยังไม่มีห้องที่เปิดรอ",
+      asideEmptyMessage,
     );
     renderWaitingRoomList(
       el.mainWaitingRoomList,
       rooms,
       currentRoomCode,
-      "ตอนนี้ยังไม่มีห้องที่เปิดรอ ลองกดสร้างห้องแรกได้เลย",
+      mainEmptyMessage,
     );
   }
 

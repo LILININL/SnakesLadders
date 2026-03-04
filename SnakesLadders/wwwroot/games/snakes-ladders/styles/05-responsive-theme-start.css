@@ -263,6 +263,11 @@ input::placeholder {
   background: linear-gradient(180deg, #ffffff, #e9f7ff);
 }
 
+.game-create-card.is-active {
+  border-color: #2f9ff8;
+  box-shadow: 0 0 0 2px rgba(47, 159, 248, 0.2);
+}
+
 .game-create-title {
   color: #1f567d;
 }

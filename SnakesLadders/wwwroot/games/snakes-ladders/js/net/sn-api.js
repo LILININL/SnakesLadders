@@ -24,6 +24,7 @@
 
     state.availableGames = Array.isArray(games) ? games : [];
     root.renderLobby.renderCreatePanel();
+    root.renderLobby.renderWaitingRooms();
   }
 
   async function refreshLobbyOnline(force = false) {
