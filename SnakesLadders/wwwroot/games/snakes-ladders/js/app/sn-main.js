@@ -9,6 +9,7 @@
 
   async function init() {
     root.actions.wireForms();
+    root.monopolyActionPanel?.wire?.();
     root.ruleUi?.init?.();
     root.boardFocus?.init?.();
     root.boardBeacon?.init?.();

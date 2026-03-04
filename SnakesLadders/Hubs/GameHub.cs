@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using SnakesLadders.Contracts;
+using SnakesLadders.Domain;
 using SnakesLadders.Services;
 
 namespace SnakesLadders.Hubs;
@@ -77,12 +78,19 @@ public sealed class GameHub : Hub
             return;
         }
 
-        await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("DiceRolled", result.Value);
-        await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("RoomUpdated", result.Value.Room);
+        var roomCode = request.RoomCode.ToUpperInvariant();
+        await Clients.Group(roomCode).SendAsync("GameActionApplied", result.Value);
+
+        if (result.Value.Room.GameKey.Equals(GameCatalog.SnakesLadders, StringComparison.OrdinalIgnoreCase))
+        {
+            await Clients.Group(roomCode).SendAsync("DiceRolled", result.Value);
+        }
+
+        await Clients.Group(roomCode).SendAsync("RoomUpdated", result.Value.Room);
 
         if (result.Value.Turn.IsGameFinished)
         {
-            await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("GameFinished", result.Value);
+            await Clients.Group(roomCode).SendAsync("GameFinished", result.Value);
 
             var resetResult = _roomService.ResetFinishedGame(request.RoomCode);
             if (resetResult.Success && resetResult.Value is not null)
@@ -92,7 +100,44 @@ public sealed class GameHub : Hub
         }
         else
         {
-            await Clients.Group(request.RoomCode.ToUpperInvariant())
+            await Clients.Group(roomCode)
+                .SendAsync("TurnChanged", result.Value.Room.CurrentTurnPlayerId);
+        }
+    }
+
+    public async Task SubmitGameAction(SubmitGameActionRequest request)
+    {
+        var result = _roomService.SubmitGameAction(Context.ConnectionId, request);
+        if (!result.Success || result.Value is null)
+        {
+            await SendError(result.Error ?? "ดำเนินการไม่สำเร็จ");
+            return;
+        }
+
+        var roomCode = request.RoomCode.ToUpperInvariant();
+        await Clients.Group(roomCode).SendAsync("GameActionApplied", result.Value);
+
+        if (result.Value.Turn.ActionType == GameActionType.RollDice &&
+            result.Value.Room.GameKey.Equals(GameCatalog.SnakesLadders, StringComparison.OrdinalIgnoreCase))
+        {
+            await Clients.Group(roomCode).SendAsync("DiceRolled", result.Value);
+        }
+
+        await Clients.Group(roomCode).SendAsync("RoomUpdated", result.Value.Room);
+
+        if (result.Value.Turn.IsGameFinished)
+        {
+            await Clients.Group(roomCode).SendAsync("GameFinished", result.Value);
+
+            var resetResult = _roomService.ResetFinishedGame(request.RoomCode);
+            if (resetResult.Success && resetResult.Value is not null)
+            {
+                await Clients.Group(roomCode).SendAsync("RoomUpdated", resetResult.Value);
+            }
+        }
+        else
+        {
+            await Clients.Group(roomCode)
                 .SendAsync("TurnChanged", result.Value.Room.CurrentTurnPlayerId);
         }
     }

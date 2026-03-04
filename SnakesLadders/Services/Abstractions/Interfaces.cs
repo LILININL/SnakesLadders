@@ -18,6 +18,11 @@ public interface IGameRoomModule
         PlayerState player,
         RollDiceRequest request,
         bool isAutoRoll);
+    ServiceResult<TurnResult> SubmitGameAction(
+        GameRoom room,
+        PlayerState actor,
+        SubmitGameActionRequest request,
+        bool isAutoAction);
 }
 
 public interface IGameRoomService
@@ -27,6 +32,10 @@ public interface IGameRoomService
     ServiceResult<ResumeRoomResponse> ResumeRoom(string connectionId, ResumeRoomRequest request);
     ServiceResult<RoomSnapshot> StartGame(string connectionId, StartGameRequest request);
     ServiceResult<TurnEnvelope> RollDice(string connectionId, RollDiceRequest request, bool isAutoRoll = false);
+    ServiceResult<TurnEnvelope> SubmitGameAction(
+        string connectionId,
+        SubmitGameActionRequest request,
+        bool isAutoAction = false);
     ServiceResult<RoomSnapshot> SetReady(string connectionId, SetReadyRequest request);
     ServiceResult<RoomSnapshot> SetAvatar(string connectionId, SetAvatarRequest request);
     ServiceResult<RoomSnapshot> ResetFinishedGame(string roomCode);
@@ -38,5 +47,5 @@ public interface IGameRoomService
     IReadOnlyList<PublicRoomSummary> GetPublicRooms();
     void UpsertLobbyPresence(string connectionId, string displayName);
     IReadOnlyList<LobbyOnlineUser> GetLobbyOnlineUsers();
-    IReadOnlyList<AutoRollDispatch> ProcessExpiredTurns();
+    IReadOnlyList<AutoActionDispatch> ProcessExpiredActions();
 }

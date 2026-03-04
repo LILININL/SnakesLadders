@@ -360,6 +360,10 @@
       return false;
     }
 
+    if (root.monopolyHelpers?.isMonopolyRoom?.(state.room)) {
+      return root.monopolyHelpers.canRollNow();
+    }
+
     return root.viewState.getDisplayTurnPlayerId() === state.playerId;
   }
 
@@ -554,6 +558,7 @@
     root.boardFx?.reset?.();
     root.boardFocus?.clearState?.();
     root.boardBeacon?.hide?.();
+    root.monopolyActionPanel?.reset?.();
 
     root.renderChat.clearChat();
     await root.api.refreshLobbyOnline();

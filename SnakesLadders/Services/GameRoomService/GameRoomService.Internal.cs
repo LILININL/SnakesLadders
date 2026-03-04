@@ -93,7 +93,7 @@ public sealed partial class GameRoomService
             }
             else
             {
-                room.TurnDeadlineUtc = ResolveNextTurnDeadlineUnsafe(room, room.CurrentTurnPlayer);
+                room.TurnDeadlineUtc = ResolveNextActionDeadlineUnsafe(room);
             }
         }
 
@@ -136,7 +136,7 @@ public sealed partial class GameRoomService
         if (room.Status == GameStatus.Started &&
             ReferenceEquals(room.CurrentTurnPlayer, player))
         {
-            room.TurnDeadlineUtc = ResolveNextTurnDeadlineUnsafe(room, player);
+            room.TurnDeadlineUtc = ResolveNextActionDeadlineUnsafe(room);
         }
 
         _connections[connectionId] = new ConnectionBinding(room.RoomCode, player.PlayerId);
@@ -278,11 +278,16 @@ public sealed partial class GameRoomService
                             Price = x.Price,
                             Rent = x.Rent,
                             Fee = x.Fee,
-                            OwnerPlayerId = x.OwnerPlayerId
+                            OwnerPlayerId = x.OwnerPlayerId,
+                            IsMortgaged = x.IsMortgaged,
+                            HouseCount = x.HouseCount,
+                            HasHotel = x.HasHotel,
+                            HouseCost = x.HouseCost
                         })
                         .ToArray(),
                     MonopolyFreeParkingPot = room.Monopoly?.FreeParkingPot ?? 0
-                }
+                },
+            MonopolyState = BuildMonopolySnapshot(room)
         };
     }
 
@@ -294,22 +299,160 @@ public sealed partial class GameRoomService
         public required DateTimeOffset LastSeenUtc { get; init; }
     }
 
-    private static DateTimeOffset? ResolveNextTurnDeadlineUnsafe(GameRoom room, PlayerState? nextTurnPlayer)
+    private static MonopolyStateSnapshot? BuildMonopolySnapshot(GameRoom room)
     {
-        if (room.Status != GameStatus.Started || nextTurnPlayer is null)
+        var monopoly = room.Monopoly;
+        if (monopoly is null)
         {
             return null;
         }
 
-        if (!nextTurnPlayer.Connected)
+        var playerEconomy = room.Players
+            .Select(player => BuildMonopolyPlayerEconomySnapshot(monopoly, player))
+            .ToArray();
+
+        MonopolyAuctionSnapshot? auctionSnapshot = null;
+        if (monopoly.ActiveAuction is not null)
+        {
+            var auctionCell = monopoly.FindCell(monopoly.ActiveAuction.CellId);
+            auctionSnapshot = new MonopolyAuctionSnapshot
+            {
+                CellId = monopoly.ActiveAuction.CellId,
+                CellName = auctionCell?.Name ?? $"Cell {monopoly.ActiveAuction.CellId}",
+                CurrentBidAmount = monopoly.ActiveAuction.CurrentBidAmount,
+                CurrentBidderPlayerId = monopoly.ActiveAuction.CurrentBidderPlayerId,
+                EligiblePlayerIds = monopoly.ActiveAuction.EligiblePlayerIds.OrderBy(x => x, StringComparer.Ordinal).ToArray(),
+                PassedPlayerIds = monopoly.ActiveAuction.PassedPlayerIds.OrderBy(x => x, StringComparer.Ordinal).ToArray()
+            };
+        }
+
+        MonopolyTradeSnapshot? tradeSnapshot = null;
+        if (monopoly.ActiveTradeOffer is not null)
+        {
+            tradeSnapshot = new MonopolyTradeSnapshot
+            {
+                FromPlayerId = monopoly.ActiveTradeOffer.FromPlayerId,
+                ToPlayerId = monopoly.ActiveTradeOffer.ToPlayerId,
+                CashGive = monopoly.ActiveTradeOffer.CashGive,
+                CashReceive = monopoly.ActiveTradeOffer.CashReceive,
+                GiveCells = monopoly.ActiveTradeOffer.GiveCells.ToArray(),
+                ReceiveCells = monopoly.ActiveTradeOffer.ReceiveCells.ToArray()
+            };
+        }
+
+        return new MonopolyStateSnapshot
+        {
+            Phase = monopoly.Phase,
+            ActivePlayerId = monopoly.ActivePlayerId,
+            PendingDecisionPlayerId = monopoly.PendingDecisionPlayerId,
+            AvailableHouses = monopoly.AvailableHouses,
+            AvailableHotels = monopoly.AvailableHotels,
+            PendingPurchaseCellId = monopoly.PendingPurchaseCellId,
+            PendingDebtToPlayerId = monopoly.PendingDebtToPlayerId,
+            PendingDebtAmount = monopoly.PendingDebtAmount,
+            ActiveAuction = auctionSnapshot,
+            ActiveTradeOffer = tradeSnapshot,
+            PlayerEconomy = playerEconomy
+        };
+    }
+
+    private static MonopolyPlayerEconomySnapshot BuildMonopolyPlayerEconomySnapshot(
+        MonopolyRoomState monopoly,
+        PlayerState player)
+    {
+        var owned = monopoly.Cells
+            .Where(x => string.Equals(x.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal))
+            .ToArray();
+
+        var houses = owned.Sum(x => Math.Max(0, x.HouseCount));
+        var hotels = owned.Count(x => x.HasHotel);
+        var mortgaged = owned.Count(x => x.IsMortgaged);
+
+        var assetValue = owned.Sum(cell =>
+        {
+            var baseValue = cell.IsMortgaged
+                ? Math.Max(0, (int)Math.Floor(cell.Price / 2d))
+                : Math.Max(0, cell.Price);
+            var buildingValue = cell.HasHotel
+                ? cell.HouseCost * 5
+                : Math.Max(0, cell.HouseCount) * cell.HouseCost;
+            return baseValue + buildingValue;
+        });
+
+        var monopolySetCount = owned
+            .Where(x => x.Type == MonopolyCellType.Property && !string.IsNullOrWhiteSpace(x.ColorGroup))
+            .GroupBy(x => x.ColorGroup!, StringComparer.OrdinalIgnoreCase)
+            .Count(group =>
+            {
+                var allInGroup = monopoly.Cells
+                    .Where(cell =>
+                        cell.Type == MonopolyCellType.Property &&
+                        string.Equals(cell.ColorGroup, group.Key, StringComparison.OrdinalIgnoreCase))
+                    .ToArray();
+                return allInGroup.Length > 0 &&
+                       allInGroup.All(cell => string.Equals(cell.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal));
+            });
+
+        var netWorth = player.Cash + assetValue;
+
+        return new MonopolyPlayerEconomySnapshot
+        {
+            PlayerId = player.PlayerId,
+            Cash = player.Cash,
+            AssetValue = assetValue,
+            NetWorth = netWorth,
+            PropertyCount = owned.Length,
+            MonopolySetCount = monopolySetCount,
+            Houses = houses,
+            Hotels = hotels,
+            Mortgaged = mortgaged,
+            InJail = player.JailTurnsRemaining > 0,
+            IsBankrupt = player.IsBankrupt
+        };
+    }
+
+    private static DateTimeOffset? ResolveNextActionDeadlineUnsafe(GameRoom room)
+    {
+        if (room.Status != GameStatus.Started)
+        {
+            return null;
+        }
+
+        var currentTurnPlayer = room.CurrentTurnPlayer;
+        if (currentTurnPlayer is null)
+        {
+            return null;
+        }
+
+        PlayerState actionPlayer = currentTurnPlayer;
+
+        if (room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase) &&
+            room.Monopoly is not null &&
+            (room.Monopoly.Phase is MonopolyTurnPhase.AuctionInProgress or MonopolyTurnPhase.AwaitTradeResponse) &&
+            !string.IsNullOrWhiteSpace(room.Monopoly.PendingDecisionPlayerId))
+        {
+            actionPlayer = room.FindPlayer(room.Monopoly.PendingDecisionPlayerId!) ?? currentTurnPlayer;
+        }
+
+        if (!actionPlayer.Connected)
         {
             return DateTimeOffset.UtcNow.AddMilliseconds(OfflineAutoRollDelayMs);
         }
 
         var rules = room.BoardOptions.RuleOptions;
-        var animationBufferSeconds = room.TurnCounter > 0 ? TurnAnimationBufferSeconds : 0;
-        return rules.TurnTimerEnabled
-            ? DateTimeOffset.UtcNow.AddSeconds(Math.Max(3, rules.TurnSeconds) + animationBufferSeconds)
-            : null;
+        if (!rules.TurnTimerEnabled)
+        {
+            return room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase)
+                ? DateTimeOffset.UtcNow.AddSeconds(20)
+                : null;
+        }
+
+        var animationBufferSeconds = room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase)
+            ? 0
+            : room.TurnCounter > 0
+                ? TurnAnimationBufferSeconds
+                : 0;
+
+        return DateTimeOffset.UtcNow.AddSeconds(Math.Max(3, rules.TurnSeconds) + animationBufferSeconds);
     }
 }

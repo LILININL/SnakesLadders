@@ -12,6 +12,37 @@
     FINISHED: 2,
   };
 
+  root.GAME_ACTION_TYPES = {
+    ROLL_DICE: 0,
+    PAY_JAIL_FINE: 1,
+    TRY_JAIL_ROLL: 2,
+    BUY_PROPERTY: 3,
+    DECLINE_PURCHASE: 4,
+    BID_AUCTION: 5,
+    PASS_AUCTION: 6,
+    BUILD_HOUSE: 7,
+    SELL_HOUSE: 8,
+    MORTGAGE: 9,
+    UNMORTGAGE: 10,
+    OFFER_TRADE: 11,
+    ACCEPT_TRADE: 12,
+    REJECT_TRADE: 13,
+    DECLARE_BANKRUPTCY: 14,
+    END_TURN: 15,
+  };
+
+  root.MONOPOLY_PHASE = {
+    AWAIT_JAIL_DECISION: 0,
+    AWAIT_ROLL: 1,
+    RESOLVING: 2,
+    AWAIT_PURCHASE_DECISION: 3,
+    AUCTION_IN_PROGRESS: 4,
+    AWAIT_TRADE_RESPONSE: 5,
+    AWAIT_MANAGE: 6,
+    AWAIT_END_TURN: 7,
+    FINISHED: 8,
+  };
+
   root.state = {
     connection: null,
     roomCode: "",
@@ -129,10 +160,10 @@
     turnSection: document.getElementById("turnSection"),
     playerList: document.getElementById("playerList"),
     boardWrap: document.getElementById("boardWrap"),
+    monopolyHud: document.getElementById("monopolyHud"),
+    monopolyActionPanel: document.getElementById("monopolyActionPanel"),
+    monopolyStatusPanel: document.getElementById("monopolyStatusPanel"),
     boardLegend: document.getElementById("boardLegend"),
-    monopolyTableWrap: document.getElementById("monopolyTableWrap"),
-    monopolyTableMeta: document.getElementById("monopolyTableMeta"),
-    monopolyTable: document.getElementById("monopolyTable"),
     focusModeMeBtn: document.getElementById("focusModeMeBtn"),
     focusModeTurnBtn: document.getElementById("focusModeTurnBtn"),
     turnBanner: document.getElementById("turnBanner"),

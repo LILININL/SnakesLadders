@@ -108,6 +108,14 @@
   }
 
   function updateFloatingRollButton() {
+    if (root.monopolyHelpers?.isMonopolyRoom?.(state.room)) {
+      state.rollButtonHidden = false;
+      el.rollDiceFloatingBtn.classList.add("hidden");
+      el.toggleRollBtn.classList.add("hidden");
+      root.actions?.syncRollInteraction?.();
+      return;
+    }
+
     const myTurn = Boolean(
       isStarted() &&
       !state.animating &&

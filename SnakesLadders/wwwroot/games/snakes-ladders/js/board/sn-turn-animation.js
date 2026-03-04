@@ -7,6 +7,9 @@
   const CROSS_PAGE_PAUSE_MS = 130;
   const JUMP_HINT_MS = 600;
   const PAGE_TRANSITION_MS = 550;
+  const MONOPOLY_GAME_KEY = String(
+    root.GAME_KEYS?.MONOPOLY ?? "monopoly",
+  ).trim().toLowerCase();
 
   let chain = Promise.resolve();
   let queuedTurns = 0;
@@ -76,7 +79,14 @@
       turn,
     );
     try {
-      await root.boardFx?.showDice?.(turn.playerId, turn.diceValue);
+      if (hasDiceRoll(turn)) {
+        const diceValue =
+          Number.parseInt(String(turn.diceOne ?? 0), 10) ||
+          Number.parseInt(String(turn.diceTwo ?? 0), 10) ||
+          Number.parseInt(String(turn.diceValue ?? 0), 10) ||
+          1;
+        await root.boardFx?.showDice?.(turn.playerId, diceValue);
+      }
 
       if (followPlayer) {
         await ensureVisiblePage(turn.startPosition, false, room.board.size);
@@ -246,6 +256,7 @@
       boardSize,
       followPlayer,
       pendingItemEffects,
+      Boolean(effectiveSegment.wrapForward),
     );
     if (Number.isFinite(finalPos)) {
       state.animPlayerPosition = clamp(finalPos, 1, boardSize);
@@ -286,6 +297,7 @@
     boardSize,
     followPlayer,
     pendingItemEffects,
+    wrapForward = false,
   ) {
     if (from === to) {
       await consumeItemEffectsAtCell(
@@ -299,10 +311,16 @@
     }
 
     let current = from;
+    let guard = 0;
     while (current !== to) {
-      const direction = to > current ? 1 : -1;
       const delay = stepDelay(Math.abs(to - current));
-      const next = current + direction;
+      let next;
+      if (wrapForward) {
+        next = current >= boardSize ? 1 : current + 1;
+      } else {
+        const direction = to > current ? 1 : -1;
+        next = current + direction;
+      }
       const nextPageStart = root.boardPage.getPageStartForCell(next);
       if (nextPageStart !== state.visiblePageStart) {
         await root.boardPage.setVisiblePageStart(nextPageStart, {
@@ -330,6 +348,11 @@
         root.feedback.renderAll();
         // Item/trap effect overrides this segment target.
         return current;
+      }
+
+      guard++;
+      if (guard > boardSize + 2) {
+        break;
       }
     }
 
@@ -482,11 +505,13 @@
     const size = room.board.size;
     const segments = [];
     let cursor = turn.startPosition;
+    const monopolyMode = isMonopolyGameKey(room.gameKey);
 
     const primary = resolvePrimaryLanding(
       turn,
       room.boardOptions.overflowMode,
       size,
+      room.gameKey,
     );
     if (primary !== cursor) {
       segments.push({
@@ -494,6 +519,9 @@
         playerId: turn.playerId,
         from: cursor,
         to: primary,
+        wrapForward:
+          monopolyMode &&
+          Number.parseInt(String(turn.diceValue ?? 0), 10) > 0,
       });
       cursor = primary;
     }
@@ -580,7 +608,16 @@
     return segments;
   }
 
-  function resolvePrimaryLanding(turn, overflowMode, size) {
+  function resolvePrimaryLanding(turn, overflowMode, size, gameKey) {
+    if (isMonopolyGameKey(gameKey)) {
+      const start = clamp(turn.startPosition, 1, size);
+      const dice = Math.max(
+        0,
+        Number.parseInt(String(turn.diceValue ?? 0), 10) || 0,
+      );
+      return ((start - 1 + dice) % size) + 1;
+    }
+
     const rawTarget = turn.startPosition + turn.diceValue;
     if (!turn.overflowAmount || turn.overflowAmount <= 0) {
       return clamp(rawTarget, 1, size);
@@ -591,6 +628,10 @@
     }
 
     return clamp(turn.startPosition, 1, size);
+  }
+
+  function isMonopolyGameKey(gameKey) {
+    return String(gameKey ?? "").trim().toLowerCase() === MONOPOLY_GAME_KEY;
   }
   async function ensureVisiblePage(cell, animate, boardSize) {
     const targetPageStart = root.boardPage.getPageStartForCell(cell);
@@ -644,14 +685,30 @@
 
     return [
       roomCode,
+      payload.room.turnCounter ?? "",
       turn.playerId ?? "",
+      turn.actionType ?? "",
       turn.startPosition ?? "",
+      turn.diceOne ?? "",
+      turn.diceTwo ?? "",
       turn.diceValue ?? "",
       turn.endPosition ?? "",
+      turn.actionSummary ?? "",
       jump,
       frenzy,
       itemPart,
     ].join("|");
+  }
+
+  function hasDiceRoll(turn) {
+    if (!turn) {
+      return false;
+    }
+
+    const d1 = Number.parseInt(String(turn.diceOne ?? 0), 10) || 0;
+    const d2 = Number.parseInt(String(turn.diceTwo ?? 0), 10) || 0;
+    const total = Number.parseInt(String(turn.diceValue ?? 0), 10) || 0;
+    return d1 > 0 || d2 > 0 || total > 0;
   }
 
   function reset() {

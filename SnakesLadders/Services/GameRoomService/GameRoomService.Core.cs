@@ -226,13 +226,29 @@ public sealed partial class GameRoomService : IGameRoomService
             }
 
             gameModule.StartGame(room);
-            room.TurnDeadlineUtc = ResolveNextTurnDeadlineUnsafe(room, room.CurrentTurnPlayer);
+            room.TurnDeadlineUtc = ResolveNextActionDeadlineUnsafe(room);
 
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
         }
     }
 
     public ServiceResult<TurnEnvelope> RollDice(string connectionId, RollDiceRequest request, bool isAutoRoll = false)
+    {
+        var action = new SubmitGameActionRequest
+        {
+            RoomCode = request.RoomCode,
+            ActionType = GameActionType.RollDice,
+            UseLuckyReroll = request.UseLuckyReroll,
+            ForkChoice = request.ForkChoice,
+            Monopoly = new MonopolyActionPayload()
+        };
+        return SubmitGameAction(connectionId, action, isAutoRoll);
+    }
+
+    public ServiceResult<TurnEnvelope> SubmitGameAction(
+        string connectionId,
+        SubmitGameActionRequest request,
+        bool isAutoAction = false)
     {
         lock (_sync)
         {
@@ -247,6 +263,15 @@ public sealed partial class GameRoomService : IGameRoomService
                 return ServiceResult<TurnEnvelope>.Fail("เกมยังไม่อยู่ในสถานะกำลังเล่น");
             }
 
+            if (!TryGetGameModule(room.GameKey, out var gameModule))
+            {
+                return ServiceResult<TurnEnvelope>.Fail($"ยังไม่รองรับเกม {room.GameKey}");
+            }
+            if (!gameModule.IsAvailable)
+            {
+                return ServiceResult<TurnEnvelope>.Fail($"เกม {gameModule.DisplayName} ยังไม่เปิดใช้งาน");
+            }
+
             var currentPlayer = room.CurrentTurnPlayer;
             if (currentPlayer is null)
             {
@@ -254,9 +279,10 @@ public sealed partial class GameRoomService : IGameRoomService
             }
 
             PlayerState actor;
-            if (isAutoRoll)
+            if (isAutoAction)
             {
-                actor = currentPlayer;
+                var actionPlayer = ResolveAutoActionPlayerUnsafe(room, request.ActionType) ?? currentPlayer;
+                actor = actionPlayer;
             }
             else
             {
@@ -275,28 +301,78 @@ public sealed partial class GameRoomService : IGameRoomService
                 actor = player;
             }
 
-            if (!ReferenceEquals(actor, currentPlayer))
+            if (!CanActorPerformActionUnsafe(room, actor, request.ActionType))
             {
-                return ServiceResult<TurnEnvelope>.Fail("ยังไม่ถึงตาคุณ");
+                return ServiceResult<TurnEnvelope>.Fail("ยังไม่ถึงสิทธิ์ของคุณในการทำแอคชั่นนี้");
             }
 
-            if (!TryGetGameModule(room.GameKey, out var gameModule))
+            var result = gameModule.SubmitGameAction(room, actor, request, isAutoAction);
+            if (!result.Success || result.Value is null)
             {
-                return ServiceResult<TurnEnvelope>.Fail($"ยังไม่รองรับเกม {room.GameKey}");
-            }
-            if (!gameModule.IsAvailable)
-            {
-                return ServiceResult<TurnEnvelope>.Fail($"เกม {gameModule.DisplayName} ยังไม่เปิดใช้งาน");
+                return ServiceResult<TurnEnvelope>.Fail(result.Error ?? "ดำเนินการไม่สำเร็จ");
             }
 
-            var result = gameModule.ResolveTurn(room, actor, request, isAutoRoll);
+            room.TurnDeadlineUtc = ResolveNextActionDeadlineUnsafe(room);
 
             return ServiceResult<TurnEnvelope>.Ok(new TurnEnvelope
             {
-                Turn = result,
+                Turn = result.Value,
                 Room = ToSnapshot(room)
             });
         }
+    }
+
+    private static PlayerState? ResolveAutoActionPlayerUnsafe(GameRoom room, GameActionType actionType)
+    {
+        if (room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase))
+        {
+            var monopoly = room.Monopoly;
+            if (monopoly is not null &&
+                actionType is GameActionType.AcceptTrade or GameActionType.RejectTrade &&
+                monopoly.Phase == MonopolyTurnPhase.AwaitTradeResponse &&
+                !string.IsNullOrWhiteSpace(monopoly.PendingDecisionPlayerId))
+            {
+                return room.FindPlayer(monopoly.PendingDecisionPlayerId);
+            }
+
+            if (monopoly is not null &&
+                actionType is GameActionType.BidAuction or GameActionType.PassAuction &&
+                monopoly.Phase == MonopolyTurnPhase.AuctionInProgress &&
+                !string.IsNullOrWhiteSpace(monopoly.PendingDecisionPlayerId))
+            {
+                return room.FindPlayer(monopoly.PendingDecisionPlayerId);
+            }
+        }
+
+        return room.CurrentTurnPlayer;
+    }
+
+    private static bool CanActorPerformActionUnsafe(GameRoom room, PlayerState actor, GameActionType actionType)
+    {
+        if (!room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase))
+        {
+            return ReferenceEquals(actor, room.CurrentTurnPlayer);
+        }
+
+        var monopoly = room.Monopoly;
+        if (monopoly is null)
+        {
+            return false;
+        }
+
+        if (actionType is GameActionType.AcceptTrade or GameActionType.RejectTrade)
+        {
+            return monopoly.Phase == MonopolyTurnPhase.AwaitTradeResponse &&
+                   string.Equals(monopoly.PendingDecisionPlayerId, actor.PlayerId, StringComparison.Ordinal);
+        }
+
+        if (actionType is GameActionType.BidAuction or GameActionType.PassAuction)
+        {
+            return monopoly.Phase == MonopolyTurnPhase.AuctionInProgress &&
+                   string.Equals(monopoly.PendingDecisionPlayerId, actor.PlayerId, StringComparison.Ordinal);
+        }
+
+        return string.Equals(monopoly.ActivePlayerId, actor.PlayerId, StringComparison.Ordinal);
     }
 
     public ServiceResult<RoomSnapshot> SetReady(string connectionId, SetReadyRequest request)

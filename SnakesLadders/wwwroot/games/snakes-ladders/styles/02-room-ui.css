@@ -229,40 +229,453 @@
   background: linear-gradient(180deg, #0a1d30, #091527);
 }
 
-.monopoly-table-wrap {
-  margin-bottom: 10px;
+.monopoly-hud {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.95fr) minmax(420px, 1.05fr);
+  gap: 12px;
+}
+
+.monopoly-panel {
   border: 1px solid #2f5477;
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(7, 23, 37, 0.64);
+}
+
+.mono-panel-head,
+.mono-status-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mono-phase-meta {
+  color: #b6d5ec;
+  font-size: 0.84rem;
+  margin-top: 6px;
+}
+
+.mono-panel-body {
+  margin-top: 10px;
+}
+
+.mono-action-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mono-action-btn {
+  width: 100%;
+  min-height: 44px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+.mono-btn-primary {
+  border-color: #3c93df;
+  color: #fff;
+  background: linear-gradient(180deg, #4fb4ff, #2a89d8);
+}
+
+.mono-btn-danger {
+  border-color: #ce6a73;
+  color: #ffe6e8;
+  background: linear-gradient(180deg, #c86f78, #a44f57);
+}
+
+.mono-info-block {
+  border: 1px solid rgba(112, 155, 190, 0.36);
   border-radius: 10px;
   padding: 8px;
-  background: rgba(8, 24, 40, 0.62);
+  margin-bottom: 10px;
+  background: rgba(9, 27, 44, 0.62);
 }
 
-.monopoly-table-scroll {
-  max-height: 280px;
-  overflow: auto;
-  margin-top: 8px;
+.mono-title {
+  font-weight: 700;
+  color: #d9ecfb;
 }
 
-.monopoly-table {
-  width: 100%;
-  border-collapse: collapse;
+.mono-sub {
+  margin-top: 4px;
   font-size: 0.82rem;
+  color: #b8d7ef;
 }
 
-.monopoly-table th,
-.monopoly-table td {
-  border-bottom: 1px solid rgba(113, 150, 184, 0.28);
-  padding: 6px 7px;
-  text-align: left;
-  white-space: nowrap;
+.mono-muted {
+  color: #aacce6;
+  font-size: 0.85rem;
 }
 
-.monopoly-table th {
-  position: sticky;
+.mono-inline-form,
+.mono-trade-form {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid rgba(111, 154, 190, 0.28);
+  border-radius: 10px;
+  background: rgba(6, 22, 37, 0.5);
+}
+
+.mono-inline-form label,
+.mono-trade-form label {
+  font-size: 0.76rem;
+  color: #c6deef;
+}
+
+.mono-trade-form .mono-form-head {
+  font-weight: 700;
+  color: #ddf0ff;
+}
+
+.mono-manage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mono-status-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.mono-player-card {
+  border: 1px solid rgba(117, 158, 190, 0.34);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(8, 27, 44, 0.56);
+}
+
+.mono-player-card.me {
+  border-color: #89c7f4;
+  box-shadow: inset 0 0 0 1px rgba(123, 195, 244, 0.36);
+}
+
+.mono-player-card.active {
+  border-color: #73d9a9;
+}
+
+.mono-player-card.pending {
+  box-shadow: 0 0 0 1px rgba(231, 206, 126, 0.45);
+}
+
+.mono-player-card.bankrupt {
+  opacity: 0.65;
+}
+
+.mono-player-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mono-money {
+  font-weight: 700;
+  color: #ffe0ae;
+}
+
+.mono-player-grid {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 8px;
+  font-size: 0.78rem;
+  color: #cae3f6;
+}
+
+.mono-global-info {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #f3d9a0;
+}
+
+.board.monopoly-ring {
+  --rows: 11;
+  grid-template-columns: repeat(11, minmax(52px, 1fr));
+  grid-template-rows: repeat(11, minmax(52px, 1fr));
+  gap: 4px;
+  padding: 10px;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(204, 237, 255, 0.32), transparent 42%),
+    radial-gradient(circle at 78% 74%, rgba(146, 210, 255, 0.24), transparent 46%),
+    linear-gradient(165deg, #d9f0ff, #edf8ff 48%, #d3ebff);
+  border: 1px solid #9fcdec;
+  box-shadow: inset 0 0 0 1px rgba(171, 217, 246, 0.38);
+}
+
+.board.monopoly-ring .m-cell {
+  position: relative;
+  border: 1px solid #8bbce0;
+  border-radius: 8px;
+  padding: 4px 4px 5px;
+  min-height: 52px;
+  background: linear-gradient(165deg, #ffffff, #e7f4ff);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.board.monopoly-ring .m-cell.corner {
+  border-width: 2px;
+  background: linear-gradient(165deg, #ffffff, #dff0ff);
+  box-shadow: inset 0 0 0 1px rgba(155, 206, 241, 0.55);
+}
+
+.board.monopoly-ring .m-cell.turn-cell {
+  box-shadow:
+    0 0 0 1px #66d1a9,
+    0 0 14px rgba(102, 209, 169, 0.36);
+}
+
+.board.monopoly-ring .m-cell.owned {
+  border-color: #70b8a5;
+}
+
+.board.monopoly-ring .m-band {
+  position: absolute;
+  left: 0;
   top: 0;
+  height: 5px;
+  width: 100%;
+  background: rgba(143, 186, 214, 0.48);
+}
+
+.board.monopoly-ring .m-band.cg-brown {
+  background: #8b5a3c;
+}
+
+.board.monopoly-ring .m-band.cg-light-blue {
+  background: #78d2ff;
+}
+
+.board.monopoly-ring .m-band.cg-pink {
+  background: #ff8fcb;
+}
+
+.board.monopoly-ring .m-band.cg-orange {
+  background: #ffaf59;
+}
+
+.board.monopoly-ring .m-band.cg-red {
+  background: #ff5f73;
+}
+
+.board.monopoly-ring .m-band.cg-yellow {
+  background: #f1d761;
+}
+
+.board.monopoly-ring .m-band.cg-green {
+  background: #53d39e;
+}
+
+.board.monopoly-ring .m-band.cg-dark-blue {
+  background: #3f69d9;
+}
+
+.board.monopoly-ring .m-band.cg-railroad {
+  background: #748a9a;
+}
+
+.board.monopoly-ring .m-band.cg-utility {
+  background: #53c9d9;
+}
+
+.board.monopoly-ring .m-cell-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.board.monopoly-ring .m-num {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #365b77;
+}
+
+.board.monopoly-ring .m-icon {
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.board.monopoly-ring .m-name {
+  font-size: 0.64rem;
+  line-height: 1.16;
+  font-weight: 700;
+  color: #294f6d;
+  min-height: 1.38em;
+}
+
+.board.monopoly-ring .m-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.55rem;
+  color: #4d7390;
+}
+
+.board.monopoly-ring .m-cost {
+  font-weight: 700;
+  color: #1f678c;
+}
+
+.board.monopoly-ring .m-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-height: 12px;
+  gap: 4px;
+}
+
+.board.monopoly-ring .m-owner {
+  display: inline-flex;
+  align-items: center;
+  max-width: 70%;
+  border-radius: 999px;
+  padding: 1px 5px;
+  font-size: 0.51rem;
+  color: #1f664c;
+  background: rgba(101, 211, 171, 0.24);
+  border: 1px solid rgba(96, 194, 159, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.board.monopoly-ring .m-buildings {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.board.monopoly-ring .m-buildings i {
+  display: inline-block;
+  width: 4px;
+  height: 6px;
+  border-radius: 1px 1px 0 0;
+  background: linear-gradient(180deg, #81d5ff, #3b96d6);
+}
+
+.board.monopoly-ring .m-buildings i:nth-child(1) {
+  height: 6px;
+}
+
+.board.monopoly-ring .m-buildings i:nth-child(2) {
+  height: 9px;
+}
+
+.board.monopoly-ring .m-buildings i:nth-child(3) {
+  height: 7px;
+}
+
+.board.monopoly-ring .m-buildings i:nth-child(4) {
+  height: 10px;
+}
+
+.board.monopoly-ring .m-buildings.hotel {
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.board.monopoly-ring .m-cell.mortgaged {
+  filter: saturate(0.72) brightness(0.94);
+}
+
+.board.monopoly-ring .m-mortgage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: #ffd9a1;
+  background: rgba(114, 60, 27, 0.76);
+  border: 1px solid rgba(230, 168, 109, 0.54);
+}
+
+.board.monopoly-ring .m-center {
+  position: relative;
   z-index: 1;
-  background: rgba(7, 22, 36, 0.9);
-  color: #cfe6fb;
+  border-radius: 16px;
+  border: 1px solid rgba(130, 184, 221, 0.8);
+  background:
+    linear-gradient(160deg, rgba(249, 253, 255, 0.93), rgba(229, 243, 255, 0.9)),
+    radial-gradient(circle at 28% 22%, rgba(143, 202, 248, 0.3), transparent 52%);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding: 10px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.72),
+    0 16px 24px rgba(93, 147, 185, 0.18);
+  pointer-events: none;
+}
+
+.board.monopoly-ring .m-center-badge {
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #2a6a90;
+  background: rgba(140, 206, 247, 0.24);
+  border: 1px solid rgba(125, 189, 231, 0.52);
+}
+
+.board.monopoly-ring .m-center-title {
+  margin: 0;
+  font-size: clamp(0.95rem, 1.35vw, 1.2rem);
+  letter-spacing: 0.08em;
+  color: #1f5376;
+}
+
+.board.monopoly-ring .m-center-sub {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #3d7396;
+}
+
+.board.monopoly-ring .m-skyline {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 82px;
+}
+
+.board.monopoly-ring .m-skyline span {
+  display: inline-block;
+  width: 14px;
+  height: var(--h, 46px);
+  border-radius: 3px 3px 0 0;
+  background:
+    linear-gradient(180deg, rgba(149, 207, 248, 0.95), rgba(53, 129, 185, 0.9)),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.2) 0 4px,
+      rgba(255, 255, 255, 0.03) 4px 8px
+    );
+  box-shadow: inset 0 0 0 1px rgba(212, 239, 255, 0.3);
+}
+
+.board.monopoly-ring .m-parking {
+  font-size: 0.7rem;
+  color: #245d82;
+}
+
+.board.monopoly-ring .m-parking strong {
+  color: #15724f;
 }
 
 .board-overlay {

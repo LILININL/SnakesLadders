@@ -28,6 +28,8 @@
     root.renderGame.renderBoard();
     root.renderGame.renderLastTurn();
     root.renderGame.updateActionState();
+    root.monopolyActionPanel?.render?.();
+    root.monopolyStatusPanel?.render?.();
     root.roomUi.renderAll();
     root.readyUi.render();
 

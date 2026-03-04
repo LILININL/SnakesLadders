@@ -14,6 +14,19 @@ public enum MonopolyCellType
     GoToJail = 9
 }
 
+public enum MonopolyTurnPhase
+{
+    AwaitJailDecision = 0,
+    AwaitRoll = 1,
+    Resolving = 2,
+    AwaitPurchaseDecision = 3,
+    AuctionInProgress = 4,
+    AwaitTradeResponse = 5,
+    AwaitManage = 6,
+    AwaitEndTurn = 7,
+    Finished = 8
+}
+
 public sealed class MonopolyCellState
 {
     public required int Cell { get; init; }
@@ -24,12 +37,60 @@ public sealed class MonopolyCellState
     public int Rent { get; init; }
     public int Fee { get; init; }
     public string? OwnerPlayerId { get; set; }
+    public bool IsMortgaged { get; set; }
+    public int HouseCount { get; set; }
+    public bool HasHotel { get; set; }
+    public int HouseCost { get; init; }
+
+    public int BuildingLevel => HasHotel ? 5 : Math.Clamp(HouseCount, 0, 4);
+}
+
+public sealed class MonopolyAuctionState
+{
+    public required int CellId { get; init; }
+    public HashSet<string> EligiblePlayerIds { get; } = new(StringComparer.Ordinal);
+    public HashSet<string> PassedPlayerIds { get; } = new(StringComparer.Ordinal);
+    public int CurrentBidAmount { get; set; }
+    public string? CurrentBidderPlayerId { get; set; }
+    public List<string> TurnOrder { get; } = new();
+    public int TurnIndex { get; set; }
+}
+
+public sealed class MonopolyTradeOfferState
+{
+    public required string FromPlayerId { get; init; }
+    public required string ToPlayerId { get; init; }
+    public int CashGive { get; init; }
+    public int CashReceive { get; init; }
+    public IReadOnlyList<int> GiveCells { get; init; } = Array.Empty<int>();
+    public IReadOnlyList<int> ReceiveCells { get; init; } = Array.Empty<int>();
+    public DateTimeOffset CreatedAtUtc { get; init; } = DateTimeOffset.UtcNow;
 }
 
 public sealed class MonopolyRoomState
 {
     public List<MonopolyCellState> Cells { get; } = new();
     public int FreeParkingPot { get; set; }
+    public MonopolyTurnPhase Phase { get; set; } = MonopolyTurnPhase.AwaitRoll;
+    public string? ActivePlayerId { get; set; }
+    public string? PendingDecisionPlayerId { get; set; }
+    public int? PendingPurchaseCellId { get; set; }
+    public string? PendingDebtToPlayerId { get; set; }
+    public int PendingDebtAmount { get; set; }
+    public MonopolyAuctionState? ActiveAuction { get; set; }
+    public MonopolyTradeOfferState? ActiveTradeOffer { get; set; }
+    public int AvailableHouses { get; set; } = MonopolyDefinitions.DefaultHouseSupply;
+    public int AvailableHotels { get; set; } = MonopolyDefinitions.DefaultHotelSupply;
+    public Dictionary<string, int> ConsecutiveDoublesByPlayer { get; } =
+        new(StringComparer.Ordinal);
+    public Dictionary<string, int> JailAttemptByPlayer { get; } =
+        new(StringComparer.Ordinal);
+    public Dictionary<string, bool> ExtraTurnByPlayer { get; } =
+        new(StringComparer.Ordinal);
+    public int LastDiceOne { get; set; }
+    public int LastDiceTwo { get; set; }
+    public int ChanceCursor { get; set; }
+    public int CommunityCursor { get; set; }
 
     public MonopolyCellState? FindCell(int cell) =>
         Cells.FirstOrDefault(x => x.Cell == cell);
@@ -106,7 +167,8 @@ public static class MonopolyBoardTemplate
             Type = type,
             ColorGroup = group,
             Price = price,
-            Rent = rent
+            Rent = rent,
+            HouseCost = ResolveHouseCost(group, type)
         };
 
     private static MonopolyCellState Tax(
@@ -120,4 +182,25 @@ public static class MonopolyBoardTemplate
             Type = MonopolyCellType.Tax,
             Fee = fee
         };
+
+    private static int ResolveHouseCost(string group, MonopolyCellType type)
+    {
+        if (type != MonopolyCellType.Property)
+        {
+            return 0;
+        }
+
+        return group switch
+        {
+            "Brown" => 50,
+            "Light Blue" => 50,
+            "Pink" => 100,
+            "Orange" => 100,
+            "Red" => 150,
+            "Yellow" => 150,
+            "Green" => 200,
+            "Dark Blue" => 200,
+            _ => 0
+        };
+    }
 }

@@ -1,3 +1,5 @@
+using SnakesLadders.Contracts;
+
 namespace SnakesLadders.Domain;
 
 public sealed record Jump(int From, int To, JumpType Type, bool IsTemporary = false);
@@ -110,8 +112,13 @@ public sealed class TurnResult
 {
     public required string RoomCode { get; init; }
     public required string PlayerId { get; init; }
+    public GameActionType ActionType { get; init; } = GameActionType.RollDice;
     public required int StartPosition { get; init; }
     public required int DiceValue { get; init; }
+    public int DiceOne { get; init; }
+    public int DiceTwo { get; init; }
+    public bool IsDouble { get; init; }
+    public bool ExtraTurnGranted { get; init; }
     public int BaseDiceValue { get; init; }
     public int ComebackBoostAmount { get; init; }
     public required int EndPosition { get; init; }

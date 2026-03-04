@@ -38,6 +38,51 @@ public sealed class RollDiceRequest
     public ForkPathChoice? ForkChoice { get; set; }
 }
 
+public sealed class SubmitGameActionRequest
+{
+    public string RoomCode { get; set; } = string.Empty;
+    public GameActionType ActionType { get; set; } = GameActionType.RollDice;
+    public bool UseLuckyReroll { get; set; }
+    public ForkPathChoice? ForkChoice { get; set; }
+    public MonopolyActionPayload? Monopoly { get; set; }
+}
+
+public enum GameActionType
+{
+    RollDice = 0,
+    PayJailFine = 1,
+    TryJailRoll = 2,
+    BuyProperty = 3,
+    DeclinePurchase = 4,
+    BidAuction = 5,
+    PassAuction = 6,
+    BuildHouse = 7,
+    SellHouse = 8,
+    Mortgage = 9,
+    Unmortgage = 10,
+    OfferTrade = 11,
+    AcceptTrade = 12,
+    RejectTrade = 13,
+    DeclareBankruptcy = 14,
+    EndTurn = 15
+}
+
+public sealed class MonopolyActionPayload
+{
+    public int? CellId { get; set; }
+    public int? BidAmount { get; set; }
+    public string? TargetPlayerId { get; set; }
+    public MonopolyTradeOfferPayload? TradeOffer { get; set; }
+}
+
+public sealed class MonopolyTradeOfferPayload
+{
+    public int CashGive { get; set; }
+    public int CashReceive { get; set; }
+    public IReadOnlyList<int> GiveCells { get; set; } = Array.Empty<int>();
+    public IReadOnlyList<int> ReceiveCells { get; set; } = Array.Empty<int>();
+}
+
 public sealed class SetReadyRequest
 {
     public string RoomCode { get; set; } = string.Empty;
@@ -116,6 +161,7 @@ public sealed class RoomSnapshot
     public required string? WinnerPlayerId { get; init; }
     public required string? FinishReason { get; init; }
     public required BoardSnapshot? Board { get; init; }
+    public MonopolyStateSnapshot? MonopolyState { get; init; }
 }
 
 public sealed class BoardSnapshot
@@ -160,6 +206,61 @@ public sealed class MonopolyCellSnapshot
     public int Rent { get; init; }
     public int Fee { get; init; }
     public string? OwnerPlayerId { get; init; }
+    public bool IsMortgaged { get; init; }
+    public int HouseCount { get; init; }
+    public bool HasHotel { get; init; }
+    public int HouseCost { get; init; }
+}
+
+public sealed class MonopolyStateSnapshot
+{
+    public required MonopolyTurnPhase Phase { get; init; }
+    public required string? ActivePlayerId { get; init; }
+    public required string? PendingDecisionPlayerId { get; init; }
+    public required int AvailableHouses { get; init; }
+    public required int AvailableHotels { get; init; }
+    public int? PendingPurchaseCellId { get; init; }
+    public string? PendingDebtToPlayerId { get; init; }
+    public int PendingDebtAmount { get; init; }
+    public MonopolyAuctionSnapshot? ActiveAuction { get; init; }
+    public MonopolyTradeSnapshot? ActiveTradeOffer { get; init; }
+    public IReadOnlyList<MonopolyPlayerEconomySnapshot> PlayerEconomy { get; init; } =
+        Array.Empty<MonopolyPlayerEconomySnapshot>();
+}
+
+public sealed class MonopolyAuctionSnapshot
+{
+    public required int CellId { get; init; }
+    public required string CellName { get; init; }
+    public required int CurrentBidAmount { get; init; }
+    public required string? CurrentBidderPlayerId { get; init; }
+    public required IReadOnlyList<string> EligiblePlayerIds { get; init; }
+    public required IReadOnlyList<string> PassedPlayerIds { get; init; }
+}
+
+public sealed class MonopolyTradeSnapshot
+{
+    public required string FromPlayerId { get; init; }
+    public required string ToPlayerId { get; init; }
+    public required int CashGive { get; init; }
+    public required int CashReceive { get; init; }
+    public required IReadOnlyList<int> GiveCells { get; init; }
+    public required IReadOnlyList<int> ReceiveCells { get; init; }
+}
+
+public sealed class MonopolyPlayerEconomySnapshot
+{
+    public required string PlayerId { get; init; }
+    public required int Cash { get; init; }
+    public required int AssetValue { get; init; }
+    public required int NetWorth { get; init; }
+    public required int PropertyCount { get; init; }
+    public required int MonopolySetCount { get; init; }
+    public required int Houses { get; init; }
+    public required int Hotels { get; init; }
+    public required int Mortgaged { get; init; }
+    public required bool InJail { get; init; }
+    public required bool IsBankrupt { get; init; }
 }
 
 public sealed class PublicRoomSummary

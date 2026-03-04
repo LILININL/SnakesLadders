@@ -10,3 +10,4 @@
 สถานะปัจจุบัน:
 - เกมเศรษฐีเปิดใช้งานแล้วใน game list
 - หน้าห้องยังใช้ shell UI กลาง (`wwwroot/games/snakes-ladders/js`) และแสดงตารางเศรษฐีผ่าน renderer กลาง
+- renderer กระดานเกมเศรษฐีอยู่ที่ `js/monopoly-board-renderer.js`

@@ -18,9 +18,11 @@ public sealed class ServiceResult<T>
     public static ServiceResult<T> Fail(string error) => new(false, default, error);
 }
 
-public sealed class AutoRollDispatch
+public sealed class AutoActionDispatch
 {
     public required string RoomCode { get; init; }
     public required string PlayerId { get; init; }
+    public required Contracts.GameActionType ActionType { get; init; }
+    public bool EmitDiceRolled { get; init; }
     public required Contracts.TurnEnvelope Payload { get; init; }
 }

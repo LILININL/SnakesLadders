@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=20260304r12">
+  <link rel="stylesheet" href="/styles.css?v=20260304r13">
 </head>
 
 <body>
@@ -227,16 +227,15 @@
             </div>
           </div>
 
+          <div id="monopolyHud" class="monopoly-hud hidden">
+            <div id="monopolyActionPanel" class="monopoly-panel monopoly-action-panel"></div>
+            <div id="monopolyStatusPanel" class="monopoly-panel monopoly-status-panel"></div>
+          </div>
+
           <div id="boardWrap" class="board-wrap">
             <h3>กระดาน</h3>
             <div class="board-head">
               <div id="boardLegend" class="legend"></div>
-            </div>
-            <div id="monopolyTableWrap" class="monopoly-table-wrap hidden">
-              <div id="monopolyTableMeta" class="meta-chip">Free Parking: $0</div>
-              <div class="monopoly-table-scroll">
-                <table id="monopolyTable" class="monopoly-table"></table>
-              </div>
             </div>
             <div id="turnBanner" class="turn-banner hidden"></div>
             <div id="boardStage" class="board-stage">
@@ -347,17 +346,22 @@
   <script src="/games/snakes-ladders/js/board/sn-board-focus.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/board/sn-board-beacon.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/render/sn-render-lobby.js?v=20260226r6"></script>
-  <script src="/games/snakes-ladders/js/render/sn-render-game.js?v=20260304r2"></script>
   <script src="/games/snakes-ladders/js/board/sn-jump-geometry.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/board/sn-board-overlay.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/board/sn-board-token-layer.js?v=20260226r7"></script>
+  <script src="/games/monopoly/js/monopoly-helpers.js?v=20260304r1"></script>
+  <script src="/games/monopoly/js/monopoly-action-panel.js?v=20260304r1"></script>
+  <script src="/games/monopoly/js/monopoly-status-panel.js?v=20260304r1"></script>
+  <script src="/games/snakes-ladders/js/render/boards/sn-board-renderer-snakes.js?v=20260304r1"></script>
+  <script src="/games/monopoly/js/monopoly-board-renderer.js?v=20260304r2"></script>
+  <script src="/games/snakes-ladders/js/render/sn-render-game.js?v=20260304r4"></script>
   <script src="/games/snakes-ladders/js/ui/sn-rule-summary.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/ui/sn-room-ui.js?v=20260304r2"></script>
   <script src="/games/snakes-ladders/js/ui/sn-ready-ui.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/ui/sn-rule-ui.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/board/sn-board-fx.js?v=20260304r4"></script>
   <script src="/games/snakes-ladders/js/board/sn-piece-transit.js?v=20260226r6"></script>
-  <script src="/games/snakes-ladders/js/board/sn-turn-animation.js?v=20260226r19"></script>
+  <script src="/games/snakes-ladders/js/board/sn-turn-animation.js?v=20260304r20"></script>
   <script src="/games/snakes-ladders/js/render/sn-render-chat.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/render/sn-render-main.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/net/sn-api.js?v=20260226r6"></script>

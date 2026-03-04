@@ -122,4 +122,28 @@ public sealed class SnakesLaddersGameRoomModule(
             request.ForkChoice,
             isAutoRoll);
     }
+
+    public ServiceResult<TurnResult> SubmitGameAction(
+        GameRoom room,
+        PlayerState actor,
+        SubmitGameActionRequest request,
+        bool isAutoAction)
+    {
+        if (request.ActionType != GameActionType.RollDice)
+        {
+            return ServiceResult<TurnResult>.Fail("เกม Snakes & Ladders รองรับเฉพาะแอคชั่น RollDice");
+        }
+
+        var turn = ResolveTurn(
+            room,
+            actor,
+            new RollDiceRequest
+            {
+                RoomCode = request.RoomCode,
+                UseLuckyReroll = request.UseLuckyReroll,
+                ForkChoice = request.ForkChoice
+            },
+            isAutoAction);
+        return ServiceResult<TurnResult>.Ok(turn);
+    }
 }

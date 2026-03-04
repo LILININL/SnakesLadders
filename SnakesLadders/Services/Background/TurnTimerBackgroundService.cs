@@ -15,11 +15,17 @@ public sealed class TurnTimerBackgroundService(
         {
             try
             {
-                var dispatches = roomService.ProcessExpiredTurns();
+                var dispatches = roomService.ProcessExpiredActions();
                 foreach (var dispatch in dispatches)
                 {
                     await hubContext.Clients.Group(dispatch.RoomCode)
-                        .SendAsync("DiceRolled", dispatch.Payload, cancellationToken: stoppingToken);
+                        .SendAsync("GameActionApplied", dispatch.Payload, cancellationToken: stoppingToken);
+
+                    if (dispatch.EmitDiceRolled)
+                    {
+                        await hubContext.Clients.Group(dispatch.RoomCode)
+                            .SendAsync("DiceRolled", dispatch.Payload, cancellationToken: stoppingToken);
+                    }
 
                     await hubContext.Clients.Group(dispatch.RoomCode)
                         .SendAsync("RoomUpdated", dispatch.Payload.Room, cancellationToken: stoppingToken);

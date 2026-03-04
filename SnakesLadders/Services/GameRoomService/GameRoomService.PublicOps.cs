@@ -233,12 +233,12 @@ public sealed partial class GameRoomService
         }
     }
 
-    public IReadOnlyList<AutoRollDispatch> ProcessExpiredTurns()
+    public IReadOnlyList<AutoActionDispatch> ProcessExpiredActions()
     {
         lock (_sync)
         {
             var now = DateTimeOffset.UtcNow;
-            var dispatches = new List<AutoRollDispatch>();
+            var dispatches = new List<AutoActionDispatch>();
 
             foreach (var room in _rooms.Values.Where(x =>
                          x.Status == GameStatus.Started &&
@@ -260,24 +260,32 @@ public sealed partial class GameRoomService
                     continue;
                 }
 
-                var result = gameModule.ResolveTurn(
-                    room,
-                    currentPlayer,
-                    new RollDiceRequest
-                    {
-                        RoomCode = room.RoomCode,
-                        UseLuckyReroll = false,
-                        ForkChoice = ForkPathChoice.Safe
-                    },
-                    isAutoRoll: true);
+                var autoRequest = BuildAutoTimeoutActionRequestUnsafe(room, currentPlayer);
+                var actor = ResolveAutoActionPlayerUnsafe(room, autoRequest.ActionType) ?? currentPlayer;
+                if (!CanActorPerformActionUnsafe(room, actor, autoRequest.ActionType))
+                {
+                    actor = currentPlayer;
+                }
 
-                dispatches.Add(new AutoRollDispatch
+                var result = gameModule.SubmitGameAction(room, actor, autoRequest, isAutoAction: true);
+                if (!result.Success || result.Value is null)
+                {
+                    continue;
+                }
+
+                room.TurnDeadlineUtc = ResolveNextActionDeadlineUnsafe(room);
+
+                dispatches.Add(new AutoActionDispatch
                 {
                     RoomCode = room.RoomCode,
-                    PlayerId = currentPlayer.PlayerId,
+                    PlayerId = actor.PlayerId,
+                    ActionType = autoRequest.ActionType,
+                    EmitDiceRolled =
+                        autoRequest.ActionType == GameActionType.RollDice &&
+                        !room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase),
                     Payload = new TurnEnvelope
                     {
-                        Turn = result,
+                        Turn = result.Value,
                         Room = ToSnapshot(room)
                     }
                 });
@@ -285,6 +293,48 @@ public sealed partial class GameRoomService
 
             return dispatches;
         }
+    }
+
+    private static SubmitGameActionRequest BuildAutoTimeoutActionRequestUnsafe(
+        GameRoom room,
+        PlayerState currentPlayer)
+    {
+        if (!room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase) ||
+            room.Monopoly is null)
+        {
+            return new SubmitGameActionRequest
+            {
+                RoomCode = room.RoomCode,
+                ActionType = GameActionType.RollDice,
+                ForkChoice = ForkPathChoice.Safe,
+                UseLuckyReroll = false,
+                Monopoly = new MonopolyActionPayload()
+            };
+        }
+
+        var actionType = room.Monopoly.Phase switch
+        {
+            MonopolyTurnPhase.AwaitJailDecision => GameActionType.TryJailRoll,
+            MonopolyTurnPhase.AwaitPurchaseDecision => GameActionType.DeclinePurchase,
+            MonopolyTurnPhase.AuctionInProgress => GameActionType.PassAuction,
+            MonopolyTurnPhase.AwaitTradeResponse => GameActionType.RejectTrade,
+            MonopolyTurnPhase.AwaitManage => GameActionType.EndTurn,
+            MonopolyTurnPhase.AwaitEndTurn => GameActionType.EndTurn,
+            MonopolyTurnPhase.AwaitRoll => GameActionType.RollDice,
+            _ => GameActionType.EndTurn
+        };
+
+        return new SubmitGameActionRequest
+        {
+            RoomCode = room.RoomCode,
+            ActionType = actionType,
+            Monopoly = new MonopolyActionPayload
+            {
+                TargetPlayerId = actionType == GameActionType.RejectTrade
+                    ? room.Monopoly.PendingDecisionPlayerId
+                    : currentPlayer.PlayerId
+            }
+        };
     }
 
 }

@@ -92,9 +92,12 @@
       root.feedback.renderAll();
     });
 
+    state.connection.on("GameActionApplied", async (payload) => {
+      await handleGameActionApplied(payload, false);
+    });
+
     state.connection.on("DiceRolled", async (payload) => {
-      root.feedback.logEvent(formatDiceEvent(payload.turn, payload.room));
-      await root.turnAnimation.queue(payload);
+      await handleGameActionApplied(payload, true);
     });
 
     state.connection.on("GameFinished", (payload) => {
@@ -279,6 +282,91 @@
     }
 
     return extraLines ? `${baseLine} | ${extraLines}` : baseLine;
+  }
+
+  async function handleGameActionApplied(payload, fromDiceEvent) {
+    if (!payload?.turn || !payload?.room) {
+      return;
+    }
+
+    const room = payload.room;
+    const actionType =
+      Number.parseInt(
+        String(payload.turn.actionType ?? root.GAME_ACTION_TYPES.ROLL_DICE),
+        10,
+      ) || root.GAME_ACTION_TYPES.ROLL_DICE;
+    const isRollAction = actionType === root.GAME_ACTION_TYPES.ROLL_DICE;
+    const isMonopoly =
+      root.monopolyHelpers?.isMonopolyRoom?.(room) ??
+      String(room?.gameKey ?? "").trim().toLowerCase() ===
+        String(root.GAME_KEYS?.MONOPOLY ?? "monopoly")
+          .trim()
+          .toLowerCase();
+
+    if (!fromDiceEvent && !isMonopoly && isRollAction) {
+      return;
+    }
+
+    root.feedback.logEvent(formatActionEvent(payload.turn, room));
+    await root.turnAnimation.queue(payload);
+  }
+
+  function formatActionEvent(turn, room) {
+    const actionType =
+      Number.parseInt(
+        String(turn?.actionType ?? root.GAME_ACTION_TYPES.ROLL_DICE),
+        10,
+      ) || root.GAME_ACTION_TYPES.ROLL_DICE;
+    const isRollAction = actionType === root.GAME_ACTION_TYPES.ROLL_DICE;
+    const isMonopoly = root.monopolyHelpers?.isMonopolyRoom?.(room);
+
+    if (!isMonopoly && isRollAction) {
+      return formatDiceEvent(turn, room);
+    }
+
+    const actionLogs = Array.isArray(turn?.actionLogs) ? turn.actionLogs : [];
+    if (actionLogs.length > 0) {
+      return String(actionLogs[0]);
+    }
+
+    const playerName =
+      room?.players?.find((x) => x.playerId === turn?.playerId)?.displayName ??
+      turn?.playerId ??
+      "-";
+
+    if (isRollAction) {
+      const d1 = Number.parseInt(String(turn?.diceOne ?? 0), 10) || 0;
+      const d2 = Number.parseInt(String(turn?.diceTwo ?? 0), 10) || 0;
+      return `${playerName} ทอยเต๋า ${d1}+${d2} -> ${turn?.endPosition ?? "-"}`;
+    }
+
+    const summary = String(turn?.actionSummary ?? "").trim();
+    if (summary) {
+      return `${playerName}: ${summary}`;
+    }
+
+    return `${playerName}: ${actionTypeLabel(actionType)}`;
+  }
+
+  function actionTypeLabel(actionType) {
+    const map = {
+      [root.GAME_ACTION_TYPES.PAY_JAIL_FINE]: "จ่ายค่าปรับออกจากคุก",
+      [root.GAME_ACTION_TYPES.TRY_JAIL_ROLL]: "ทอยแก้คุก",
+      [root.GAME_ACTION_TYPES.BUY_PROPERTY]: "ซื้อทรัพย์สิน",
+      [root.GAME_ACTION_TYPES.DECLINE_PURCHASE]: "ปฏิเสธการซื้อ",
+      [root.GAME_ACTION_TYPES.BID_AUCTION]: "บิดประมูล",
+      [root.GAME_ACTION_TYPES.PASS_AUCTION]: "ผ่านประมูล",
+      [root.GAME_ACTION_TYPES.BUILD_HOUSE]: "สร้างบ้าน",
+      [root.GAME_ACTION_TYPES.SELL_HOUSE]: "ขายบ้าน",
+      [root.GAME_ACTION_TYPES.MORTGAGE]: "จำนอง",
+      [root.GAME_ACTION_TYPES.UNMORTGAGE]: "ไถ่ถอน",
+      [root.GAME_ACTION_TYPES.OFFER_TRADE]: "เสนอเทรด",
+      [root.GAME_ACTION_TYPES.ACCEPT_TRADE]: "ตอบรับเทรด",
+      [root.GAME_ACTION_TYPES.REJECT_TRADE]: "ปฏิเสธเทรด",
+      [root.GAME_ACTION_TYPES.DECLARE_BANKRUPTCY]: "ล้มละลาย",
+      [root.GAME_ACTION_TYPES.END_TURN]: "จบเทิร์น",
+    };
+    return map[actionType] ?? "ดำเนินการ";
   }
 
   function formatComebackLine(turn) {
