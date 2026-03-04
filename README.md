@@ -17,7 +17,7 @@
 ## 1) Tech Stack
 - Backend: ASP.NET Core (`net10.0`)
 - Realtime: SignalR (`/hubs/game`)
-- Frontend: HTML/CSS + Modular Vanilla JS (`wwwroot/js`)
+- Frontend: HTML/CSS + Modular Vanilla JS (`wwwroot/games/snakes-ladders/js`)
 - State: In-memory (ไม่มี DB)
 - Persistence ฝั่ง client: `localStorage`
 
@@ -99,37 +99,31 @@ SnakesLadders/
 `- SnakesLadders/
    |- Program.cs
    |- Hubs/GameHub.cs
-   |- Services/
-   |  |- GameRoomService.cs
-   |  |- GameEngine.cs
-   |  |- BoardGenerator.cs
-   |  `- TurnTimerBackgroundService.cs
-   |- Domain/
-   |  |- GameModels.cs
-   |  |- GameOptions.cs
-   |  `- GameEnums.cs
    |- Contracts/GameContracts.cs
+   |- Domain/GameCatalog.cs
+   |- Games/
+   |  `- SnakesLadders/
+   |     |- Domain/
+   |     |  |- GameEnums.cs
+   |     |  |- GameModels.cs
+   |     |  `- GameOptions.cs
+   |     `- Services/
+   |        |- Abstractions/SnakesLaddersEngineInterfaces.cs
+   |        |- Board/BoardGenerator.cs
+   |        |- GameEngine/*.cs
+   |        `- SnakesLaddersGameRoomModule.cs
+   |- Services/
+   |  |- Abstractions/Interfaces.cs
+   |  |- Background/TurnTimerBackgroundService.cs
+   |  `- GameRoomService/*.cs
    `- wwwroot/
       |- index.html
       |- styles.css
-      `- js/
-         |- sn-main.js
-         |- sn-signalr.js
-         |- sn-actions.js
-         |- sn-render-main.js
-         |- sn-render-lobby.js
-         |- sn-render-game.js
-         |- sn-render-chat.js
-         |- sn-room-ui.js
-         |- sn-ready-ui.js
-         |- sn-board-page.js
-         |- sn-board-focus.js
-         |- sn-board-beacon.js
-         |- sn-board-overlay.js
-         |- sn-board-token-layer.js
-         |- sn-piece-transit.js
-         |- sn-turn-animation.js
-         `- sn-board-fx.js
+      `- games/
+         `- snakes-ladders/
+            |- assets/
+            |- styles/
+            `- js/
 ```
 
 ## 4) Run Local
@@ -157,6 +151,7 @@ docker compose up -d --build
 
 ## 6) HTTP Endpoints
 - `GET /health`
+- `GET /games`
 - `GET /rooms/waiting`
 - `GET /lobby/online`
 - SignalR hub: `/hubs/game`

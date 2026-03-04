@@ -43,6 +43,7 @@ public sealed partial class GameRoomService
             return ServiceResult<RoomSnapshot>.Ok(new RoomSnapshot
             {
                 RoomCode = room.RoomCode,
+                GameKey = room.GameKey,
                 HostPlayerId = room.HostPlayerId,
                 Status = GameStatus.Finished,
                 BoardOptions = room.BoardOptions,
@@ -153,6 +154,11 @@ public sealed partial class GameRoomService
     private static string NormalizeRoomCode(string roomCode) =>
         roomCode.Trim().ToUpperInvariant();
 
+    private bool TryGetGameModule(string gameKey, out IGameRoomModule gameModule)
+    {
+        return _gameModules.TryGetValue(GameCatalog.Normalize(gameKey), out gameModule!);
+    }
+
     private static string NewPlayerId() => Guid.NewGuid().ToString("N")[..8];
     private static string NewSessionId() => Guid.NewGuid().ToString("N");
 
@@ -222,6 +228,7 @@ public sealed partial class GameRoomService
         return new RoomSnapshot
         {
             RoomCode = room.RoomCode,
+            GameKey = room.GameKey,
             HostPlayerId = room.HostPlayerId,
             Status = room.Status,
             BoardOptions = room.BoardOptions,

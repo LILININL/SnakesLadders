@@ -27,6 +27,7 @@ if (httpsPort.HasValue)
 
 builder.Services.AddSingleton<IBoardGenerator, BoardGenerator>();
 builder.Services.AddSingleton<IGameEngine, GameEngine>();
+builder.Services.AddSingleton<IGameRoomModule, SnakesLaddersGameRoomModule>();
 builder.Services.AddSingleton<IGameRoomService, GameRoomService>();
 builder.Services.AddHostedService<TurnTimerBackgroundService>();
 
@@ -79,6 +80,9 @@ app.MapGet("/health", () => Results.Ok(new
 
 app.MapGet("/rooms/waiting", (IGameRoomService roomService) =>
     Results.Ok(roomService.GetPublicRooms()));
+
+app.MapGet("/games", (IGameRoomService roomService) =>
+    Results.Ok(roomService.GetAvailableGames()));
 
 app.MapGet("/lobby/online", (IGameRoomService roomService) =>
     Results.Ok(roomService.GetLobbyOnlineUsers()));

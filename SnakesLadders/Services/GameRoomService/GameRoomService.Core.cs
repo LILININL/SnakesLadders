@@ -10,13 +10,13 @@ public sealed partial class GameRoomService : IGameRoomService
     private const int MinAvatarId = 1;
     private const int MaxAvatarId = 8;
 
-    private readonly IBoardGenerator _boardGenerator;
-    private readonly IGameEngine _gameEngine;
+    private readonly Dictionary<string, IGameRoomModule> _gameModules;
 
-    public GameRoomService(IBoardGenerator boardGenerator, IGameEngine gameEngine)
+    public GameRoomService(IEnumerable<IGameRoomModule> gameModules)
     {
-        _boardGenerator = boardGenerator;
-        _gameEngine = gameEngine;
+        _gameModules = gameModules
+            .GroupBy(x => GameCatalog.Normalize(x.GameKey), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.First(), StringComparer.OrdinalIgnoreCase);
     }
 
     private readonly Lock _sync = new();
@@ -32,13 +32,18 @@ public sealed partial class GameRoomService : IGameRoomService
             RemoveExistingConnectionUnsafe(connectionId);
             UpsertLobbyPresenceUnsafe(connectionId, request.PlayerName);
 
-            var boardOptions = request.BoardOptions ?? new BoardOptions();
-            boardOptions.Normalize();
-            var validation = boardOptions.Validate();
-            if (validation is not null)
+            var gameKey = GameCatalog.Normalize(request.GameKey);
+            if (!TryGetGameModule(gameKey, out var gameModule))
             {
-                return ServiceResult<CreateRoomResponse>.Fail(validation);
+                return ServiceResult<CreateRoomResponse>.Fail($"ยังไม่รองรับเกม {gameKey}");
             }
+
+            var optionsResult = gameModule.BuildBoardOptionsForCreate(request);
+            if (!optionsResult.Success || optionsResult.Value is null)
+            {
+                return ServiceResult<CreateRoomResponse>.Fail(optionsResult.Error ?? "ไม่สามารถตั้งค่าห้องเกมได้");
+            }
+            var boardOptions = optionsResult.Value;
 
             var roomCode = GenerateRoomCodeUnsafe();
             var playerId = NewPlayerId();
@@ -55,6 +60,7 @@ public sealed partial class GameRoomService : IGameRoomService
             var room = new GameRoom
             {
                 RoomCode = roomCode,
+                GameKey = gameKey,
                 BoardOptions = boardOptions,
                 HostPlayerId = playerId
             };
@@ -200,49 +206,19 @@ public sealed partial class GameRoomService : IGameRoomService
                 return ServiceResult<RoomSnapshot>.Fail("ผู้เล่นที่ไม่ใช่หัวห้องต้องออนไลน์และกดพร้อมครบ");
             }
 
-            room.BoardOptions.Normalize();
-            var validation = room.BoardOptions.Validate();
+            if (!TryGetGameModule(room.GameKey, out var gameModule))
+            {
+                return ServiceResult<RoomSnapshot>.Fail($"ยังไม่รองรับเกม {room.GameKey}");
+            }
+
+            var validation = gameModule.ValidateRoomBeforeStart(room);
             if (validation is not null)
             {
                 return ServiceResult<RoomSnapshot>.Fail(validation);
             }
 
-            var random = room.BoardOptions.Seed.HasValue
-                ? new Random(room.BoardOptions.Seed.Value)
-                : Random.Shared;
-            room.Board = _boardGenerator.Generate(room.BoardOptions, random);
-
-            foreach (var player in room.Players)
-            {
-                player.Position = 1;
-                player.Shields = 0;
-                player.ConsecutiveSnakeHits = 0;
-                player.MercyLadderPending = false;
-                player.SnakeRepellentCharges = 0;
-                player.LadderHackPending = false;
-                player.AnchorTurnsRemaining = 0;
-                player.ItemDryTurnStreak = 0;
-                player.NextCheckpoint = Math.Max(1, room.BoardOptions.RuleOptions.CheckpointInterval);
-                player.LuckyRerollsLeft = room.BoardOptions.RuleOptions.LuckyRerollEnabled
-                    ? room.BoardOptions.RuleOptions.LuckyRerollPerPlayer
-                    : 0;
-            }
-
-            room.Status = GameStatus.Started;
-            room.CurrentTurnIndex = random.Next(0, room.Players.Count);
-            room.TurnCounter = 0;
-            room.CompletedRounds = 0;
-            room.WinnerPlayerId = null;
-            room.FinishReason = null;
-            room.ActiveFrenzySnake = null;
-            room.ActiveFrenzySnakeTurnsLeft = 0;
-            room.FrenzyNoSpawnStreak = 0;
-            room.NextItemRefreshAtTurnCounter = 0;
-            room.ActiveItems.Clear();
-            room.TemporaryJumps.Clear();
-            room.BananaTraps.Clear();
+            gameModule.StartGame(room);
             room.TurnDeadlineUtc = ResolveNextTurnDeadlineUnsafe(room, room.CurrentTurnPlayer);
-            _gameEngine.SeedRoomState(room);
 
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
         }
@@ -296,12 +272,12 @@ public sealed partial class GameRoomService : IGameRoomService
                 return ServiceResult<TurnEnvelope>.Fail("ยังไม่ถึงตาคุณ");
             }
 
-            var result = _gameEngine.ResolveTurn(
-                room,
-                actor,
-                request.UseLuckyReroll,
-                request.ForkChoice,
-                isAutoRoll);
+            if (!TryGetGameModule(room.GameKey, out var gameModule))
+            {
+                return ServiceResult<TurnEnvelope>.Fail($"ยังไม่รองรับเกม {room.GameKey}");
+            }
+
+            var result = gameModule.ResolveTurn(room, actor, request, isAutoRoll);
 
             return ServiceResult<TurnEnvelope>.Ok(new TurnEnvelope
             {

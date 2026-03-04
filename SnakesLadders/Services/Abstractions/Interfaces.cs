@@ -3,20 +3,20 @@ using SnakesLadders.Domain;
 
 namespace SnakesLadders.Services;
 
-public interface IBoardGenerator
+public interface IGameRoomModule
 {
-    BoardState Generate(BoardOptions options, Random random);
-}
-
-public interface IGameEngine
-{
-    void SeedRoomState(GameRoom room);
-
+    string GameKey { get; }
+    string DisplayName { get; }
+    string Description { get; }
+    bool IsAvailable { get; }
+    ServiceResult<BoardOptions> BuildBoardOptionsForCreate(CreateRoomRequest request);
+    string? ValidateRoomBeforeStart(GameRoom room);
+    void StartGame(GameRoom room);
+    void ResetFinishedGame(GameRoom room);
     TurnResult ResolveTurn(
         GameRoom room,
         PlayerState player,
-        bool useLuckyReroll,
-        ForkPathChoice? forkChoice,
+        RollDiceRequest request,
         bool isAutoRoll);
 }
 
@@ -34,6 +34,7 @@ public interface IGameRoomService
     ServiceResult<RoomSnapshot> LeaveRoom(string connectionId, string? roomCode = null);
     ServiceResult<RoomSnapshot> HandleDisconnect(string connectionId);
     ServiceResult<RoomSnapshot> GetRoom(string roomCode);
+    IReadOnlyList<PublicGameSummary> GetAvailableGames();
     IReadOnlyList<PublicRoomSummary> GetPublicRooms();
     void UpsertLobbyPresence(string connectionId, string displayName);
     IReadOnlyList<LobbyOnlineUser> GetLobbyOnlineUsers();

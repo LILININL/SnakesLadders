@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=20260227r1">
+  <link rel="stylesheet" href="/styles.css?v=20260304r12">
 </head>
 
 <body>
@@ -45,85 +45,97 @@
         </div>
 
         <div id="createPanel" class="hidden">
-          <form id="createForm" class="stack">
+          <div id="createGameListShell" class="stack">
+            <h3>เลือกเกมที่อยากเปิดห้อง</h3>
+            <div id="createGameList" class="game-create-list"></div>
+          </div>
+
+          <form id="createForm" class="stack hidden">
+            <input id="gameKey" type="hidden" value="">
+            <div class="create-game-head">
+              <button id="createBackToGamesBtn" class="btn" type="button">กลับไปเลือกเกม</button>
+              <div id="selectedCreateGameTitle" class="meta-chip">เกม: Snakes &amp; Ladders</div>
+            </div>
             <label>
               ชื่อผู้สร้าง
               <input id="createName" type="text" maxlength="24" value="หัวห้อง">
             </label>
-            <label>
-              ขนาดกระดาน (อย่างน้อย 50 ช่อง)
-              <input id="boardSize" type="number" min="50" max="5000" value="100">
-            </label>
-            <label>
-              โหมดห้อง
-              <select id="gameMode">
-                <option value="0">Classic (กติกาพื้นฐาน)</option>
-                <option value="1" selected>Custom (เลือกกฏเสริมเอง)</option>
-                <option value="2">Chaos (ไอเท็มปั่น + กฏตายตัว)</option>
-              </select>
-            </label>
-            <label>
-              กติกาเมื่อทอยเกินช่องเส้นชัย
-              <select id="overflowMode">
-                <option value="0" selected>อยู่ที่เดิม</option>
-                <option value="1">ถอยหลังตามแต้มเกิน x2</option>
-              </select>
-            </label>
+            <div id="snakesLaddersSettings" class="stack">
+              <label>
+                ขนาดกระดาน (อย่างน้อย 50 ช่อง)
+                <input id="boardSize" type="number" min="50" max="5000" value="100">
+              </label>
+              <label>
+                โหมดห้อง
+                <select id="gameMode">
+                  <option value="0">Classic (กติกาพื้นฐาน)</option>
+                  <option value="1" selected>Custom (เลือกกฏเสริมเอง)</option>
+                  <option value="2">Chaos (ไอเท็มปั่น + กฏตายตัว)</option>
+                </select>
+              </label>
+              <label>
+                กติกาเมื่อทอยเกินช่องเส้นชัย
+                <select id="overflowMode">
+                  <option value="0" selected>อยู่ที่เดิม</option>
+                  <option value="1">ถอยหลังตามแต้มเกิน x2</option>
+                </select>
+              </label>
 
-            <div id="customRuleOptionsBlock">
-              <div id="createRuleToggleGrid" class="rule-grid">
-                <label class="rule-option">
-                  <span class="rule-option-title"><input id="ruleItemsEnabled" type="checkbox"> เปิดระบบไอเท็ม</span>
-                  <small class="rule-option-desc">สุ่มไอเท็มบนกระดาน เหยียบแล้วใช้ทันที (สำหรับโหมด Custom)</small>
-                </label>
-                <label class="rule-option">
-                  <span class="rule-option-title"><input id="ruleCheckpointShield" type="checkbox"> เกราะเช็กพอยต์</span>
-                  <small class="rule-option-desc">ผ่านทุก ๆ N ช่อง รับโล่ 1 ชั้นไว้กันงูได้ 1 ครั้ง</small>
-                </label>
-                <label class="rule-option">
-                  <span class="rule-option-title"><input id="ruleComebackBoost" type="checkbox"> เร่งแซงคนตาม</span>
-                  <small class="rule-option-desc">ผู้เล่นที่รั้งท้ายจริง ๆ จะได้โบนัสแต้มทอย +1 (ไม่เกิน 6)</small>
-                </label>
-                <label class="rule-option">
-                  <span class="rule-option-title"><input id="ruleSnakeFrenzy" type="checkbox"> งูคลุ้มคลั่ง</span>
-                  <small class="rule-option-desc">ทุก ๆ N เทิร์น จะมีงูชั่วคราวโผล่มาเพิ่มความปั่นป่วน</small>
-                </label>
-                <label class="rule-option">
-                  <span class="rule-option-title"><input id="ruleMercyLadder" type="checkbox"> บันไดเมตตา</span>
-                  <small class="rule-option-desc">โดนงูกัดติดกัน 2 ครั้ง เทิร์นถัดไปจะได้แรงส่งพิเศษ</small>
-                </label>
-                <label class="rule-option">
-                  <span class="rule-option-title"><input id="ruleTurnTimer" type="checkbox"> จับเวลาเทิร์น</span>
-                  <small class="rule-option-desc">ถ้าหมดเวลาแล้วยังไม่ทอย ระบบจะทอยให้อัตโนมัติ</small>
-                </label>
-                <label class="rule-option">
-                  <span class="rule-option-title"><input id="ruleRoundLimit" type="checkbox"> จำกัดรอบ</span>
-                  <small class="rule-option-desc">ครบจำนวนรอบที่ตั้งไว้แล้ว ตัดสินจากคนที่ขึ้นไปไกลสุด</small>
-                </label>
-                <label class="rule-option">
-                  <span class="rule-option-title"><input id="ruleMarathonSpeedup" type="checkbox"> เร่งเกมช่วงท้าย</span>
-                  <small class="rule-option-desc">กระดานยาวจะเพิ่มจำนวนบันไดตอนสร้างด่านให้เกมไหลไวขึ้น</small>
-                </label>
+              <div id="customRuleOptionsBlock">
+                <div id="createRuleToggleGrid" class="rule-grid">
+                  <label class="rule-option">
+                    <span class="rule-option-title"><input id="ruleItemsEnabled" type="checkbox"> เปิดระบบไอเท็ม</span>
+                    <small class="rule-option-desc">สุ่มไอเท็มบนกระดาน เหยียบแล้วใช้ทันที (สำหรับโหมด Custom)</small>
+                  </label>
+                  <label class="rule-option">
+                    <span class="rule-option-title"><input id="ruleCheckpointShield" type="checkbox"> เกราะเช็กพอยต์</span>
+                    <small class="rule-option-desc">ผ่านทุก ๆ N ช่อง รับโล่ 1 ชั้นไว้กันงูได้ 1 ครั้ง</small>
+                  </label>
+                  <label class="rule-option">
+                    <span class="rule-option-title"><input id="ruleComebackBoost" type="checkbox"> เร่งแซงคนตาม</span>
+                    <small class="rule-option-desc">ผู้เล่นที่รั้งท้ายจริง ๆ จะได้โบนัสแต้มทอย +1 (ไม่เกิน 6)</small>
+                  </label>
+                  <label class="rule-option">
+                    <span class="rule-option-title"><input id="ruleSnakeFrenzy" type="checkbox"> งูคลุ้มคลั่ง</span>
+                    <small class="rule-option-desc">ทุก ๆ N เทิร์น จะมีงูชั่วคราวโผล่มาเพิ่มความปั่นป่วน</small>
+                  </label>
+                  <label class="rule-option">
+                    <span class="rule-option-title"><input id="ruleMercyLadder" type="checkbox"> บันไดเมตตา</span>
+                    <small class="rule-option-desc">โดนงูกัดติดกัน 2 ครั้ง เทิร์นถัดไปจะได้แรงส่งพิเศษ</small>
+                  </label>
+                  <label class="rule-option">
+                    <span class="rule-option-title"><input id="ruleTurnTimer" type="checkbox"> จับเวลาเทิร์น</span>
+                    <small class="rule-option-desc">ถ้าหมดเวลาแล้วยังไม่ทอย ระบบจะทอยให้อัตโนมัติ</small>
+                  </label>
+                  <label class="rule-option">
+                    <span class="rule-option-title"><input id="ruleRoundLimit" type="checkbox"> จำกัดรอบ</span>
+                    <small class="rule-option-desc">ครบจำนวนรอบที่ตั้งไว้แล้ว ตัดสินจากคนที่ขึ้นไปไกลสุด</small>
+                  </label>
+                  <label class="rule-option">
+                    <span class="rule-option-title"><input id="ruleMarathonSpeedup" type="checkbox"> เร่งเกมช่วงท้าย</span>
+                    <small class="rule-option-desc">กระดานยาวจะเพิ่มจำนวนบันไดตอนสร้างด่านให้เกมไหลไวขึ้น</small>
+                  </label>
+                </div>
+
+                <div id="createRuleSettingGrid" class="rule-grid compact">
+                  <label id="settingTurnSeconds" class="rule-setting hidden">เวลาเทิร์น (วินาที) <input id="turnSeconds" type="number" min="3" max="120" value="15"></label>
+                  <label id="settingMaxRounds" class="rule-setting hidden">รอบสูงสุด <input id="maxRounds" type="number" min="10" max="500" value="80"></label>
+                  <label id="settingFrenzyInterval" class="rule-setting hidden">งูคลุ้มคลั่งทุก ๆ N เทิร์น <input id="frenzyInterval" type="number" min="2" max="30" value="5"></label>
+                  <label id="settingCheckpointInterval" class="rule-setting hidden">เช็กพอยต์ทุก ๆ N ช่อง <input id="checkpointInterval" type="number" min="10" max="200" value="50"></label>
+                  <label id="settingMercyBoost" class="rule-setting hidden">ระยะแซงจากบันไดเมตตา <input id="mercyBoost" type="number" min="3" max="100" value="12"></label>
+                  <label id="settingMarathonThreshold" class="rule-setting hidden">เริ่มเร่งเกมเมื่อกระดานอย่างน้อย (ช่อง) <input id="marathonThreshold" type="number" min="50" max="5000" value="300"></label>
+                  <label id="settingMarathonMultiplier" class="rule-setting hidden">ตัวคูณจำนวนบันไดช่วงเร่งเกม <input id="marathonMultiplier" type="number" min="1" max="3" step="0.05" value="1.2"></label>
+                </div>
+                <p id="createRuleHelpNote" class="rule-help-note">เลือกเฉพาะกฏที่อยากใช้ได้เลย ค่าตัวเลขจะมีผลเฉพาะกฏที่เปิดไว้เท่านั้น</p>
               </div>
 
-              <div id="createRuleSettingGrid" class="rule-grid compact">
-                <label id="settingTurnSeconds" class="rule-setting hidden">เวลาเทิร์น (วินาที) <input id="turnSeconds" type="number" min="3" max="120" value="15"></label>
-                <label id="settingMaxRounds" class="rule-setting hidden">รอบสูงสุด <input id="maxRounds" type="number" min="10" max="500" value="80"></label>
-                <label id="settingFrenzyInterval" class="rule-setting hidden">งูคลุ้มคลั่งทุก ๆ N เทิร์น <input id="frenzyInterval" type="number" min="2" max="30" value="5"></label>
-                <label id="settingCheckpointInterval" class="rule-setting hidden">เช็กพอยต์ทุก ๆ N ช่อง <input id="checkpointInterval" type="number" min="10" max="200" value="50"></label>
-                <label id="settingMercyBoost" class="rule-setting hidden">ระยะแซงจากบันไดเมตตา <input id="mercyBoost" type="number" min="3" max="100" value="12"></label>
-                <label id="settingMarathonThreshold" class="rule-setting hidden">เริ่มเร่งเกมเมื่อกระดานอย่างน้อย (ช่อง) <input id="marathonThreshold" type="number" min="50" max="5000" value="300"></label>
-                <label id="settingMarathonMultiplier" class="rule-setting hidden">ตัวคูณจำนวนบันไดช่วงเร่งเกม <input id="marathonMultiplier" type="number" min="1" max="3" step="0.05" value="1.2"></label>
+              <div id="chaosRuleInfoBlock" class="chaos-rule-info hidden">
+                <strong>Chaos Profile</strong>
+                <p>โหมดนี้ล็อกค่ากติกาหลักอัตโนมัติ (เช่น จับเวลา/จำกัดรอบ/งูคลุ้มคลั่ง) และเปิดระบบไอเท็มเสมอ</p>
               </div>
-              <p id="createRuleHelpNote" class="rule-help-note">เลือกเฉพาะกฏที่อยากใช้ได้เลย ค่าตัวเลขจะมีผลเฉพาะกฏที่เปิดไว้เท่านั้น</p>
             </div>
 
-            <div id="chaosRuleInfoBlock" class="chaos-rule-info hidden">
-              <strong>Chaos Profile</strong>
-              <p>โหมดนี้ล็อกค่ากติกาหลักอัตโนมัติ (เช่น จับเวลา/จำกัดรอบ/งูคลุ้มคลั่ง) และเปิดระบบไอเท็มเสมอ</p>
-            </div>
-
-            <button type="submit" class="btn btn-primary">เปิดห้อง</button>
+            <button id="createSubmitBtn" type="submit" class="btn btn-primary btn-big">เปิดห้อง</button>
           </form>
         </div>
 
@@ -224,7 +236,52 @@
               <div id="boardItemTooltip" class="board-item-tooltip hidden"></div>
               <div id="turnDeadlineAlert" class="turn-deadline-alert hidden"></div>
               <div id="diceResultFx" class="dice-result-fx hidden"></div>
-              <button id="rollDiceFloatingBtn" class="btn btn-primary roll-fab hidden">🎲 ทอยเลย</button>
+              <button id="rollDiceFloatingBtn" class="btn btn-primary roll-fab hidden" type="button" aria-label="กดค้างที่ลูกเต๋าเพื่อชาร์จ แล้วปล่อยเพื่อทอย">
+                <span id="rollControlDice" class="roll-control-dice" aria-hidden="true">
+                  <span class="roll-dice-cube">
+                    <span class="roll-dice-face face-1">
+                      <span class="dice-pip pip-mm"></span>
+                    </span>
+                    <span class="roll-dice-face face-2">
+                      <span class="dice-pip pip-tl"></span>
+                      <span class="dice-pip pip-br"></span>
+                    </span>
+                    <span class="roll-dice-face face-3">
+                      <span class="dice-pip pip-tl"></span>
+                      <span class="dice-pip pip-mm"></span>
+                      <span class="dice-pip pip-br"></span>
+                    </span>
+                    <span class="roll-dice-face face-4">
+                      <span class="dice-pip pip-tl"></span>
+                      <span class="dice-pip pip-tr"></span>
+                      <span class="dice-pip pip-bl"></span>
+                      <span class="dice-pip pip-br"></span>
+                    </span>
+                    <span class="roll-dice-face face-5">
+                      <span class="dice-pip pip-tl"></span>
+                      <span class="dice-pip pip-tr"></span>
+                      <span class="dice-pip pip-mm"></span>
+                      <span class="dice-pip pip-bl"></span>
+                      <span class="dice-pip pip-br"></span>
+                    </span>
+                    <span class="roll-dice-face face-6">
+                      <span class="dice-pip pip-tl"></span>
+                      <span class="dice-pip pip-ml"></span>
+                      <span class="dice-pip pip-bl"></span>
+                      <span class="dice-pip pip-tr"></span>
+                      <span class="dice-pip pip-mr"></span>
+                      <span class="dice-pip pip-br"></span>
+                    </span>
+                  </span>
+                </span>
+                <span class="roll-control-meta" aria-hidden="true">
+                  <span class="roll-charge-track">
+                    <span id="rollChargeFill" class="roll-charge-fill"></span>
+                  </span>
+                  <span id="rollChargeValue" class="roll-charge-value">0%</span>
+                  <span class="roll-control-hint">กดค้าง แล้วปล่อย</span>
+                </span>
+              </button>
               <button id="toggleRollBtn" class="btn roll-toggle hidden">ซ่อนปุ่มทอย</button>
             </div>
           </div>
@@ -271,32 +328,32 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
-  <script src="/js/core/sn-state.js?v=20260226r10"></script>
-  <script src="/js/core/sn-utils.js?v=20260226r9"></script>
-  <script src="/js/core/sn-view-state.js?v=20260226r6"></script>
-  <script src="/js/core/sn-storage.js?v=20260226r6"></script>
-  <script src="/js/board/sn-board-page.js?v=20260226r6"></script>
-  <script src="/js/board/sn-board-focus.js?v=20260226r6"></script>
-  <script src="/js/board/sn-board-beacon.js?v=20260226r6"></script>
-  <script src="/js/render/sn-render-lobby.js?v=20260226r6"></script>
-  <script src="/js/render/sn-render-game.js?v=20260226r14"></script>
-  <script src="/js/board/sn-jump-geometry.js?v=20260226r6"></script>
-  <script src="/js/board/sn-board-overlay.js?v=20260226r6"></script>
-  <script src="/js/board/sn-board-token-layer.js?v=20260226r7"></script>
-  <script src="/js/ui/sn-rule-summary.js?v=20260226r6"></script>
-  <script src="/js/ui/sn-room-ui.js?v=20260226r9"></script>
-  <script src="/js/ui/sn-ready-ui.js?v=20260226r6"></script>
-  <script src="/js/ui/sn-rule-ui.js?v=20260226r6"></script>
-  <script src="/js/board/sn-board-fx.js?v=20260226r16"></script>
-  <script src="/js/board/sn-piece-transit.js?v=20260226r6"></script>
-  <script src="/js/board/sn-turn-animation.js?v=20260226r19"></script>
-  <script src="/js/render/sn-render-chat.js?v=20260226r6"></script>
-  <script src="/js/render/sn-render-main.js?v=20260226r6"></script>
-  <script src="/js/net/sn-api.js?v=20260226r6"></script>
-  <script src="/js/net/sn-signalr.js?v=20260226r10"></script>
-  <script src="/js/net/sn-session.js?v=20260226r6"></script>
-  <script src="/js/app/sn-actions.js?v=20260226r10"></script>
-  <script src="/js/app/sn-main.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/core/sn-state.js?v=20260304r3"></script>
+  <script src="/games/snakes-ladders/js/core/sn-utils.js?v=20260226r9"></script>
+  <script src="/games/snakes-ladders/js/core/sn-view-state.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/core/sn-storage.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/board/sn-board-page.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/board/sn-board-focus.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/board/sn-board-beacon.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/render/sn-render-lobby.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/render/sn-render-game.js?v=20260304r2"></script>
+  <script src="/games/snakes-ladders/js/board/sn-jump-geometry.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/board/sn-board-overlay.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/board/sn-board-token-layer.js?v=20260226r7"></script>
+  <script src="/games/snakes-ladders/js/ui/sn-rule-summary.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/ui/sn-room-ui.js?v=20260304r2"></script>
+  <script src="/games/snakes-ladders/js/ui/sn-ready-ui.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/ui/sn-rule-ui.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/board/sn-board-fx.js?v=20260304r4"></script>
+  <script src="/games/snakes-ladders/js/board/sn-piece-transit.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/board/sn-turn-animation.js?v=20260226r19"></script>
+  <script src="/games/snakes-ladders/js/render/sn-render-chat.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/render/sn-render-main.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/net/sn-api.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/net/sn-signalr.js?v=20260304r1"></script>
+  <script src="/games/snakes-ladders/js/net/sn-session.js?v=20260226r6"></script>
+  <script src="/games/snakes-ladders/js/app/sn-actions.js?v=20260304r7"></script>
+  <script src="/games/snakes-ladders/js/app/sn-main.js?v=20260226r6"></script>
 </body>
 
 </html>

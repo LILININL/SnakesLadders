@@ -6,6 +6,7 @@ public sealed class CreateRoomRequest
 {
     public string PlayerName { get; set; } = string.Empty;
     public int AvatarId { get; set; } = 1;
+    public string? GameKey { get; set; }
     public BoardOptions? BoardOptions { get; set; }
 }
 
@@ -103,6 +104,7 @@ public sealed class ChatMessage
 public sealed class RoomSnapshot
 {
     public required string RoomCode { get; init; }
+    public required string GameKey { get; init; }
     public required string HostPlayerId { get; init; }
     public required GameStatus Status { get; init; }
     public required BoardOptions BoardOptions { get; init; }
@@ -146,11 +148,20 @@ public sealed class PlayerSnapshot
 public sealed class PublicRoomSummary
 {
     public required string RoomCode { get; init; }
+    public required string GameKey { get; init; }
     public required GameStatus Status { get; init; }
     public required string HostName { get; init; }
     public required int PlayerCount { get; init; }
     public required int BoardSize { get; init; }
     public required DensityMode DensityMode { get; init; }
+}
+
+public sealed class PublicGameSummary
+{
+    public required string GameKey { get; init; }
+    public required string DisplayName { get; init; }
+    public required string Description { get; init; }
+    public required bool IsAvailable { get; init; }
 }
 
 public sealed class LobbyOnlineUser

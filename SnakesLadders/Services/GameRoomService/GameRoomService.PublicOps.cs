@@ -33,39 +33,12 @@ public sealed partial class GameRoomService
                 room.HostPlayerId = room.Players[0].PlayerId;
             }
 
-            var checkpoint = Math.Max(1, room.BoardOptions.RuleOptions.CheckpointInterval);
-            foreach (var player in room.Players)
+            if (!TryGetGameModule(room.GameKey, out var gameModule))
             {
-                player.Position = 1;
-                player.Shields = 0;
-                player.ConsecutiveSnakeHits = 0;
-                player.MercyLadderPending = false;
-                player.SnakeRepellentCharges = 0;
-                player.LadderHackPending = false;
-                player.AnchorTurnsRemaining = 0;
-                player.ItemDryTurnStreak = 0;
-                player.NextCheckpoint = checkpoint;
-                player.LuckyRerollsLeft = room.BoardOptions.RuleOptions.LuckyRerollEnabled
-                    ? room.BoardOptions.RuleOptions.LuckyRerollPerPlayer
-                    : 0;
-                player.IsReady = player.PlayerId == room.HostPlayerId;
+                return ServiceResult<RoomSnapshot>.Fail($"ยังไม่รองรับเกม {room.GameKey}");
             }
-
-            room.Status = GameStatus.Waiting;
-            room.Board = null;
-            room.CurrentTurnIndex = 0;
-            room.TurnCounter = 0;
-            room.CompletedRounds = 0;
-            room.WinnerPlayerId = null;
-            room.FinishReason = null;
-            room.ActiveFrenzySnake = null;
-            room.ActiveFrenzySnakeTurnsLeft = 0;
-            room.FrenzyNoSpawnStreak = 0;
-            room.NextItemRefreshAtTurnCounter = 0;
-            room.ActiveItems.Clear();
-            room.TemporaryJumps.Clear();
-            room.BananaTraps.Clear();
-            room.TurnDeadlineUtc = null;
+            
+            gameModule.ResetFinishedGame(room);
 
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
         }
@@ -201,12 +174,30 @@ public sealed partial class GameRoomService
                     return new PublicRoomSummary
                     {
                         RoomCode = x.RoomCode,
+                        GameKey = x.GameKey,
                         Status = x.Status,
                         HostName = host?.DisplayName ?? "หัวห้อง",
                         PlayerCount = x.Players.Count,
                         BoardSize = x.BoardOptions.BoardSize,
                         DensityMode = x.BoardOptions.DensityMode
                     };
+                })
+                .ToArray();
+        }
+    }
+
+    public IReadOnlyList<PublicGameSummary> GetAvailableGames()
+    {
+        lock (_sync)
+        {
+            return _gameModules.Values
+                .OrderBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+                .Select(x => new PublicGameSummary
+                {
+                    GameKey = x.GameKey,
+                    DisplayName = x.DisplayName,
+                    Description = x.Description,
+                    IsAvailable = x.IsAvailable
                 })
                 .ToArray();
         }
@@ -260,11 +251,20 @@ public sealed partial class GameRoomService
                     continue;
                 }
 
-                var result = _gameEngine.ResolveTurn(
+                if (!TryGetGameModule(room.GameKey, out var gameModule))
+                {
+                    continue;
+                }
+
+                var result = gameModule.ResolveTurn(
                     room,
                     currentPlayer,
-                    useLuckyReroll: false,
-                    forkChoice: ForkPathChoice.Safe,
+                    new RollDiceRequest
+                    {
+                        RoomCode = room.RoomCode,
+                        UseLuckyReroll = false,
+                        ForkChoice = ForkPathChoice.Safe
+                    },
                     isAutoRoll: true);
 
                 dispatches.Add(new AutoRollDispatch
