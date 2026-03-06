@@ -128,18 +128,28 @@
   function setTokenIdentity(token, playerId) {
     const players = state.room?.players ?? state.deferredRoom?.players ?? [];
     const player = players.find((x) => x.playerId === playerId);
-    const markerMap = root.utils?.buildPlayerMarkerMap?.(players) ?? new Map();
     const safeAvatarId =
       root.utils?.normalizeAvatarId?.(player?.avatarId, 1) ?? 1;
     const safeAvatarSrc = root.utils?.avatarSrc?.(safeAvatarId) ?? "";
+    token.dataset.playerId = playerId ?? "";
     if (safeAvatarSrc) {
       token.classList.add("avatar");
-      const avatar = document.createElement("img");
-      avatar.className = "token-avatar-img";
-      avatar.src = safeAvatarSrc;
-      avatar.alt = `Avatar ${safeAvatarId}`;
-      token.replaceChildren(avatar);
+      let avatar = token.querySelector(".token-avatar-img");
+      if (!avatar) {
+        avatar = document.createElement("img");
+        avatar.className = "token-avatar-img";
+        token.replaceChildren(avatar);
+      }
+      if (token.dataset.avatarSrc !== safeAvatarSrc) {
+        avatar.src = safeAvatarSrc;
+        token.dataset.avatarSrc = safeAvatarSrc;
+      }
+      const expectedAlt = `Avatar ${safeAvatarId}`;
+      if (avatar.alt !== expectedAlt) {
+        avatar.alt = expectedAlt;
+      }
     } else {
+      const markerMap = root.utils?.buildPlayerMarkerMap?.(players) ?? new Map();
       const marker =
         root.utils?.resolvePlayerMarker?.(
           playerId,
@@ -147,8 +157,11 @@
           markerMap,
         ) ?? "ผ";
       token.classList.remove("avatar");
-      token.replaceChildren();
-      token.textContent = marker;
+      delete token.dataset.avatarSrc;
+      if (token.textContent !== marker || token.querySelector(".token-avatar-img")) {
+        token.replaceChildren();
+        token.textContent = marker;
+      }
     }
     token.title = player?.displayName ?? playerId;
     token.classList.toggle("me", playerId === state.playerId);
@@ -185,8 +198,6 @@
 
     token.classList.add("hidden");
     token.classList.remove("snake");
-    token.classList.remove("avatar");
-    token.replaceChildren();
     token.style.transform = "translate(-50%, -50%) rotate(0deg)";
   }
 

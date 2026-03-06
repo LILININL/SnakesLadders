@@ -78,9 +78,9 @@
     6: { x: -106, y: 14 },
   };
 
-  function showDice(playerId, diceValue) {
+  function showDice(playerId, diceOne = 0, diceTwo = 0, diceValue = 0) {
     diceChain = diceChain
-      .then(() => animateDice(playerId, diceValue))
+      .then(() => animateDice(playerId, diceOne, diceTwo, diceValue))
       .catch(() => {});
     return diceChain;
   }
@@ -157,21 +157,60 @@
     }
   }
 
-  async function animateDice(playerId, diceValue) {
+  async function animateDice(playerId, diceOne, diceTwo, diceValue) {
     if (!el.diceResultFx) {
       return;
     }
 
-    const resolvedDiceValue = normalizeDiceValue(diceValue);
+    const parsedDiceOne = Number.parseInt(String(diceOne ?? 0), 10) || 0;
+    const parsedDiceTwo = Number.parseInt(String(diceTwo ?? 0), 10) || 0;
+    const hasTwoDice = parsedDiceOne > 0 && parsedDiceTwo > 0;
+    const resolvedDiceOne = normalizeDiceValue(parsedDiceOne);
+    const resolvedDiceTwo = normalizeDiceValue(parsedDiceTwo);
+    const resolvedDiceValue = normalizeDiceValue(
+      Number.parseInt(String(diceValue ?? 0), 10) ||
+      (hasTwoDice ? resolvedDiceOne + resolvedDiceTwo : resolvedDiceOne || resolvedDiceTwo || 1),
+    );
     const rollPower = resolveRollPower(playerId);
     const rollDurationMs = 1240 + Math.round(rollPower * 260);
+    if (hasTwoDice) {
+      const startOne = randomDiceFace(resolvedDiceOne);
+      const startTwo = randomDiceFace(resolvedDiceTwo);
+      el.diceResultFx.innerHTML = `
+        <span class="dice-fx-pair" aria-hidden="true">
+          ${buildDiceCubeMarkup("dice-fx-cube dice-fx-cube-a")}
+          <span class="dice-fx-join">+</span>
+          ${buildDiceCubeMarkup("dice-fx-cube dice-fx-cube-b")}
+        </span>
+      `;
+      el.diceResultFx.style.setProperty("--dice-roll-duration", `${rollDurationMs}ms`);
+      const cubeAEl = el.diceResultFx.querySelector(".dice-fx-cube-a");
+      const cubeBEl = el.diceResultFx.querySelector(".dice-fx-cube-b");
+      setFxCubeValue(cubeAEl, startOne);
+      setFxCubeValue(cubeBEl, startTwo);
+      el.diceResultFx.className = "dice-result-fx rolling pair-mode";
+      await wait(140 + rollDurationMs);
+      setFxCubeValue(cubeAEl, resolvedDiceOne);
+      setFxCubeValue(cubeBEl, resolvedDiceTwo);
+      el.diceResultFx.className = "dice-result-fx reveal pair-mode";
+      await wait(120);
+      el.diceResultFx.className = "dice-result-fx show pair-mode";
+      await wait(760);
+      el.diceResultFx.className = "dice-result-fx hide pair-mode";
+      await wait(220);
+      el.diceResultFx.className = "dice-result-fx hidden";
+      el.diceResultFx.style.removeProperty("--dice-roll-duration");
+      el.diceResultFx.textContent = "";
+      return;
+    }
+
     const startValue = randomDiceFace(resolvedDiceValue);
     const name = resolvePlayerName(playerId, state.room);
     el.diceResultFx.innerHTML = `
       <span class="dice-fx-name">${escapeHtml(name)}</span>
       <span class="dice-fx-value pending">?</span>
       <span class="dice-fx-value-caption pending">แต้ม</span>
-      ${buildDiceCubeMarkup()}
+      ${buildDiceCubeMarkup("dice-fx-cube")}
     `;
     el.diceResultFx.style.setProperty("--dice-roll-duration", `${rollDurationMs}ms`);
     const cubeEl = el.diceResultFx.querySelector(".dice-fx-cube");
@@ -200,9 +239,9 @@
     el.diceResultFx.textContent = "";
   }
 
-  function buildDiceCubeMarkup() {
+  function buildDiceCubeMarkup(className = "dice-fx-cube") {
     return `
-      <span class="dice-fx-cube" aria-hidden="true">
+      <span class="${className}" aria-hidden="true">
         <span class="dice-fx-face face-1">
           <span class="dice-pip pip-mm"></span>
         </span>

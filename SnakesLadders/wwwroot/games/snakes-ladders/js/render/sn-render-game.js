@@ -16,6 +16,9 @@
   const DEFAULT_GAME_KEY = normalizeGameKey(
     root.GAME_KEYS?.SNAKES_LADDERS ?? "snakes-ladders",
   );
+  const viewCache = {
+    playerListHtml: "",
+  };
 
   function renderRoomHeader() {
     if (!state.room) {
@@ -47,6 +50,7 @@
   function renderPlayers() {
     if (!state.room) {
       el.playerList.innerHTML = "";
+      viewCache.playerListHtml = "";
       return;
     }
 
@@ -120,7 +124,7 @@
           : jailTurns > 0
             ? ` | ติดคุกอีก ${jailTurns} ตา`
             : "";
-        stats = `เงิน: $${cash} | ช่อง: ${player.position} | ทรัพย์สิน: ${ownedCount}${extra}`;
+        stats = `เงิน: ${monopolyMoney(cash)} | ช่อง: ${player.position} | ทรัพย์สิน: ${ownedCount}${extra}`;
       } else {
         stats = `ตำแหน่ง: ${player.position} | โล่: ${player.shields}${itemStatus.length ? ` | ${escapeHtml(itemStatus.join(" / "))}` : ""}`;
       }
@@ -139,7 +143,13 @@
       `;
     });
 
-    el.playerList.innerHTML = rows.join("");
+    const nextHtml = rows.join("");
+    if (nextHtml === viewCache.playerListHtml) {
+      return;
+    }
+
+    el.playerList.innerHTML = nextHtml;
+    viewCache.playerListHtml = nextHtml;
   }
 
   function renderBoard() {
@@ -373,6 +383,17 @@
       return board.monopolycells;
     }
     return [];
+  }
+
+  function monopolyMoney(value) {
+    const formatter = root.monopolyHelpers?.money;
+    if (typeof formatter === "function") {
+      return formatter(value);
+    }
+
+    const amount = Number.parseInt(String(value ?? 0), 10) || 0;
+    const abs = Math.abs(amount).toLocaleString("th-TH");
+    return amount < 0 ? `-฿${abs}` : `฿${abs}`;
   }
 
   root.renderGame = {

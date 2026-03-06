@@ -80,12 +80,12 @@
     );
     try {
       if (hasDiceRoll(turn)) {
-        const diceValue =
-          Number.parseInt(String(turn.diceOne ?? 0), 10) ||
-          Number.parseInt(String(turn.diceTwo ?? 0), 10) ||
+        const diceOne = Number.parseInt(String(turn.diceOne ?? 0), 10) || 0;
+        const diceTwo = Number.parseInt(String(turn.diceTwo ?? 0), 10) || 0;
+        const diceTotal =
           Number.parseInt(String(turn.diceValue ?? 0), 10) ||
-          1;
-        await root.boardFx?.showDice?.(turn.playerId, diceValue);
+          (diceOne > 0 && diceTwo > 0 ? diceOne + diceTwo : diceOne || diceTwo || 1);
+        await root.boardFx?.showDice?.(turn.playerId, diceOne, diceTwo, diceTotal);
       }
 
       if (followPlayer) {

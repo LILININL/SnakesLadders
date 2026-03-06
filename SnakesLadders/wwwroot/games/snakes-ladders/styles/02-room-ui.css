@@ -229,177 +229,379 @@
   background: linear-gradient(180deg, #0a1d30, #091527);
 }
 
-.monopoly-hud {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: minmax(260px, 0.95fr) minmax(420px, 1.05fr);
-  gap: 12px;
+.monopoly-status-fab {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 124;
+  min-height: 34px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  border-radius: 10px;
 }
 
-.monopoly-panel {
-  border: 1px solid #2f5477;
-  border-radius: 12px;
+.monopoly-status-popup {
+  position: absolute;
+  inset: 12px 12px auto auto;
+  width: min(420px, calc(100% - 24px));
+  max-height: min(72vh, 560px);
+  overflow: auto;
+  z-index: 132;
+  border-radius: 14px;
+  border: 1px solid rgba(98, 143, 177, 0.62);
+  background: rgba(5, 20, 34, 0.92);
+  box-shadow: 0 24px 44px rgba(5, 15, 26, 0.48);
+}
+
+.monopoly-status-panel {
   padding: 10px;
-  background: rgba(7, 23, 37, 0.64);
 }
 
-.mono-panel-head,
-.mono-status-head {
+.monopoly-action-popup {
+  position: absolute;
+  inset: 0;
+  z-index: 140;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(8, 17, 29, 0.36);
+  pointer-events: none;
 }
 
-.mono-phase-meta {
-  color: #b6d5ec;
-  font-size: 0.84rem;
-  margin-top: 6px;
+.monopoly-action-panel {
+  width: min(620px, 100%);
+  max-height: min(84vh, 640px);
+  overflow: auto;
+  pointer-events: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(133, 186, 223, 0.7);
+  background: linear-gradient(170deg, rgba(250, 253, 255, 0.97), rgba(228, 243, 255, 0.96));
+  box-shadow: 0 24px 40px rgba(66, 130, 170, 0.26);
+  padding: 12px;
 }
 
-.mono-panel-body {
+.mono-pop-head {
+  display: grid;
+  gap: 5px;
+}
+
+.mono-pop-title {
+  font-size: 1.04rem;
+  font-weight: 700;
+  color: #24597a;
+}
+
+.mono-pop-meta {
+  font-size: 0.82rem;
+  color: #4e7a98;
+}
+
+.mono-pop-timer {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #7c4f1f;
+  border: 1px solid rgba(229, 165, 103, 0.62);
+  background: rgba(255, 223, 184, 0.86);
+}
+
+.mono-pop-body {
   margin-top: 10px;
 }
 
-.mono-action-list {
+.mono-outcome {
+  margin-top: 10px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(141, 191, 223, 0.56);
+  background: rgba(231, 245, 255, 0.9);
+}
+
+.mono-outcome-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #3a6a8a;
+}
+
+.mono-outcome-text {
+  margin-top: 3px;
+  font-size: 0.83rem;
+  color: #285f82;
+  font-weight: 700;
+}
+
+.mono-outcome-chance {
+  border-color: rgba(113, 183, 226, 0.62);
+  background: rgba(224, 242, 255, 0.92);
+}
+
+.mono-outcome-community {
+  border-color: rgba(117, 201, 173, 0.62);
+  background: rgba(226, 252, 241, 0.9);
+}
+
+.mono-pop-actions {
   display: grid;
   gap: 8px;
 }
 
-.mono-action-btn {
+.mono-pop-btn {
   width: 100%;
   min-height: 44px;
-  font-weight: 700;
   border-radius: 10px;
+  font-weight: 700;
+  color: #194e73;
+  border-color: #8dc3ea;
+  background: linear-gradient(180deg, #ffffff, #edf7ff);
 }
 
-.mono-btn-primary {
-  border-color: #3c93df;
+.mono-pop-btn-primary {
+  border-color: #3397e0;
   color: #fff;
-  background: linear-gradient(180deg, #4fb4ff, #2a89d8);
+  background: linear-gradient(180deg, #56beff, #2992df);
 }
 
-.mono-btn-danger {
-  border-color: #ce6a73;
-  color: #ffe6e8;
-  background: linear-gradient(180deg, #c86f78, #a44f57);
+.mono-pop-btn-danger {
+  border-color: #cf6f79;
+  color: #ffe8eb;
+  background: linear-gradient(180deg, #ca7680, #a4515a);
 }
 
-.mono-info-block {
-  border: 1px solid rgba(112, 155, 190, 0.36);
+.mono-step-badge {
+  width: fit-content;
+  margin-bottom: 10px;
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #31688f;
+  border: 1px solid rgba(137, 190, 226, 0.66);
+  background: rgba(220, 240, 255, 0.88);
+}
+
+.mono-info-card {
+  border: 1px solid rgba(135, 187, 223, 0.58);
+  border-radius: 10px;
+  padding: 9px;
+  margin-bottom: 10px;
+  background: rgba(237, 247, 255, 0.9);
+}
+
+.mono-info-title {
+  color: #215879;
+  font-weight: 700;
+}
+
+.mono-info-sub {
+  margin-top: 4px;
+  color: #446f8d;
+  font-size: 0.82rem;
+}
+
+.mono-form {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(139, 190, 224, 0.5);
+  border-radius: 10px;
+  padding: 9px;
+  background: rgba(245, 251, 255, 0.94);
+}
+
+.mono-form label {
+  display: grid;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: #3f6d8d;
+}
+
+.mono-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.mono-checklist-wrap {
+  border: 1px solid rgba(139, 191, 224, 0.46);
   border-radius: 10px;
   padding: 8px;
-  margin-bottom: 10px;
-  background: rgba(9, 27, 44, 0.62);
+  background: rgba(236, 248, 255, 0.85);
 }
 
-.mono-title {
+.mono-checklist-title {
+  font-size: 0.76rem;
+  color: #36688c;
+  margin-bottom: 6px;
+}
+
+.mono-checklist {
+  max-height: 130px;
+  overflow: auto;
+  display: grid;
+  gap: 4px;
+}
+
+.mono-check-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: #37688b;
+}
+
+.mono-tip {
+  margin-top: 10px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.mono-tip-warn {
+  color: #7a4d1c;
+  border: 1px solid rgba(228, 165, 96, 0.56);
+  background: rgba(255, 232, 197, 0.92);
+}
+
+.mono-tip-reco {
+  color: #2d678b;
+  border: 1px solid rgba(136, 189, 226, 0.56);
+  background: rgba(226, 244, 255, 0.9);
+}
+
+.mono-advice {
+  margin-top: 10px;
+  border: 1px solid rgba(132, 186, 223, 0.56);
+  border-radius: 10px;
+  background: rgba(234, 247, 255, 0.9);
+  padding: 9px 10px;
+}
+
+.mono-advice-title {
+  font-size: 0.8rem;
   font-weight: 700;
-  color: #d9ecfb;
+  color: #2e678d;
 }
 
-.mono-sub {
-  margin-top: 4px;
-  font-size: 0.82rem;
-  color: #b8d7ef;
+.mono-advice-list {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+  color: #3a6f91;
+  font-size: 0.77rem;
+}
+
+.mono-help {
+  margin-top: 8px;
+  font-size: 0.76rem;
+  color: #bdd8ed;
 }
 
 .mono-muted {
   color: #aacce6;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
 }
 
-.mono-inline-form,
-.mono-trade-form {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 10px;
-  padding: 8px;
-  border: 1px solid rgba(111, 154, 190, 0.28);
-  border-radius: 10px;
-  background: rgba(6, 22, 37, 0.5);
-}
-
-.mono-inline-form label,
-.mono-trade-form label {
-  font-size: 0.76rem;
-  color: #c6deef;
-}
-
-.mono-trade-form .mono-form-head {
-  font-weight: 700;
-  color: #ddf0ff;
-}
-
-.mono-manage-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.mono-status-list {
-  margin-top: 10px;
-  display: grid;
-  gap: 8px;
-}
-
-.mono-player-card {
-  border: 1px solid rgba(117, 158, 190, 0.34);
-  border-radius: 10px;
-  padding: 8px;
-  background: rgba(8, 27, 44, 0.56);
-}
-
-.mono-player-card.me {
-  border-color: #89c7f4;
-  box-shadow: inset 0 0 0 1px rgba(123, 195, 244, 0.36);
-}
-
-.mono-player-card.active {
-  border-color: #73d9a9;
-}
-
-.mono-player-card.pending {
-  box-shadow: 0 0 0 1px rgba(231, 206, 126, 0.45);
-}
-
-.mono-player-card.bankrupt {
-  opacity: 0.65;
-}
-
-.mono-player-head {
+.mono-status-pop-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
 
-.mono-money {
-  font-weight: 700;
-  color: #ffe0ae;
+.mono-status-close {
+  min-height: 32px;
+  padding: 4px 9px;
+  font-size: 0.75rem;
+  border-radius: 9px;
 }
 
-.mono-player-grid {
+.mono-status-overview {
+  margin-top: 8px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: #cfe8fb;
+}
+
+.mono-status-debt {
+  margin-top: 8px;
+  border-radius: 9px;
+  border: 1px solid rgba(226, 176, 114, 0.5);
+  background: rgba(100, 58, 23, 0.58);
+  color: #ffe2bb;
+  font-size: 0.78rem;
+  padding: 6px 8px;
+}
+
+.mono-status-cards {
+  margin-top: 9px;
+  display: grid;
+  gap: 8px;
+}
+
+.mono-status-card {
+  border: 1px solid rgba(116, 160, 190, 0.35);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(8, 28, 45, 0.62);
+}
+
+.mono-status-card.me {
+  border-color: #8bc8f3;
+  box-shadow: inset 0 0 0 1px rgba(131, 195, 241, 0.36);
+}
+
+.mono-status-card.active {
+  border-color: #7dd8ac;
+}
+
+.mono-status-card.pending {
+  box-shadow: 0 0 0 1px rgba(236, 208, 129, 0.44);
+}
+
+.mono-status-card.bankrupt {
+  opacity: 0.63;
+}
+
+.mono-status-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mono-status-money {
+  font-weight: 700;
+  color: #ffe0ad;
+}
+
+.mono-status-grid {
   margin-top: 6px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px 8px;
-  font-size: 0.78rem;
-  color: #cae3f6;
-}
-
-.mono-global-info {
-  margin-top: 8px;
-  font-size: 0.8rem;
-  color: #f3d9a0;
+  font-size: 0.75rem;
+  color: #cae3f7;
 }
 
 .board.monopoly-ring {
   --rows: 11;
-  grid-template-columns: repeat(11, minmax(52px, 1fr));
-  grid-template-rows: repeat(11, minmax(52px, 1fr));
+  grid-template-columns: repeat(11, minmax(58px, 1fr));
+  grid-template-rows: repeat(11, minmax(58px, 1fr));
   gap: 4px;
   padding: 10px;
+  width: min(100%, 980px);
+  min-height: min(86vh, 920px);
+  max-height: min(90vh, 980px);
+  overflow: auto;
+  margin: 0 auto;
   background:
     radial-gradient(circle at 22% 18%, rgba(204, 237, 255, 0.32), transparent 42%),
     radial-gradient(circle at 78% 74%, rgba(146, 210, 255, 0.24), transparent 46%),
@@ -412,8 +614,8 @@
   position: relative;
   border: 1px solid #8bbce0;
   border-radius: 8px;
-  padding: 4px 4px 5px;
-  min-height: 52px;
+  padding: 5px 5px 6px;
+  min-height: 58px;
   background: linear-gradient(165deg, #ffffff, #e7f4ff);
   display: flex;
   flex-direction: column;
@@ -435,6 +637,10 @@
 
 .board.monopoly-ring .m-cell.owned {
   border-color: #70b8a5;
+}
+
+.board.monopoly-ring .m-cell.owned .m-cell-top {
+  padding-right: 20px;
 }
 
 .board.monopoly-ring .m-band {
@@ -495,18 +701,18 @@
 }
 
 .board.monopoly-ring .m-num {
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 700;
   color: #365b77;
 }
 
 .board.monopoly-ring .m-icon {
-  font-size: 0.82rem;
+  font-size: 0.9rem;
   line-height: 1;
 }
 
 .board.monopoly-ring .m-name {
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   line-height: 1.16;
   font-weight: 700;
   color: #294f6d;
@@ -518,7 +724,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 4px;
-  font-size: 0.55rem;
+  font-size: 0.61rem;
   color: #4d7390;
 }
 
@@ -539,16 +745,79 @@
 .board.monopoly-ring .m-owner {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   max-width: 70%;
   border-radius: 999px;
   padding: 1px 5px;
-  font-size: 0.51rem;
+  font-size: 0.56rem;
   color: #1f664c;
   background: rgba(101, 211, 171, 0.24);
   border: 1px solid rgba(96, 194, 159, 0.45);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.board.monopoly-ring .m-owner.mine {
+  border-color: rgba(55, 152, 222, 0.62);
+  background: rgba(79, 171, 237, 0.2);
+  color: #19587f;
+}
+
+.board.monopoly-ring .m-owner-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 13px;
+  height: 13px;
+  border-radius: 999px;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  background: linear-gradient(180deg, #2eb385, #1f8a64);
+  border: 1px solid rgba(120, 226, 184, 0.72);
+}
+
+.board.monopoly-ring .m-owner.mine .m-owner-mark {
+  background: linear-gradient(180deg, #2f9be6, #2879b3);
+  border-color: rgba(151, 210, 246, 0.82);
+}
+
+.board.monopoly-ring .m-owner-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board.monopoly-ring .m-owner-flag {
+  position: absolute;
+  top: 6px;
+  right: 5px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  border: 1px solid rgba(126, 228, 187, 0.8);
+  background: linear-gradient(180deg, #2eb385, #1f8a64);
+  box-shadow:
+    0 0 0 1px rgba(17, 72, 53, 0.36),
+    0 4px 8px rgba(12, 53, 39, 0.3);
+}
+
+.board.monopoly-ring .m-owner-flag.me {
+  border-color: rgba(151, 210, 246, 0.82);
+  background: linear-gradient(180deg, #2f9be6, #2879b3);
+  box-shadow:
+    0 0 0 1px rgba(26, 70, 99, 0.32),
+    0 4px 8px rgba(23, 67, 97, 0.3);
 }
 
 .board.monopoly-ring .m-buildings {

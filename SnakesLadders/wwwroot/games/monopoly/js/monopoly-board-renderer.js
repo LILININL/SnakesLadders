@@ -28,12 +28,16 @@
     el.board.classList.add("monopoly-ring");
     el.board.style.setProperty("--rows", "11");
 
+    const displayPlayers = root.viewState.getDisplayPlayers();
     const displayTurnPlayerId = root.viewState.getDisplayTurnPlayerId();
     const turnPosition = root.viewState.getPlayerPosition(displayTurnPlayerId);
     const freeParkingPot = resolveMonopolyFreeParkingPot(board);
+    const markerMap =
+      root.utils?.buildPlayerMarkerMap?.(state?.room?.players ?? displayPlayers) ??
+      new Map();
 
     const ringCells = cells
-      .map((cell) => renderCell(state, cell, turnPosition))
+      .map((cell) => renderCell(state, cell, turnPosition, markerMap))
       .join("");
     const center = renderCenter(freeParkingPot);
     el.board.innerHTML = `${ringCells}${center}`;
@@ -49,13 +53,13 @@
       pageSize: 100,
     };
     root.boardTokens?.render(
-      root.viewState.getDisplayPlayers(),
+      displayPlayers,
       displayTurnPlayerId,
       range,
     );
 
     const ownedAssets = cells.filter((x) => Boolean(resolveOwnerId(x))).length;
-    el.boardLegend.textContent = `Monopoly Board 40 ช่อง | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | Free Parking $${freeParkingPot}`;
+    el.boardLegend.textContent = `กระดานเกมเศรษฐี 40 ช่อง | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | เงินกองกลาง ${money(freeParkingPot)}`;
     root.roomUi?.updateFloatingRollButton();
   }
 
@@ -71,7 +75,7 @@
     root.boardBeacon?.hide?.();
   }
 
-  function renderCell(state, cell, turnPosition) {
+  function renderCell(state, cell, turnPosition, markerMap) {
     const cellNo = resolveCellNo(cell);
     const pos = toBoardPosition(cellNo);
     const type = resolveType(cell);
@@ -111,17 +115,22 @@
 
     const costText =
       price > 0
-        ? `฿${price}`
+        ? money(price)
         : fee > 0
-          ? `-$${fee}`
+          ? `-${money(fee)}`
           : rent > 0
-            ? `$${rent}`
+            ? money(rent)
             : "";
 
     const ownerChip =
       ownerName === "-"
         ? ""
-        : `<span class="m-owner" title="เจ้าของ: ${escapeHtml(ownerName)}">${escapeHtml(shortName(ownerName, 10))}</span>`;
+        : renderOwnerChip(state, ownerId, ownerName, markerMap);
+
+    const ownerFlag =
+      ownerName === "-"
+        ? ""
+        : renderOwnerFlag(state, ownerId, ownerName, markerMap);
 
     let buildings = "";
     if (type === 1 && hasHotel) {
@@ -136,6 +145,7 @@
     return `
       <div class="${classes.join(" ")}" data-cell="${cellNo}" style="grid-column:${pos.col};grid-row:${pos.row};" title="${escapeHtml(resolveName(cell))}">
         ${colorBand}
+        ${ownerFlag}
         <div class="m-cell-top">
           <span class="m-num">${cellNo}</span>
           <span class="m-icon" aria-hidden="true">${icon}</span>
@@ -154,12 +164,45 @@
     `;
   }
 
+  function renderOwnerChip(state, ownerId, ownerName, markerMap) {
+    const marker = resolveOwnerMarker(state, ownerId, ownerName, markerMap);
+    const mineClass = ownerId === String(state?.playerId ?? "").trim() ? " mine" : "";
+    return `<span class="m-owner${mineClass}" title="เจ้าของ: ${escapeHtml(ownerName)}">
+      <span class="m-owner-mark" aria-hidden="true">${escapeHtml(marker)}</span>
+      <span class="m-owner-name">${escapeHtml(shortName(ownerName, 10))}</span>
+    </span>`;
+  }
+
+  function renderOwnerFlag(state, ownerId, ownerName, markerMap) {
+    const marker = resolveOwnerMarker(state, ownerId, ownerName, markerMap);
+    const mineClass = ownerId === String(state?.playerId ?? "").trim() ? " me" : "";
+    return `<span class="m-owner-flag${mineClass}" title="เจ้าของ: ${escapeHtml(ownerName)}" aria-label="เจ้าของ ${escapeHtml(ownerName)}">${escapeHtml(marker)}</span>`;
+  }
+
+  function resolveOwnerMarker(state, ownerId, ownerName, markerMap) {
+    const safeOwnerId = String(ownerId ?? "").trim();
+    if (!safeOwnerId) {
+      return "-";
+    }
+
+    const players = Array.isArray(state?.room?.players) ? state.room.players : [];
+    const player = players.find(
+      (x) => String(x?.playerId ?? "").trim() === safeOwnerId,
+    );
+    const displayName = String(player?.displayName ?? ownerName ?? "").trim();
+
+    const marker =
+      root.utils?.resolvePlayerMarker?.(safeOwnerId, displayName, markerMap) ??
+      (displayName[0] ?? "ผ");
+    return String(marker || "ผ").slice(0, 2).toUpperCase();
+  }
+
   function renderCenter(freeParkingPot) {
     return `
       <div class="m-center" style="grid-column:3 / span 7;grid-row:3 / span 7;">
         <div class="m-center-badge">CITY ESTATE</div>
-        <h4 class="m-center-title">MONOPOLY LIVE</h4>
-        <div class="m-center-sub">Build • Trade • Dominate</div>
+        <h4 class="m-center-title">เกมเศรษฐีคลาสสิก</h4>
+        <div class="m-center-sub">ซื้อ • เทรด • ครองเมือง</div>
         <div class="m-skyline" aria-hidden="true">
           <span style="--h:36px"></span>
           <span style="--h:54px"></span>
@@ -169,7 +212,7 @@
           <span style="--h:48px"></span>
           <span style="--h:60px"></span>
         </div>
-        <div class="m-parking">Free Parking Pot: <strong>$${freeParkingPot}</strong></div>
+        <div class="m-parking">เงินกองกลาง: <strong>${money(freeParkingPot)}</strong></div>
       </div>
     `;
   }
@@ -238,6 +281,16 @@
     return Number.parseInt(String(value ?? 0), 10) || 0;
   }
 
+  function money(value) {
+    if (typeof root.monopolyHelpers?.money === "function") {
+      return root.monopolyHelpers.money(value);
+    }
+
+    const amount = resolveNumber(value);
+    const abs = Math.abs(amount).toLocaleString("th-TH");
+    return amount < 0 ? `-฿${abs}` : `฿${abs}`;
+  }
+
   function shortName(text, maxLen) {
     const value = String(text ?? "");
     if (value.length <= maxLen) {
@@ -251,25 +304,25 @@
       case 0:
         return "GO";
       case 1:
-        return "Property";
+        return "ที่ดิน";
       case 2:
-        return "Railroad";
+        return "รถไฟ";
       case 3:
-        return "Utility";
+        return "สาธารณูปโภค";
       case 4:
-        return "Tax";
+        return "ภาษี";
       case 5:
-        return "Chance";
+        return "โอกาส";
       case 6:
-        return "Community";
+        return "คลังชุมชน";
       case 7:
-        return "Jail";
+        return "คุก";
       case 8:
-        return "Free Parking";
+        return "ที่จอดฟรี";
       case 9:
-        return "Go To Jail";
+        return "ไปคุก";
       default:
-        return "Cell";
+        return "ช่อง";
     }
   }
 
@@ -354,5 +407,4 @@
       "page-backward",
     );
   }
-
 })();

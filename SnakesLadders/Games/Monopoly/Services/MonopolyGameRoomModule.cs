@@ -376,7 +376,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         state.JailAttemptByPlayer[actor.PlayerId] = 0;
         state.Phase = MonopolyTurnPhase.AwaitRoll;
         state.PendingDecisionPlayerId = actor.PlayerId;
-        execution.Logs.Add($"จ่ายค่าปรับ ${MonopolyDefinitions.JailFine} และออกจากคุกแล้ว");
+        execution.Logs.Add($"จ่ายค่าปรับ ฿{MonopolyDefinitions.JailFine} และออกจากคุกแล้ว");
         return null;
     }
 
@@ -433,7 +433,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             state.JailAttemptByPlayer[actor.PlayerId] = 0;
             actor.Cash -= MonopolyDefinitions.JailFine;
             state.Phase = MonopolyTurnPhase.Resolving;
-            execution.Logs.Add($"พยายามครบ {MonopolyDefinitions.MaxJailAttempts} ครั้ง จ่ายค่าปรับ ${MonopolyDefinitions.JailFine} และเดินต่อ");
+            execution.Logs.Add($"พยายามครบ {MonopolyDefinitions.MaxJailAttempts} ครั้ง จ่ายค่าปรับ ฿{MonopolyDefinitions.JailFine} และเดินต่อ");
             MovePlayerBy(room, state, actor, d1 + d2, execution.Logs);
             if (state.Phase == MonopolyTurnPhase.Resolving)
             {
@@ -489,7 +489,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         state.Phase = MonopolyTurnPhase.AwaitManage;
         state.PendingDecisionPlayerId = actor.PlayerId;
 
-        execution.Logs.Add($"ซื้อ {cell.Name} ในราคา ${cell.Price}");
+        execution.Logs.Add($"ซื้อ {cell.Name} ในราคา ฿{cell.Price}");
         return null;
     }
 
@@ -580,7 +580,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
 
         auction.CurrentBidAmount = bidAmount;
         auction.CurrentBidderPlayerId = actor.PlayerId;
-        execution.Logs.Add($"{actor.DisplayName} บิด ${bidAmount}");
+        execution.Logs.Add($"{actor.DisplayName} บิด ฿{bidAmount}");
 
         AdvanceAuctionTurn(room, state, execution.Logs);
         return null;
@@ -771,7 +771,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         cell.IsMortgaged = true;
         actor.Cash += value;
         state.Phase = MonopolyTurnPhase.AwaitEndTurn;
-        execution.Logs.Add($"จำนอง {cell.Name} รับเงิน ${value}");
+        execution.Logs.Add($"จำนอง {cell.Name} รับเงิน ฿{value}");
         return null;
     }
 
@@ -806,7 +806,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         actor.Cash -= cost;
         cell.IsMortgaged = false;
         state.Phase = MonopolyTurnPhase.AwaitEndTurn;
-        execution.Logs.Add($"ไถ่ถอน {cell.Name} จ่าย ${cost}");
+        execution.Logs.Add($"ไถ่ถอน {cell.Name} จ่าย ฿{cost}");
         return null;
     }
 
@@ -1050,7 +1050,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         if (rawTarget > boardSize)
         {
             player.Cash += MonopolyDefinitions.PassGoCash;
-            logs.Add($"ผ่าน GO รับเงิน ${MonopolyDefinitions.PassGoCash}");
+            logs.Add($"ผ่าน GO รับเงิน ฿{MonopolyDefinitions.PassGoCash}");
         }
 
         player.Position = end;
@@ -1129,7 +1129,16 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             state.PendingPurchaseCellId = landing.Cell;
             state.PendingDecisionPlayerId = player.PlayerId;
             state.Phase = MonopolyTurnPhase.AwaitPurchaseDecision;
-            logs.Add($"{landing.Name} ยังไม่มีเจ้าของ: ซื้อ (${landing.Price}) หรือปฏิเสธเพื่อเริ่มประมูล");
+            if (player.Cash < landing.Price)
+            {
+                var shortfall = landing.Price - player.Cash;
+                logs.Add(
+                    $"{landing.Name} ยังไม่มีเจ้าของ: เงินคุณไม่พอซื้อ (ขาด ฿{shortfall}) แนะนำให้ปฏิเสธเพื่อเริ่มประมูล");
+            }
+            else
+            {
+                logs.Add($"{landing.Name} ยังไม่มีเจ้าของ: ซื้อ (฿{landing.Price}) หรือปฏิเสธเพื่อเริ่มประมูล");
+            }
             return;
         }
 
@@ -1178,7 +1187,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         player.Cash -= fee;
         state.PendingDebtToPlayerId = null;
         state.PendingDebtAmount = Math.Max(state.PendingDebtAmount, Math.Max(0, -player.Cash));
-        logs.Add($"จ่ายภาษี {landing.Name} จำนวน ${fee}");
+        logs.Add($"จ่ายภาษี {landing.Name} จำนวน ฿{fee}");
     }
 
     private static void ResolveChanceEvent(
@@ -1193,36 +1202,36 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         switch (idx)
         {
             case 0:
-                MovePlayerToCell(room, state, player, 1, logs, depth, "Chance: Advance to GO");
+                MovePlayerToCell(room, state, player, 1, logs, depth, "โอกาส: ไปช่องเริ่มต้น (GO)");
                 return;
             case 1:
                 player.Cash += 50;
-                logs.Add("Chance: Bank pays you dividend of $50");
+                logs.Add("โอกาส: รับเงินปันผลจากธนาคาร ฿50");
                 return;
             case 2:
                 player.Cash -= 15;
                 state.PendingDebtToPlayerId = null;
                 state.PendingDebtAmount = Math.Max(state.PendingDebtAmount, Math.Max(0, -player.Cash));
-                logs.Add("Chance: Speeding fine -$15");
+                logs.Add("โอกาส: โดนค่าปรับความเร็ว -฿15");
                 return;
             case 3:
-                MovePlayerBack(room, state, player, 3, logs, depth, "Chance: Go back 3 spaces");
+                MovePlayerBack(room, state, player, 3, logs, depth, "โอกาส: ถอยหลัง 3 ช่อง");
                 return;
             case 4:
-                SendPlayerToJail(state, player, logs, "Chance: Go directly to jail");
+                SendPlayerToJail(state, player, logs, "โอกาส: เข้าคุกทันที");
                 return;
             case 5:
                 player.Cash += 150;
-                logs.Add("Chance: Your building loan matures +$150");
+                logs.Add("โอกาส: เงินกู้สิ่งปลูกสร้างครบกำหนด +฿150");
                 return;
             case 6:
-                MovePlayerToCell(room, state, player, 25, logs, depth, "Chance: Advance to Illinois Avenue");
+                MovePlayerToCell(room, state, player, 25, logs, depth, "โอกาส: ไปที่ สุราษฎร์ธานี");
                 return;
             default:
                 player.Cash -= 75;
                 state.PendingDebtToPlayerId = null;
                 state.PendingDebtAmount = Math.Max(state.PendingDebtAmount, Math.Max(0, -player.Cash));
-                logs.Add("Chance: Pay poor tax -$75");
+                logs.Add("โอกาส: จ่ายภาษีคนจน -฿75");
                 return;
         }
     }
@@ -1240,38 +1249,38 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         {
             case 0:
                 player.Cash += 200;
-                logs.Add("Community Chest: Bank error in your favor +$200");
+                logs.Add("การ์ดชุมชน: ธนาคารจ่ายคืนให้คุณ +฿200");
                 return;
             case 1:
                 player.Cash -= 50;
                 state.PendingDebtToPlayerId = null;
                 state.PendingDebtAmount = Math.Max(state.PendingDebtAmount, Math.Max(0, -player.Cash));
-                logs.Add("Community Chest: Doctor's fee -$50");
+                logs.Add("การ์ดชุมชน: จ่ายค่าหมอ -฿50");
                 return;
             case 2:
                 player.Cash += 50;
-                logs.Add("Community Chest: From sale of stock +$50");
+                logs.Add("การ์ดชุมชน: ขายหุ้นได้กำไร +฿50");
                 return;
             case 3:
-                SendPlayerToJail(state, player, logs, "Community Chest: Go to Jail");
+                SendPlayerToJail(state, player, logs, "การ์ดชุมชน: ไปเรือนจำ");
                 return;
             case 4:
                 player.Cash += 20;
-                logs.Add("Community Chest: Income tax refund +$20");
+                logs.Add("การ์ดชุมชน: คืนภาษี +฿20");
                 return;
             case 5:
                 player.Cash -= 150;
                 state.PendingDebtToPlayerId = null;
                 state.PendingDebtAmount = Math.Max(state.PendingDebtAmount, Math.Max(0, -player.Cash));
-                logs.Add("Community Chest: Pay school fees -$150");
+                logs.Add("การ์ดชุมชน: จ่ายค่าเล่าเรียน -฿150");
                 return;
             case 6:
                 player.Cash += 25;
-                logs.Add("Community Chest: Consultancy fee +$25");
+                logs.Add("การ์ดชุมชน: รับค่าที่ปรึกษา +฿25");
                 return;
             default:
                 player.Cash += 100;
-                logs.Add("Community Chest: Holiday fund matures +$100");
+                logs.Add("การ์ดชุมชน: เงินกองทุนท่องเที่ยวครบกำหนด +฿100");
                 return;
         }
     }
@@ -1292,7 +1301,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         if (target < current)
         {
             player.Cash += MonopolyDefinitions.PassGoCash;
-            logs.Add($"{reason} และผ่าน GO รับ ${MonopolyDefinitions.PassGoCash}");
+            logs.Add($"{reason} และผ่าน GO รับ ฿{MonopolyDefinitions.PassGoCash}");
         }
         else
         {
@@ -1443,7 +1452,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
                 cell.IsMortgaged = false;
                 cell.HouseCount = 0;
                 cell.HasHotel = false;
-                logs.Add($"{winner.DisplayName} ชนะประมูล {cell.Name} ที่ราคา ${price}");
+                logs.Add($"{winner.DisplayName} ชนะประมูล {cell.Name} ที่ราคา ฿{price}");
             }
             else
             {
@@ -1571,13 +1580,13 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             {
                 state.PendingDebtToPlayerId = creditor.PlayerId;
                 state.PendingDebtAmount = remainingDebt;
-                logs.Add($"{debtor.DisplayName} จ่าย {reason} ให้ {creditor.DisplayName} ได้บางส่วน ${paidNow} (ค้าง ${remainingDebt})");
+                logs.Add($"{debtor.DisplayName} จ่าย {reason} ให้ {creditor.DisplayName} ได้บางส่วน ฿{paidNow} (ค้าง ฿{remainingDebt})");
             }
             else
             {
                 state.PendingDebtToPlayerId = null;
                 state.PendingDebtAmount = 0;
-                logs.Add($"{debtor.DisplayName} จ่าย {reason} ให้ {creditor.DisplayName} จำนวน ${charge}");
+                logs.Add($"{debtor.DisplayName} จ่าย {reason} ให้ {creditor.DisplayName} จำนวน ฿{charge}");
             }
 
             return;
@@ -1589,7 +1598,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             state.PendingDebtAmount = Math.Max(state.PendingDebtAmount, Math.Abs(debtor.Cash));
         }
 
-        logs.Add($"{debtor.DisplayName} จ่าย {reason} จำนวน ${charge}");
+        logs.Add($"{debtor.DisplayName} จ่าย {reason} จำนวน ฿{charge}");
     }
 
     private static void TryAutoSettleDebt(
@@ -1623,7 +1632,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         creditor.Cash += payment;
         state.PendingDebtAmount -= payment;
 
-        logs.Add($"ชำระหนี้คงค้างให้ {creditor.DisplayName} เพิ่ม ${payment}");
+        logs.Add($"ชำระหนี้คงค้างให้ {creditor.DisplayName} เพิ่ม ฿{payment}");
 
         if (state.PendingDebtAmount <= 0)
         {

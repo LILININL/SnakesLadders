@@ -24,7 +24,9 @@
     root.renderLobby.renderWaitingRooms();
 
     root.renderGame.renderRoomHeader();
-    root.renderGame.renderPlayers();
+    if (!state.animating) {
+      root.renderGame.renderPlayers();
+    }
     root.renderGame.renderBoard();
     root.renderGame.renderLastTurn();
     root.renderGame.updateActionState();

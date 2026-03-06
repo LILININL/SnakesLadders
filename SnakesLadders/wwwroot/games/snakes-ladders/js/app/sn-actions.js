@@ -559,6 +559,7 @@
     root.boardFocus?.clearState?.();
     root.boardBeacon?.hide?.();
     root.monopolyActionPanel?.reset?.();
+    root.monopolyStatusPanel?.reset?.();
 
     root.renderChat.clearChat();
     await root.api.refreshLobbyOnline();

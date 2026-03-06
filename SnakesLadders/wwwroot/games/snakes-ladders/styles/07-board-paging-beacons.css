@@ -37,6 +37,12 @@
   overflow: hidden;
 }
 
+.board.monopoly-ring {
+  overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 .board.page-transitioning.page-forward {
   animation: board-page-forward 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -286,4 +292,3 @@
 .item-cast-fx.show {
   animation: item-cast-in 0.18s ease-out forwards;
 }
-

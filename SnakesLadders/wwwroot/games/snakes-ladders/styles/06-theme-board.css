@@ -235,6 +235,10 @@
   color: rgba(74, 118, 149, 0.86);
 }
 
+.dice-result-fx .dice-fx-join {
+  color: rgba(60, 129, 175, 0.96);
+}
+
 .dice-result-fx .dice-fx-face {
   border-color: rgba(139, 202, 239, 0.9);
   background: linear-gradient(170deg, #ffffff, #eaf8ff);
@@ -250,6 +254,17 @@
     rgba(213, 242, 255, 0.92),
     rgba(38, 144, 227, 0.94)
   );
+}
+
+.monopoly-action-popup {
+  background: rgba(191, 226, 249, 0.34);
+  backdrop-filter: blur(2px);
+}
+
+.monopoly-action-panel {
+  border-color: rgba(138, 196, 233, 0.78);
+  background: linear-gradient(170deg, rgba(252, 254, 255, 0.98), rgba(232, 245, 255, 0.97));
+  box-shadow: 0 24px 40px rgba(68, 143, 189, 0.22);
 }
 
 .winner-overlay {

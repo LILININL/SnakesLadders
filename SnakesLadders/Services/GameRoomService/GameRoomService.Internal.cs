@@ -447,6 +447,13 @@ public sealed partial class GameRoomService
                 : null;
         }
 
+        if (room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase) &&
+            room.Monopoly is not null &&
+            room.Monopoly.Phase is MonopolyTurnPhase.AwaitManage or MonopolyTurnPhase.AwaitEndTurn)
+        {
+            return DateTimeOffset.UtcNow.AddSeconds(45);
+        }
+
         var animationBufferSeconds = room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase)
             ? 0
             : room.TurnCounter > 0

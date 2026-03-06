@@ -115,7 +115,8 @@
 
   function money(value) {
     const amount = Number.parseInt(String(value ?? 0), 10) || 0;
-    return `$${amount.toLocaleString("en-US")}`;
+    const abs = Math.abs(amount).toLocaleString("th-TH");
+    return amount < 0 ? `-฿${abs}` : `฿${abs}`;
   }
 
   function playerName(playerId, room = state.room) {

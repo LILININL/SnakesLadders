@@ -326,7 +326,7 @@
 
     const actionLogs = Array.isArray(turn?.actionLogs) ? turn.actionLogs : [];
     if (actionLogs.length > 0) {
-      return String(actionLogs[0]);
+      return selectActionHeadline(actionLogs, actionType);
     }
 
     const playerName =
@@ -346,6 +346,37 @@
     }
 
     return `${playerName}: ${actionTypeLabel(actionType)}`;
+  }
+
+  function selectActionHeadline(actionLogs, actionType) {
+    const lines = actionLogs
+      .map((line) => String(line ?? "").trim())
+      .filter(Boolean);
+    if (lines.length === 0) {
+      return "มีการอัปเดตสถานะเกม";
+    }
+
+    if (actionType === root.GAME_ACTION_TYPES.ROLL_DICE) {
+      const eventLine = lines.find(
+        (line) => line.startsWith("โอกาส:") || line.startsWith("การ์ดชุมชน:"),
+      );
+      if (eventLine) {
+        return eventLine;
+      }
+
+      const landingLine = lines.find(
+        (line) =>
+          line.includes("ยังไม่มีเจ้าของ") ||
+          line.includes("ค่าเช่า") ||
+          line.includes("จ่ายภาษี") ||
+          line.includes("เข้าคุก"),
+      );
+      if (landingLine) {
+        return landingLine;
+      }
+    }
+
+    return lines[0];
   }
 
   function actionTypeLabel(actionType) {

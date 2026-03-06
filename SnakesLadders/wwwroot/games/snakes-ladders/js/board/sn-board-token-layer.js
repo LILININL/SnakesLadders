@@ -2,6 +2,7 @@
   const root = window.SNL;
   const { state, el } = root;
   let resizeTimer = 0;
+  const tokenByPlayerId = new Map();
 
   function render(players, turnPlayerId, range = null) {
     const layer = ensureLayer();
@@ -36,7 +37,7 @@
       grouped.set(player.position, bucket);
     }
 
-    layer.replaceChildren();
+    const activePlayerIds = new Set();
 
     for (const [cellNumber, bucket] of grouped) {
       const cellEl = el.board.querySelector(`[data-cell="${cellNumber}"]`);
@@ -46,44 +47,35 @@
 
       const offsets = buildOffsets(bucket.length);
       bucket.forEach((player, index) => {
-        const token = document.createElement("div");
-        token.className = "board-token";
-        if (player.playerId === state.playerId) token.classList.add("me");
-        if (!player.connected) token.classList.add("offline");
-        const anchorTurnsLeft =
-          Number.parseInt(String(player.anchorTurnsLeft ?? 0), 10) || 0;
-        if (
-          player.playerId === turnPlayerId &&
-          player.anchorActive &&
-          anchorTurnsLeft > 0
-        ) {
-          token.classList.add("anchor-on-turn");
-        }
-        const safeAvatarId =
-          root.utils?.normalizeAvatarId?.(player.avatarId, 1) ?? 1;
-        const safeAvatarSrc = root.utils?.avatarSrc?.(safeAvatarId) ?? "";
-        if (safeAvatarSrc) {
-          token.classList.add("avatar");
-          const avatar = document.createElement("img");
-          avatar.className = "token-avatar-img";
-          avatar.src = safeAvatarSrc;
-          avatar.alt = `Avatar ${safeAvatarId}`;
-          token.replaceChildren(avatar);
-        } else {
-          token.textContent =
-            root.utils?.resolvePlayerMarker?.(
-              player.playerId,
-              player.displayName,
-              markerMap,
-            ) ?? "ผ";
-        }
-        token.title = `${player.displayName}${!player.connected ? " (ออฟไลน์)" : ""}${player.anchorActive && anchorTurnsLeft > 0 ? ` • Anchor ${anchorTurnsLeft}` : ""}`;
-
+        const token = getOrCreateToken(player.playerId);
+        hydrateToken(token, player, turnPlayerId, markerMap);
         const offset = offsets[index] ?? { x: 0, y: 0 };
         if (placeToken(token, cellEl, offset)) {
+          token.classList.remove("hidden");
           layer.appendChild(token);
+          activePlayerIds.add(player.playerId);
         }
       });
+    }
+
+    const roomPlayerIds = new Set(
+      (state.room?.players ?? []).map((player) => player.playerId),
+    );
+    for (const [playerId, token] of tokenByPlayerId.entries()) {
+      if (!roomPlayerIds.has(playerId)) {
+        token.remove();
+        tokenByPlayerId.delete(playerId);
+        continue;
+      }
+
+      if (activePlayerIds.has(playerId)) {
+        continue;
+      }
+
+      token.classList.add("hidden");
+      if (token.parentElement === layer) {
+        token.remove();
+      }
     }
   }
 
@@ -105,6 +97,85 @@
     const layer = ensureLayer();
     if (layer) {
       layer.replaceChildren();
+    }
+  }
+
+  function getOrCreateToken(playerId) {
+    const key = String(playerId ?? "");
+    if (!key) {
+      return document.createElement("div");
+    }
+
+    const cached = tokenByPlayerId.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const token = document.createElement("div");
+    token.className = "board-token";
+    token.dataset.playerId = key;
+    tokenByPlayerId.set(key, token);
+    return token;
+  }
+
+  function hydrateToken(token, player, turnPlayerId, markerMap) {
+    token.className = "board-token";
+    if (player.playerId === state.playerId) {
+      token.classList.add("me");
+    }
+    if (!player.connected) {
+      token.classList.add("offline");
+    }
+
+    const anchorTurnsLeft =
+      Number.parseInt(String(player.anchorTurnsLeft ?? 0), 10) || 0;
+    if (
+      player.playerId === turnPlayerId &&
+      player.anchorActive &&
+      anchorTurnsLeft > 0
+    ) {
+      token.classList.add("anchor-on-turn");
+    }
+
+    const safeAvatarId =
+      root.utils?.normalizeAvatarId?.(player.avatarId, 1) ?? 1;
+    const safeAvatarSrc = root.utils?.avatarSrc?.(safeAvatarId) ?? "";
+    if (safeAvatarSrc) {
+      token.classList.add("avatar");
+      let avatar = token.querySelector(".token-avatar-img");
+      if (!avatar) {
+        avatar = document.createElement("img");
+        avatar.className = "token-avatar-img";
+        token.replaceChildren(avatar);
+      }
+
+      if (token.dataset.avatarSrc !== safeAvatarSrc) {
+        avatar.src = safeAvatarSrc;
+        token.dataset.avatarSrc = safeAvatarSrc;
+      }
+
+      const expectedAlt = `Avatar ${safeAvatarId}`;
+      if (avatar.alt !== expectedAlt) {
+        avatar.alt = expectedAlt;
+      }
+    } else {
+      delete token.dataset.avatarSrc;
+      token.classList.remove("avatar");
+      const marker =
+        root.utils?.resolvePlayerMarker?.(
+          player.playerId,
+          player.displayName,
+          markerMap,
+        ) ?? "ผ";
+      if (token.textContent !== marker || token.querySelector(".token-avatar-img")) {
+        token.replaceChildren();
+        token.textContent = marker;
+      }
+    }
+
+    const title = `${player.displayName}${!player.connected ? " (ออฟไลน์)" : ""}${player.anchorActive && anchorTurnsLeft > 0 ? ` • Anchor ${anchorTurnsLeft}` : ""}`;
+    if (token.title !== title) {
+      token.title = title;
     }
   }
 
