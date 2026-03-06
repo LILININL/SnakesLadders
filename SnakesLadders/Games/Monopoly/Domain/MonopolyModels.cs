@@ -40,9 +40,10 @@ public sealed class MonopolyCellState
     public bool IsMortgaged { get; set; }
     public int HouseCount { get; set; }
     public bool HasHotel { get; set; }
+    public bool HasLandmark { get; set; }
     public int HouseCost { get; init; }
 
-    public int BuildingLevel => HasHotel ? 5 : Math.Clamp(HouseCount, 0, 4);
+    public int BuildingLevel => HasLandmark ? 6 : HasHotel ? 5 : Math.Clamp(HouseCount, 0, 4);
 }
 
 public sealed class MonopolyAuctionState
@@ -75,8 +76,11 @@ public sealed class MonopolyRoomState
     public string? ActivePlayerId { get; set; }
     public string? PendingDecisionPlayerId { get; set; }
     public int? PendingPurchaseCellId { get; set; }
+    public int PendingPurchasePrice { get; set; }
+    public string? PendingPurchaseOwnerPlayerId { get; set; }
     public string? PendingDebtToPlayerId { get; set; }
     public int PendingDebtAmount { get; set; }
+    public string? PendingDebtReason { get; set; }
     public MonopolyAuctionState? ActiveAuction { get; set; }
     public MonopolyTradeOfferState? ActiveTradeOffer { get; set; }
     public int AvailableHouses { get; set; } = MonopolyDefinitions.DefaultHouseSupply;
@@ -84,6 +88,8 @@ public sealed class MonopolyRoomState
     public Dictionary<string, int> ConsecutiveDoublesByPlayer { get; } =
         new(StringComparer.Ordinal);
     public Dictionary<string, int> JailAttemptByPlayer { get; } =
+        new(StringComparer.Ordinal);
+    public Dictionary<string, int> JailFineByPlayer { get; } =
         new(StringComparer.Ordinal);
     public Dictionary<string, bool> ExtraTurnByPlayer { get; } =
         new(StringComparer.Ordinal);

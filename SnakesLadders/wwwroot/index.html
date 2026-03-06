@@ -196,7 +196,7 @@
 
           <div id="roomRulesCard" class="summary-card rules-card hidden">
             <details id="roomRulesDetails" class="rules-details">
-              <summary>กติกาห้อง</summary>
+              <summary id="roomRulesSummary">กติกาห้อง</summary>
               <ul id="roomRuleList" class="rule-list"></ul>
             </details>
             <div id="readyPanel" class="ready-panel hidden">
@@ -251,6 +251,41 @@
               <button id="rollDiceFloatingBtn" class="btn btn-primary roll-fab hidden" type="button" aria-label="กดค้างที่ลูกเต๋าเพื่อชาร์จ แล้วปล่อยเพื่อทอย">
                 <span id="rollControlDice" class="roll-control-dice" aria-hidden="true">
                   <span class="roll-dice-cube">
+                    <span class="roll-dice-face face-1">
+                      <span class="dice-pip pip-mm"></span>
+                    </span>
+                    <span class="roll-dice-face face-2">
+                      <span class="dice-pip pip-tl"></span>
+                      <span class="dice-pip pip-br"></span>
+                    </span>
+                    <span class="roll-dice-face face-3">
+                      <span class="dice-pip pip-tl"></span>
+                      <span class="dice-pip pip-mm"></span>
+                      <span class="dice-pip pip-br"></span>
+                    </span>
+                    <span class="roll-dice-face face-4">
+                      <span class="dice-pip pip-tl"></span>
+                      <span class="dice-pip pip-tr"></span>
+                      <span class="dice-pip pip-bl"></span>
+                      <span class="dice-pip pip-br"></span>
+                    </span>
+                    <span class="roll-dice-face face-5">
+                      <span class="dice-pip pip-tl"></span>
+                      <span class="dice-pip pip-tr"></span>
+                      <span class="dice-pip pip-mm"></span>
+                      <span class="dice-pip pip-bl"></span>
+                      <span class="dice-pip pip-br"></span>
+                    </span>
+                    <span class="roll-dice-face face-6">
+                      <span class="dice-pip pip-tl"></span>
+                      <span class="dice-pip pip-ml"></span>
+                      <span class="dice-pip pip-bl"></span>
+                      <span class="dice-pip pip-tr"></span>
+                      <span class="dice-pip pip-mr"></span>
+                      <span class="dice-pip pip-br"></span>
+                    </span>
+                  </span>
+                  <span id="rollControlDiceB" class="roll-dice-cube">
                     <span class="roll-dice-face face-1">
                       <span class="dice-pip pip-mm"></span>
                     </span>

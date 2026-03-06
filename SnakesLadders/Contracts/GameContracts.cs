@@ -64,7 +64,8 @@ public enum GameActionType
     AcceptTrade = 12,
     RejectTrade = 13,
     DeclareBankruptcy = 14,
-    EndTurn = 15
+    EndTurn = 15,
+    SellProperty = 16
 }
 
 public sealed class MonopolyActionPayload
@@ -209,6 +210,7 @@ public sealed class MonopolyCellSnapshot
     public bool IsMortgaged { get; init; }
     public int HouseCount { get; init; }
     public bool HasHotel { get; init; }
+    public bool HasLandmark { get; init; }
     public int HouseCost { get; init; }
 }
 
@@ -220,8 +222,12 @@ public sealed class MonopolyStateSnapshot
     public required int AvailableHouses { get; init; }
     public required int AvailableHotels { get; init; }
     public int? PendingPurchaseCellId { get; init; }
+    public int PendingPurchasePrice { get; init; }
+    public string? PendingPurchaseOwnerPlayerId { get; init; }
     public string? PendingDebtToPlayerId { get; init; }
     public int PendingDebtAmount { get; init; }
+    public string? PendingDebtReason { get; init; }
+    public int CurrentJailFine { get; init; }
     public MonopolyAuctionSnapshot? ActiveAuction { get; init; }
     public MonopolyTradeSnapshot? ActiveTradeOffer { get; init; }
     public IReadOnlyList<MonopolyPlayerEconomySnapshot> PlayerEconomy { get; init; } =
@@ -258,6 +264,7 @@ public sealed class MonopolyPlayerEconomySnapshot
     public required int MonopolySetCount { get; init; }
     public required int Houses { get; init; }
     public required int Hotels { get; init; }
+    public required int Landmarks { get; init; }
     public required int Mortgaged { get; init; }
     public required bool InJail { get; init; }
     public required bool IsBankrupt { get; init; }

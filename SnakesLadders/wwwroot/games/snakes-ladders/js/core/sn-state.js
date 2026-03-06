@@ -29,6 +29,7 @@
     REJECT_TRADE: 13,
     DECLARE_BANKRUPTCY: 14,
     END_TURN: 15,
+    SELL_PROPERTY: 16,
   };
 
   root.MONOPOLY_PHASE = {
@@ -147,6 +148,7 @@
     roomMeta: document.getElementById("roomMeta"),
     waitingRoomActions: document.getElementById("waitingRoomActions"),
     roomRulesCard: document.getElementById("roomRulesCard"),
+    roomRulesSummary: document.getElementById("roomRulesSummary"),
     roomRuleList: document.getElementById("roomRuleList"),
     readyPanel: document.getElementById("readyPanel"),
     readySummary: document.getElementById("readySummary"),
@@ -195,6 +197,7 @@
     leaveRoomBtn: document.getElementById("leaveRoomBtn"),
     rollDiceFloatingBtn: document.getElementById("rollDiceFloatingBtn"),
     rollControlDice: document.getElementById("rollControlDice"),
+    rollControlDiceB: document.getElementById("rollControlDiceB"),
     rollChargeFill: document.getElementById("rollChargeFill"),
     rollChargeValue: document.getElementById("rollChargeValue"),
     toggleRollBtn: document.getElementById("toggleRollBtn"),

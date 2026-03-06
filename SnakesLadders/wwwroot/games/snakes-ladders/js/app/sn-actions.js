@@ -8,6 +8,7 @@
   const ROLL_REQUEST_COOLDOWN_MS = 1200;
   const ROLL_RELEASE_MS = 1220;
   const CONTROL_DICE_IDLE_FACE = 1;
+  const CONTROL_DICE_IDLE_FACE_B = 2;
   const DICE_POSE_BY_VALUE = {
     1: { x: -16, y: 14 },
     2: { x: -16, y: 194 },
@@ -115,6 +116,7 @@
     el.rollDiceFloatingBtn.addEventListener("keydown", onRollKeyDown);
     el.rollDiceFloatingBtn.addEventListener("keyup", onRollKeyUp);
     el.rollDiceFloatingBtn.addEventListener("click", onRollClickFallback);
+    syncRollVisualMode();
     renderControlDiceFace(CONTROL_DICE_IDLE_FACE);
     renderRollCharge(0);
   }
@@ -225,6 +227,7 @@
     const parsedPointerId = Number.parseInt(String(pointerId ?? ""), 10);
     chargePointerId = Number.isFinite(parsedPointerId) ? parsedPointerId : null;
     chargeValue = 0;
+    syncRollVisualMode();
     renderRollCharge(0);
     clearRollSettleState();
     el.rollDiceFloatingBtn.classList.add("charging");
@@ -313,13 +316,49 @@
   }
 
   function renderControlDiceFace(face) {
+    syncRollVisualMode();
+    const resolvedFace = normalizeDiceFace(face);
+    const secondaryFace = isMonopolyRollMode()
+      ? resolveSecondaryControlFace(resolvedFace)
+      : CONTROL_DICE_IDLE_FACE_B;
+    setControlDicePose(el.rollControlDice, resolvedFace, true);
+    setControlDicePose(el.rollControlDiceB, secondaryFace, false);
+  }
+
+  function setControlDicePose(target, face, setDataset) {
+    if (!target) {
+      return;
+    }
+
     const resolvedFace = normalizeDiceFace(face);
     const pose = DICE_POSE_BY_VALUE[resolvedFace] ??
       DICE_POSE_BY_VALUE[CONTROL_DICE_IDLE_FACE];
-    if (el.rollControlDice) {
-      el.rollControlDice.dataset.value = String(resolvedFace);
-      el.rollControlDice.style.setProperty("--dice-rx", `${pose.x}deg`);
-      el.rollControlDice.style.setProperty("--dice-ry", `${pose.y}deg`);
+    if (setDataset) {
+      target.dataset.value = String(resolvedFace);
+    }
+    target.style.setProperty("--dice-rx", `${pose.x}deg`);
+    target.style.setProperty("--dice-ry", `${pose.y}deg`);
+  }
+
+  function isMonopolyRollMode() {
+    return Boolean(root.monopolyHelpers?.isMonopolyRoom?.(state.room));
+  }
+
+  function resolveSecondaryControlFace(primaryFace) {
+    const normalized = normalizeDiceFace(primaryFace);
+    return normalized >= 6 ? 1 : normalized + 1;
+  }
+
+  function syncRollVisualMode() {
+    const twoDice = isMonopolyRollMode();
+    el.rollControlDice?.classList.toggle("two-dice", twoDice);
+    el.rollControlDiceB?.classList.toggle("hidden", !twoDice);
+    el.rollDiceFloatingBtn?.classList.toggle("monopoly-roll", twoDice);
+    const hintEl = el.rollDiceFloatingBtn?.querySelector(".roll-control-hint");
+    if (hintEl) {
+      hintEl.textContent = twoDice
+        ? "กดค้าง แล้วปล่อย 2 ลูก"
+        : "กดค้าง แล้วปล่อย";
     }
   }
 
@@ -338,6 +377,7 @@
   }
 
   function syncRollInteraction() {
+    syncRollVisualMode();
     const visible = !el.rollDiceFloatingBtn.classList.contains("hidden");
     if (canRollNow() && visible) {
       return;

@@ -139,9 +139,9 @@
       case root.MONOPOLY_PHASE.AWAIT_PURCHASE_DECISION:
         return "ตัดสินใจซื้อทรัพย์สิน";
       case root.MONOPOLY_PHASE.AUCTION_IN_PROGRESS:
-        return "กำลังประมูล";
+        return "สถานะเก่า (ไม่ใช้งานแล้ว)";
       case root.MONOPOLY_PHASE.AWAIT_TRADE_RESPONSE:
-        return "รอตอบรับเทรด";
+        return "สถานะเก่า (ไม่ใช้งานแล้ว)";
       case root.MONOPOLY_PHASE.AWAIT_MANAGE:
         return "จัดการทรัพย์สิน";
       case root.MONOPOLY_PHASE.AWAIT_END_TURN:

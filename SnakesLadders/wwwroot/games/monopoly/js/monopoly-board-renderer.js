@@ -86,6 +86,7 @@
     const colorClass = colorClassByGroup(resolveColorGroup(cell));
     const houseCount = resolveNumber(cell?.houseCount ?? cell?.HouseCount);
     const hasHotel = Boolean(cell?.hasHotel ?? cell?.HasHotel);
+    const hasLandmark = Boolean(cell?.hasLandmark ?? cell?.HasLandmark);
     const isMortgaged = Boolean(cell?.isMortgaged ?? cell?.IsMortgaged);
 
     const classes = [
@@ -133,10 +134,12 @@
         : renderOwnerFlag(state, ownerId, ownerName, markerMap);
 
     let buildings = "";
-    if (type === 1 && hasHotel) {
-      buildings = '<span class="m-buildings hotel" title="Hotel">🏨</span>';
+    if (type === 1 && hasLandmark) {
+      buildings = '<span class="m-buildings landmark" title="แลนด์มาร์ก">🏛</span>';
+    } else if (type === 1 && hasHotel) {
+      buildings = '<span class="m-buildings hotel" title="โรงแรม">🏨</span>';
     } else if (type === 1 && houseCount > 0) {
-      buildings = `<span class=\"m-buildings\" title=\"Houses\">${new Array(Math.min(4, houseCount)).fill("<i></i>").join("")}</span>`;
+      buildings = `<span class=\"m-buildings\" title=\"บ้าน\">${new Array(Math.min(4, houseCount)).fill("<i></i>").join("")}</span>`;
     }
     const mortgageBadge = isMortgaged
       ? '<span class="m-mortgage" title="Mortgaged">M</span>'
@@ -202,7 +205,7 @@
       <div class="m-center" style="grid-column:3 / span 7;grid-row:3 / span 7;">
         <div class="m-center-badge">CITY ESTATE</div>
         <h4 class="m-center-title">เกมเศรษฐีคลาสสิก</h4>
-        <div class="m-center-sub">ซื้อ • เทรด • ครองเมือง</div>
+        <div class="m-center-sub">จ่ายทาง • ซื้อสิทธิ์ • ครองเมือง</div>
         <div class="m-skyline" aria-hidden="true">
           <span style="--h:36px"></span>
           <span style="--h:54px"></span>

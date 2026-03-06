@@ -62,12 +62,20 @@
 
   function renderRoomRules() {
     if (!isInRoom()) {
+      if (el.roomRulesSummary) {
+        el.roomRulesSummary.textContent = "กติกาห้อง";
+      }
       el.roomRuleList.innerHTML = "";
       return;
     }
 
     const options = state.room.boardOptions;
     const lines = root.ruleSummary?.buildRoomRuleLines?.(options, state.room.gameKey) ?? [];
+    if (el.roomRulesSummary) {
+      el.roomRulesSummary.textContent = root.monopolyHelpers?.isMonopolyRoom?.(state.room)
+        ? "กติกา / วิธีเล่นเกมเศรษฐี"
+        : "กติกาห้อง";
+    }
 
     el.roomRuleList.innerHTML = lines
       .map((line) => `<li>${escapeHtml(line)}</li>`)
@@ -109,9 +117,22 @@
 
   function updateFloatingRollButton() {
     if (root.monopolyHelpers?.isMonopolyRoom?.(state.room)) {
+      const monopolyCanRoll = Boolean(
+        isStarted() &&
+        !state.animating &&
+        root.monopolyHelpers.canRollNow(),
+      );
       state.rollButtonHidden = false;
-      el.rollDiceFloatingBtn.classList.add("hidden");
       el.toggleRollBtn.classList.add("hidden");
+      if (!monopolyCanRoll) {
+        el.rollDiceFloatingBtn.classList.add("hidden");
+        root.actions?.syncRollInteraction?.();
+        return;
+      }
+
+      el.rollDiceFloatingBtn.style.left = "50%";
+      el.rollDiceFloatingBtn.style.top = "50%";
+      el.rollDiceFloatingBtn.classList.remove("hidden");
       root.actions?.syncRollInteraction?.();
       return;
     }

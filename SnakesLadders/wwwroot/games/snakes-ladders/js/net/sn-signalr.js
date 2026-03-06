@@ -367,7 +367,7 @@
       const landingLine = lines.find(
         (line) =>
           line.includes("ยังไม่มีเจ้าของ") ||
-          line.includes("ค่าเช่า") ||
+          line.includes("ค่าผ่านทาง") ||
           line.includes("จ่ายภาษี") ||
           line.includes("เข้าคุก"),
       );
@@ -381,19 +381,17 @@
 
   function actionTypeLabel(actionType) {
     const map = {
-      [root.GAME_ACTION_TYPES.PAY_JAIL_FINE]: "จ่ายค่าปรับออกจากคุก",
+      [root.GAME_ACTION_TYPES.PAY_JAIL_FINE]: "จ่ายค่าประกันออกจากคุก",
       [root.GAME_ACTION_TYPES.TRY_JAIL_ROLL]: "ทอยแก้คุก",
       [root.GAME_ACTION_TYPES.BUY_PROPERTY]: "ซื้อทรัพย์สิน",
       [root.GAME_ACTION_TYPES.DECLINE_PURCHASE]: "ปฏิเสธการซื้อ",
-      [root.GAME_ACTION_TYPES.BID_AUCTION]: "บิดประมูล",
-      [root.GAME_ACTION_TYPES.PASS_AUCTION]: "ผ่านประมูล",
+      [root.GAME_ACTION_TYPES.BID_AUCTION]: "ระบบประมูลเก่า",
+      [root.GAME_ACTION_TYPES.PASS_AUCTION]: "ระบบประมูลเก่า",
       [root.GAME_ACTION_TYPES.BUILD_HOUSE]: "สร้างบ้าน",
       [root.GAME_ACTION_TYPES.SELL_HOUSE]: "ขายบ้าน",
       [root.GAME_ACTION_TYPES.MORTGAGE]: "จำนอง",
       [root.GAME_ACTION_TYPES.UNMORTGAGE]: "ไถ่ถอน",
-      [root.GAME_ACTION_TYPES.OFFER_TRADE]: "เสนอเทรด",
-      [root.GAME_ACTION_TYPES.ACCEPT_TRADE]: "ตอบรับเทรด",
-      [root.GAME_ACTION_TYPES.REJECT_TRADE]: "ปฏิเสธเทรด",
+      [root.GAME_ACTION_TYPES.SELL_PROPERTY]: "ขายอสังหา",
       [root.GAME_ACTION_TYPES.DECLARE_BANKRUPTCY]: "ล้มละลาย",
       [root.GAME_ACTION_TYPES.END_TURN]: "จบเทิร์น",
     };

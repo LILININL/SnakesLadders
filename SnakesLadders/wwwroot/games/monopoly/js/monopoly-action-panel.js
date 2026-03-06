@@ -4,7 +4,6 @@
 
   const panelState = {
     manageStep: "menu",
-    tradeTargetPlayerId: "",
     lastPhase: -1,
     lastTurnCounter: -1,
   };
@@ -29,14 +28,11 @@
 
     wired = true;
     el.monopolyActionPanel.addEventListener("click", onPanelClick);
-    el.monopolyActionPanel.addEventListener("submit", onPanelSubmit);
-    el.monopolyActionPanel.addEventListener("change", onPanelChange);
     countdownTimer = window.setInterval(updateCountdownLabel, 1000);
   }
 
   function reset() {
     panelState.manageStep = "menu";
-    panelState.tradeTargetPlayerId = "";
     panelState.lastPhase = -1;
     panelState.lastTurnCounter = -1;
     hidePopup();
@@ -144,7 +140,11 @@
     const helpers = root.monopolyHelpers;
     const phase = helpers.phase();
 
-    if (phase === root.MONOPOLY_PHASE.RESOLVING || phase === root.MONOPOLY_PHASE.FINISHED) {
+    if (
+      phase === root.MONOPOLY_PHASE.RESOLVING ||
+      phase === root.MONOPOLY_PHASE.FINISHED ||
+      phase === root.MONOPOLY_PHASE.AWAIT_ROLL
+    ) {
       return false;
     }
 
@@ -157,32 +157,17 @@
 
   function renderByPhase(phase, monopoly) {
     switch (phase) {
-      case root.MONOPOLY_PHASE.AWAIT_ROLL:
-        return renderActionButtons([
-          { label: "ทอยลูกเต๋า 2 ลูก", action: "roll", tone: "primary" },
-        ]);
-
       case root.MONOPOLY_PHASE.AWAIT_JAIL_DECISION:
-        return renderActionButtons(
-          [
-            currentPlayerCash(monopoly) >= 50
-              ? { label: "จ่ายค่าปรับออกจากคุก (฿50)", action: "pay-jail", tone: "primary" }
-              : null,
-            { label: "เสี่ยงทอยดับเบิลเพื่อออกจากคุก", action: "try-jail-roll", tone: "" },
-          ].filter(Boolean),
-        );
+        return renderJailDecision(monopoly);
 
       case root.MONOPOLY_PHASE.AWAIT_PURCHASE_DECISION:
         return renderPurchaseDecision(monopoly);
 
-      case root.MONOPOLY_PHASE.AUCTION_IN_PROGRESS:
-        return renderAuction(monopoly);
-
-      case root.MONOPOLY_PHASE.AWAIT_TRADE_RESPONSE:
-        return renderTradeResponse(monopoly);
-
       case root.MONOPOLY_PHASE.AWAIT_MANAGE:
       case root.MONOPOLY_PHASE.AWAIT_END_TURN:
+        if (parseIntVal(monopoly?.pendingDebtAmount) > 0) {
+          return renderDebtResolution(monopoly);
+        }
         return renderManageWizard(monopoly);
 
       default:
@@ -190,106 +175,85 @@
     }
   }
 
+  function renderJailDecision(monopoly) {
+    const helpers = root.monopolyHelpers;
+    const fine = parseIntVal(monopoly?.currentJailFine) || 50;
+    const cash = currentPlayerCash(monopoly);
+    const shortfall = Math.max(0, fine - cash);
+
+    return `
+      <div class="mono-info-card">
+        <div class="mono-info-title">ออกจากคุก</div>
+        <div class="mono-info-sub">ค่าประกันปัจจุบัน ${helpers.money(fine)}</div>
+        <div class="mono-info-sub">เงินคงเหลือ ${helpers.money(cash)}</div>
+      </div>
+      ${
+        shortfall > 0
+          ? `<div class="mono-tip mono-tip-warn">เงินยังไม่พอค่าประกัน ขาด ${helpers.money(shortfall)} ถ้ากดจ่าย ระบบจะพาไปขายทรัพย์สินต่อทันที</div>`
+          : ""
+      }
+      <div class="mono-tip mono-tip-reco">คำแนะนำ: ถ้าทอยแก้คุกไม่ออกดับเบิล ค่าประกันรอบถัดไปจะคูณ 2 จากรอบก่อน</div>
+      ${renderActionButtons([
+        { label: `จ่ายค่าประกันออกจากคุก (${helpers.money(fine)})`, action: "pay-jail", tone: "primary" },
+        { label: "เสี่ยงทอยดับเบิลเพื่อออกจากคุก", action: "try-jail-roll", tone: "" },
+      ])}
+    `;
+  }
+
   function renderPurchaseDecision(monopoly) {
     const helpers = root.monopolyHelpers;
     const cell = helpers.findCell(monopoly.pendingPurchaseCellId);
     const name = cellName(cell);
-    const price = parseIntVal(cell?.price ?? cell?.Price);
+    const price = parseIntVal(monopoly?.pendingPurchasePrice ?? cell?.price ?? cell?.Price);
     const cash = currentPlayerCash(monopoly);
     const shortfall = Math.max(0, price - cash);
     const canAfford = cash >= price;
-    const recommendation = canAfford
-      ? "ถ้าต้องการเก็บเงินไว้จ่ายค่าเช่ารอบถัดไป ให้เลือกไม่ซื้อแล้วเปิดประมูล"
-      : `เงินไม่พอซื้อ ขาดอีก ${helpers.money(shortfall)} แนะนำให้เลือกไม่ซื้อเพื่อเปิดประมูล`;
+    const ownerId = String(monopoly?.pendingPurchaseOwnerPlayerId ?? "").trim();
+    const ownerName = ownerId ? helpers.playerName(ownerId) : "";
+    const isTakeover = Boolean(ownerId);
+    const recommendation = isTakeover
+      ? canAfford
+        ? "คุณจ่ายค่าผ่านทางเรียบร้อยแล้ว ถ้าซื้อต่อจะยึดสิทธิ์ความเป็นเจ้าของทันที"
+        : `เงินยังไม่พอซื้อต่อ ขาดอีก ${helpers.money(shortfall)} เลือกข้ามการซื้อแล้วไปต่อได้`
+      : canAfford
+        ? "ถ้าอยากเก็บเงินไว้ก่อน กดข้ามการซื้อแล้วไปจัดการทรัพย์สินต่อได้"
+        : `เงินไม่พอซื้อ ขาดอีก ${helpers.money(shortfall)} กดข้ามการซื้อแล้วไปต่อได้`;
     const actions = canAfford
       ? [
-        { label: "ซื้อทรัพย์สิน", action: "buy-property", tone: "primary" },
-        { label: "ไม่ซื้อ (เปิดประมูล)", action: "decline-property", tone: "danger" },
+        { label: isTakeover ? "ซื้อทรัพย์สินนี้ต่อ" : "ซื้อทรัพย์สิน", action: "buy-property", tone: "primary" },
+        { label: isTakeover ? "ไม่ซื้อ / จบช่วงนี้" : "ข้ามการซื้อ", action: "decline-property", tone: "danger" },
       ]
       : [
-        { label: "ไม่ซื้อ (เปิดประมูล)", action: "decline-property", tone: "danger" },
+        { label: isTakeover ? "ยังไม่ซื้อ / จบช่วงนี้" : "ข้ามการซื้อ", action: "decline-property", tone: "danger" },
       ];
 
     return `
       <div class="mono-info-card">
         <div class="mono-info-title">${escapeHtml(name)}</div>
-        <div class="mono-info-sub">ราคา ${helpers.money(price)}</div>
+        <div class="mono-info-sub">${isTakeover ? `เจ้าของปัจจุบัน ${escapeHtml(ownerName)}` : "ทรัพย์สินของธนาคาร"}</div>
+        <div class="mono-info-sub">${isTakeover ? "ราคาซื้อต่อ" : "ราคา"} ${helpers.money(price)}</div>
         <div class="mono-info-sub">เงินคงเหลือ ${helpers.money(cash)}</div>
       </div>
       ${
         canAfford
           ? ""
-          : `<div class="mono-tip mono-tip-warn">เงินไม่พอสำหรับการซื้อช่องนี้ (ขาด ${helpers.money(shortfall)})</div>`
+          : `<div class="mono-tip mono-tip-warn">เงินไม่พอสำหรับการ${isTakeover ? "ซื้อต่อ" : "ซื้อช่องนี้"} (ขาด ${helpers.money(shortfall)})</div>`
       }
       <div class="mono-tip mono-tip-reco">คำแนะนำ: ${escapeHtml(recommendation)}</div>
       ${renderActionButtons(actions)}
     `;
   }
 
-  function renderAuction(monopoly) {
-    const helpers = root.monopolyHelpers;
-    const auction = monopoly.activeAuction;
-    if (!auction) {
-      return `<div class="mono-muted">ยังไม่มีข้อมูลประมูล</div>`;
-    }
-
-    const bidderName = helpers.playerName(auction.currentBidderPlayerId);
-    const minBid = Math.max(1, parseIntVal(auction.currentBidAmount) + 1);
-
-    return `
-      <div class="mono-info-card">
-        <div class="mono-info-title">ประมูล: ${escapeHtml(auction.cellName ?? `ช่อง ${auction.cellId}`)}</div>
-        <div class="mono-info-sub">ราคาปัจจุบัน ${helpers.money(auction.currentBidAmount)} โดย ${escapeHtml(bidderName)}</div>
-      </div>
-      <form class="mono-form" data-form="bid-auction">
-        <label>ราคาที่ต้องการบิด</label>
-        <input name="bidAmount" type="number" min="${minBid}" step="1" placeholder="อย่างน้อย ${minBid}" required>
-        <button type="submit" class="btn mono-pop-btn mono-pop-btn-primary">ยืนยันราคาบิด</button>
-      </form>
-      ${renderActionButtons([
-        { label: "ผ่าน", action: "pass-auction", tone: "" },
-      ])}
-    `;
-  }
-
-  function renderTradeResponse(monopoly) {
-    const helpers = root.monopolyHelpers;
-    const offer = monopoly.activeTradeOffer;
-    if (!offer) {
-      return `<div class="mono-muted">ไม่มีข้อเสนอเทรด</div>`;
-    }
-
-    const giveCells = Array.isArray(offer.giveCells) ? offer.giveCells.join(", ") : "-";
-    const receiveCells = Array.isArray(offer.receiveCells)
-      ? offer.receiveCells.join(", ")
-      : "-";
-
-    return `
-      <div class="mono-info-card">
-        <div class="mono-info-title">ข้อเสนอเทรดจาก ${escapeHtml(helpers.playerName(offer.fromPlayerId))}</div>
-        <div class="mono-info-sub">เงินที่เขาให้: ${helpers.money(offer.cashGive)} | เงินที่เขาขอ: ${helpers.money(offer.cashReceive)}</div>
-        <div class="mono-info-sub">ทรัพย์สินที่เขาให้: ${escapeHtml(giveCells || "-")}</div>
-        <div class="mono-info-sub">ทรัพย์สินที่เขาขอ: ${escapeHtml(receiveCells || "-")}</div>
-      </div>
-      ${renderActionButtons([
-        { label: "ตอบรับเทรด", action: "accept-trade", tone: "primary" },
-        { label: "ปฏิเสธเทรด", action: "reject-trade", tone: "danger" },
-      ])}
-    `;
-  }
-
   function renderManageWizard(monopoly) {
     switch (panelState.manageStep) {
       case "build":
-        return renderBuildSellForm("build", "สร้างบ้าน/โรงแรม", "build-house", monopoly);
+        return renderBuildSellForm("build", "อัปเกรดเมือง / โรงแรม / แลนด์มาร์ก", "build-house", monopoly);
       case "sell":
-        return renderBuildSellForm("sell", "ขายบ้าน/โรงแรม", "sell-house", monopoly);
+        return renderBuildSellForm("sell", "ลดระดับเมือง / ขายโรงแรม / รื้อแลนด์มาร์ก", "sell-house", monopoly);
       case "mortgage":
         return renderMortgageForm(false, monopoly);
       case "unmortgage":
         return renderMortgageForm(true, monopoly);
-      case "trade":
-        return renderTradeWizard(monopoly);
       case "bankruptcy":
         return renderBankruptcyConfirm();
       default:
@@ -298,14 +262,23 @@
   }
 
   function renderManageMenu(monopoly) {
+    const helpers = root.monopolyHelpers;
     const available = evaluateManageActions(monopoly);
+    const landingOpportunity = resolveLandingUpgradeOpportunity(monopoly);
     const buttons = [];
 
+    if (landingOpportunity) {
+      buttons.push({
+        label: landingOpportunity.buttonLabel,
+        action: "upgrade-landed-now",
+        tone: "primary",
+      });
+    }
     if (available.canBuild) {
-      buttons.push({ label: `สร้างบ้าน / โรงแรม (${available.buildCount})`, action: "step-build", tone: "" });
+      buttons.push({ label: `อัปเกรดเมือง / โรงแรม / แลนด์มาร์ก (${available.buildCount})`, action: "step-build", tone: "" });
     }
     if (available.canSell) {
-      buttons.push({ label: `ขายบ้าน / โรงแรม (${available.sellCount})`, action: "step-sell", tone: "" });
+      buttons.push({ label: `ลดระดับเมือง / ขายโรงแรม / รื้อแลนด์มาร์ก (${available.sellCount})`, action: "step-sell", tone: "" });
     }
     if (available.canMortgage) {
       buttons.push({ label: `จำนองทรัพย์สิน (${available.mortgageCount})`, action: "step-mortgage", tone: "" });
@@ -313,17 +286,21 @@
     if (available.canUnmortgage) {
       buttons.push({ label: `ไถ่ถอนจำนอง (${available.unmortgageCount})`, action: "step-unmortgage", tone: "" });
     }
-    if (available.canTrade) {
-      buttons.push({ label: "เสนอเทรด", action: "step-trade", tone: "" });
-    }
     buttons.push({ label: "จบเทิร์น", action: "end-turn", tone: "primary" });
     if (available.canBankruptcy) {
       buttons.push({ label: "ประกาศล้มละลาย", action: "step-bankruptcy", tone: "danger" });
     }
 
-    const recommendation = resolveManageRecommendation(available);
+    const recommendation = resolveManageRecommendation(available, landingOpportunity);
 
     return `
+      ${landingOpportunity ? `
+        <div class="mono-info-card mono-opportunity-card">
+          <div class="mono-info-title">โอกาสอัปเกรดทันที: ${escapeHtml(landingOpportunity.cellName)}</div>
+          <div class="mono-info-sub">${escapeHtml(landingOpportunity.detail)}</div>
+          <div class="mono-info-sub">ค่าใช้จ่าย ${helpers.money(landingOpportunity.cost)}</div>
+        </div>
+      ` : ""}
       <div class="mono-step-badge">ขั้นตอนที่ 1: เลือกการจัดการทรัพย์สิน</div>
       ${renderActionButtons(buttons)}
       <div class="mono-tip mono-tip-warn">หากไม่ทำอะไรภายใน 45 วินาที ระบบจะจบเทิร์นให้อัตโนมัติ</div>
@@ -331,7 +308,10 @@
     `;
   }
 
-  function resolveManageRecommendation(available) {
+  function resolveManageRecommendation(available, landingOpportunity) {
+    if (landingOpportunity) {
+      return `เพิ่งมาตกที่ ${landingOpportunity.cellName} และสามารถ${landingOpportunity.shortAction}ได้เลย ระบบเตรียมปุ่มลัดไว้ให้แล้ว`;
+    }
     if (available.canBuild) {
       return "หากมีเงินเหลือ ลองเริ่มจากการสร้างบ้านเพื่อเพิ่มค่าเช่า";
     }
@@ -343,9 +323,6 @@
     }
     if (available.canSell) {
       return "ขายสิ่งปลูกสร้างบางส่วนเพื่อรักษาเงินสดสำรอง";
-    }
-    if (available.canTrade) {
-      return "ลองเสนอเทรดเพื่อปิดชุดสีให้ครบเร็วขึ้น";
     }
     if (available.canBankruptcy) {
       return "หนี้สูงและจัดการต่อไม่ไหว ค่อยใช้ล้มละลายเป็นทางเลือกสุดท้าย";
@@ -370,12 +347,67 @@
       canSell: sellCandidates.length > 0,
       canMortgage: mortgageCandidates.length > 0,
       canUnmortgage: unmortgageCandidates.length > 0,
-      canTrade: getTradeTargets().length > 0 && !monopoly?.activeTradeOffer,
       canBankruptcy: pendingDebt > 0 || cash < 0,
     };
   }
 
+  function renderDebtResolution(monopoly) {
+    const helpers = root.monopolyHelpers;
+    const debtAmount = parseIntVal(monopoly?.pendingDebtAmount);
+    const creditorId = String(monopoly?.pendingDebtToPlayerId ?? "").trim();
+    const debtReason = String(monopoly?.pendingDebtReason ?? "").trim();
+    const buildingCandidates = getSellCandidates(state.playerId);
+    const assetCandidates = getDebtSaleCandidates(state.playerId, monopoly);
+    const buyerLabel = creditorId
+      ? `ขายให้ ${helpers.playerName(creditorId)}`
+      : "ขายคืนธนาคาร";
+
+    return `
+      <div class="mono-step-badge">เคลียร์หนี้ก่อนเล่นต่อ</div>
+      <div class="mono-info-card mono-opportunity-card">
+        <div class="mono-info-title">หนี้คงค้าง ${helpers.money(debtAmount)}</div>
+        <div class="mono-info-sub">${escapeHtml(debtReason || (creditorId ? "หนี้ค่าผ่านทาง" : "หนี้กับธนาคาร"))}</div>
+        <div class="mono-info-sub">${escapeHtml(creditorId ? `เจ้าหนี้: ${helpers.playerName(creditorId)}` : "เจ้าหนี้: ธนาคาร")}</div>
+      </div>
+      ${
+        buildingCandidates.length > 0
+          ? `
+            <div class="mono-list-title">รื้อสิ่งปลูกสร้างเพื่อหาเงินสด</div>
+            ${renderDebtActionList(
+              buildingCandidates.map((cell) => ({
+                cellId: resolveCellNo(cell),
+                title: cellName(cell),
+                meta: describeStructureSell(cell),
+                amountLabel: helpers.money(estimateStructureSellValue(cell)),
+                action: "sell-structure",
+              })),
+            )}
+          `
+          : ""
+      }
+      ${
+        assetCandidates.length > 0
+          ? `
+            <div class="mono-list-title">${escapeHtml(buyerLabel)}</div>
+            ${renderDebtActionList(
+              assetCandidates.map((cell) => ({
+                cellId: resolveCellNo(cell),
+                title: cellName(cell),
+                meta: describeDebtSale(cell, monopoly),
+                amountLabel: helpers.money(estimateDebtSaleValue(cell, monopoly)),
+                action: "sell-property",
+              })),
+            )}
+          `
+          : `<div class="mono-muted">ตอนนี้ไม่มีอสังหาที่ขายโอนได้แล้ว</div>`
+      }
+      <div class="mono-tip mono-tip-warn">ถ้าปิดหนี้ไม่ได้ก่อนหมดเวลา ระบบจะบังคับล้มละลายให้อัตโนมัติ</div>
+      ${renderActionButtons([{ label: "ประกาศล้มละลาย", action: "declare-bankruptcy", tone: "danger" }])}
+    `;
+  }
+
   function renderBuildSellForm(mode, title, formAction, monopoly) {
+    const helpers = root.monopolyHelpers;
     const cash = currentPlayerCash(monopoly);
     const properties =
       mode === "build"
@@ -392,13 +424,29 @@
 
     return `
       <div class="mono-step-badge">ขั้นตอนที่ 2: ${escapeHtml(title)}</div>
-      <form class="mono-form" data-form="${formAction}">
-        <label>เลือกทรัพย์สิน</label>
-        <select name="cellId" required>
-          ${renderCellOptions(properties)}
-        </select>
-        <button type="submit" class="btn mono-pop-btn mono-pop-btn-primary">ยืนยัน</button>
-      </form>
+      <div class="mono-tip mono-tip-reco">
+        ${
+          mode === "build"
+            ? "ระบบจะอัปเกรดให้ทีละขั้นตามสถานะปัจจุบันของช่องที่เลือก เช่น บ้าน -> โรงแรม -> แลนด์มาร์ก"
+            : "ระบบจะลดระดับจากสูงสุดก่อน เช่น แลนด์มาร์ก -> โรงแรม -> บ้าน"
+        }
+      </div>
+      <div class="mono-list-title">เลือกทรัพย์สิน</div>
+      ${renderDebtActionList(
+        properties.map((cell) => ({
+          cellId: resolveCellNo(cell),
+          title: cellName(cell),
+          meta: mode === "build"
+            ? describeBuildCandidate(cell)
+            : describeStructureSell(cell),
+          amountLabel: helpers.money(
+            mode === "build"
+              ? describeNextUpgradeStep(cell)?.cost ?? 0
+              : estimateStructureSellValue(cell),
+          ),
+          action: mode === "build" ? "build-property" : "sell-structure",
+        })),
+      )}
       ${renderActionButtons([{ label: "ย้อนกลับ", action: "back-menu", tone: "" }])}
     `;
   }
@@ -422,66 +470,22 @@
 
     return `
       <div class="mono-step-badge">ขั้นตอนที่ 2: ${title}</div>
-      <form class="mono-form" data-form="${formAction}">
-        <label>เลือกทรัพย์สิน</label>
-        <select name="cellId" required>
-          ${renderCellOptions(properties)}
-        </select>
-        <button type="submit" class="btn mono-pop-btn mono-pop-btn-primary">ยืนยัน</button>
-      </form>
-      ${renderActionButtons([{ label: "ย้อนกลับ", action: "back-menu", tone: "" }])}
-    `;
-  }
-
-  function renderTradeWizard(monopoly) {
-    const players = getTradeTargets();
-
-    if (players.length === 0 || monopoly?.activeTradeOffer) {
-      return `
-        <div class="mono-step-badge">ขั้นตอนที่ 2: เสนอเทรด</div>
-        <div class="mono-muted">ยังไม่สามารถเริ่มเทรดได้ในตอนนี้</div>
-        ${renderActionButtons([{ label: "ย้อนกลับ", action: "back-menu", tone: "" }])}
-      `;
-    }
-
-    const selectedTargetId = resolveSelectedTradeTarget(players);
-    const myCells = getTradeableAssets(state.playerId);
-    const targetCells = getTradeableAssets(selectedTargetId);
-
-    return `
-      <div class="mono-step-badge">ขั้นตอนที่ 2: เสนอเทรด</div>
-      <form class="mono-form" data-form="offer-trade">
-        <label>ผู้เล่นเป้าหมาย</label>
-        <select name="targetPlayerId" data-field="trade-target">
-          ${players
-            .map(
-              (player) =>
-                `<option value="${escapeHtml(player.playerId)}" ${player.playerId === selectedTargetId ? "selected" : ""}>${escapeHtml(player.displayName)}</option>`,
-            )
-            .join("")}
-        </select>
-
-        <div class="mono-form-grid">
-          <label>เงินที่คุณให้
-            <input name="cashGive" type="number" min="0" step="1" value="0">
-          </label>
-          <label>เงินที่คุณขอ
-            <input name="cashReceive" type="number" min="0" step="1" value="0">
-          </label>
-        </div>
-
-        <div class="mono-checklist-wrap">
-          <div class="mono-checklist-title">ทรัพย์สินที่คุณจะให้</div>
-          ${renderCellChecklist("giveCells", myCells)}
-        </div>
-
-        <div class="mono-checklist-wrap">
-          <div class="mono-checklist-title">ทรัพย์สินที่คุณขอ</div>
-          ${renderCellChecklist("receiveCells", targetCells)}
-        </div>
-
-        <button type="submit" class="btn mono-pop-btn mono-pop-btn-primary">ส่งข้อเสนอเทรด</button>
-      </form>
+      <div class="mono-list-title">เลือกทรัพย์สิน</div>
+      ${renderDebtActionList(
+        properties.map((cell) => ({
+          cellId: resolveCellNo(cell),
+          title: cellName(cell),
+          meta: unmortgageMode
+            ? describeUnmortgageCandidate(cell)
+            : describeMortgageCandidate(cell),
+          amountLabel: root.monopolyHelpers.money(
+            unmortgageMode
+              ? unmortgageCost(cell)
+              : mortgageValue(cell),
+          ),
+          action: unmortgageMode ? "unmortgage-property" : "mortgage-property",
+        })),
+      )}
       ${renderActionButtons([{ label: "ย้อนกลับ", action: "back-menu", tone: "" }])}
     `;
   }
@@ -498,35 +502,44 @@
       case root.MONOPOLY_PHASE.AWAIT_JAIL_DECISION:
         tips.push(
           cash >= 50
-            ? "ถ้าไม่อยากเสี่ยง จ่ายค่าปรับเพื่อออกคุกได้ทันที"
-            : "เงินไม่พอค่าปรับ ควรเลือกทอยดับเบิลเพื่อออกจากคุก",
+            ? "ถ้าไม่อยากเสี่ยง จ่ายค่าประกันเพื่อออกคุกได้ทันที แต่ถ้าทอยไม่ออก ค่าประกันรอบถัดไปจะเพิ่มเป็น 2 เท่า"
+            : "เงินไม่พอค่าประกัน ควรเลือกทอยดับเบิลเพื่อออกจากคุก หรือเตรียมขายทรัพย์เพื่อจ่ายรอบถัดไป",
         );
         break;
       case root.MONOPOLY_PHASE.AWAIT_PURCHASE_DECISION:
         {
           const cell = root.monopolyHelpers.findCell(monopoly?.pendingPurchaseCellId);
-          const price = parseIntVal(cell?.price ?? cell?.Price);
+          const price = parseIntVal(monopoly?.pendingPurchasePrice ?? cell?.price ?? cell?.Price);
+          const ownerId = String(monopoly?.pendingPurchaseOwnerPlayerId ?? "").trim();
           if (price > 0 && cash < price) {
             tips.push(
-              `เงินไม่พอซื้อช่องนี้ (ขาด ${root.monopolyHelpers.money(price - cash)}) ให้เลือกไม่ซื้อเพื่อเข้าสู่ประมูล`,
+              ownerId
+                ? `เงินยังไม่พอซื้อต่อ (ขาด ${root.monopolyHelpers.money(price - cash)}) ให้กดไม่ซื้อแล้วไปต่อ`
+                : `เงินไม่พอซื้อช่องนี้ (ขาด ${root.monopolyHelpers.money(price - cash)}) ให้เลือกข้ามการซื้อแล้วไปต่อ`,
             );
           } else {
-            tips.push("เช็กเงินคงเหลือหลังซื้อ เพื่อกันพลาดตอนเจอค่าเช่าหนัก");
+            tips.push(ownerId
+              ? "ถ้าซื้อต่อหลังจ่ายค่าผ่านทางแล้ว ช่องนี้จะย้ายเจ้าของทันที"
+              : "เช็กเงินคงเหลือหลังซื้อ เพื่อกันพลาดตอนเจอค่าผ่านทางหนักในเทิร์นถัดไป");
           }
         }
         break;
-      case root.MONOPOLY_PHASE.AUCTION_IN_PROGRESS:
-        tips.push("บิดเฉพาะราคาที่รับไหว การประมูลจบรอบนี้ทันทีเมื่อทุกคนผ่าน");
-        break;
-      case root.MONOPOLY_PHASE.AWAIT_TRADE_RESPONSE:
-        tips.push("เทียบมูลค่าทรัพย์สินและเงินสดก่อนตอบรับข้อเสนอเทรด");
-        break;
       case root.MONOPOLY_PHASE.AWAIT_MANAGE:
       case root.MONOPOLY_PHASE.AWAIT_END_TURN:
+        {
+          const landingOpportunity = resolveLandingUpgradeOpportunity(monopoly);
+          if (landingOpportunity) {
+            tips.push(`เพิ่งมาตกที่ ${landingOpportunity.cellName} และสามารถ${landingOpportunity.shortAction}ได้ทันที`);
+          }
+        }
         if (pendingDebt > 0) {
-          tips.push(`ตอนนี้มีหนี้คงค้าง ${root.monopolyHelpers.money(pendingDebt)} ควรจัดการเงินสดก่อน`);
+          tips.push(`ตอนนี้มีหนี้คงค้าง ${root.monopolyHelpers.money(pendingDebt)} ต้องรื้อสิ่งปลูกสร้างหรือขายอสังหาก่อนเล่นต่อ`);
+          if (String(monopoly?.pendingDebtToPlayerId ?? "").trim()) {
+            tips.push("หนี้รอบนี้ผูกกับเจ้าหนี้โดยตรง ระบบจะโชว์เฉพาะอสังหาที่โอนให้เขาได้");
+          }
         }
         tips.push("แสดงเฉพาะปุ่มที่ทำได้จริงในเทิร์นนี้ เพื่อลดความสับสน");
+        tips.push("ถ้าต้องการสร้างแลนด์มาร์ก ต้องถือชุดสีครบ อัปเกรดทุกแปลงให้สมดุลจนถึงโรงแรมก่อน");
         break;
       default:
         break;
@@ -557,46 +570,6 @@
     `;
   }
 
-  function renderCellChecklist(name, cells) {
-    if (!cells || cells.length === 0) {
-      return `<div class="mono-muted">ไม่มีทรัพย์สิน</div>`;
-    }
-
-    return `
-      <div class="mono-checklist">
-        ${cells
-          .map((cell) => {
-            const id = resolveCellNo(cell);
-            return `
-              <label class="mono-check-item">
-                <input type="checkbox" name="${name}" value="${id}">
-                <span>${escapeHtml(`${id} - ${cellName(cell)}`)}</span>
-              </label>
-            `;
-          })
-          .join("")}
-      </div>
-    `;
-  }
-
-  function renderCellOptions(cells) {
-    return cells
-      .map((cell) => {
-        const cellNo = resolveCellNo(cell);
-        const mortgaged = Boolean(cell?.isMortgaged ?? cell?.IsMortgaged);
-        const houses = parseIntVal(cell?.houseCount ?? cell?.HouseCount);
-        const hotel = Boolean(cell?.hasHotel ?? cell?.HasHotel);
-        const suffix = [
-          mortgaged ? "จำนอง" : "",
-          hotel ? "โรงแรม" : houses > 0 ? `บ้าน ${houses}` : "",
-        ]
-          .filter(Boolean)
-          .join(" | ");
-        return `<option value="${cellNo}">${escapeHtml(`${cellNo} - ${cellName(cell)}${suffix ? ` (${suffix})` : ""}`)}</option>`;
-      })
-      .join("");
-  }
-
   function renderActionButtons(buttons) {
     return `
       <div class="mono-pop-actions">
@@ -606,6 +579,30 @@
             return `<button type="button" class="btn mono-pop-btn ${toneClass}" data-action="${button.action}">${escapeHtml(button.label)}</button>`;
           })
           .join("")}
+      </div>
+    `;
+  }
+
+  function renderDebtActionList(items) {
+    if (!items || items.length === 0) {
+      return `<div class="mono-muted">ไม่มีรายการ</div>`;
+    }
+
+    return `
+      <div class="mono-action-list">
+        ${items.map((item) => `
+          <button
+            type="button"
+            class="btn mono-list-btn"
+            data-action="${escapeHtml(item.action)}"
+            data-cell-id="${item.cellId}">
+            <span class="mono-list-btn-main">
+              <span class="mono-list-btn-title">${escapeHtml(item.title)}</span>
+              <span class="mono-list-btn-meta">${escapeHtml(item.meta)}</span>
+            </span>
+            <span class="mono-list-btn-amount">${escapeHtml(item.amountLabel)}</span>
+          </button>
+        `).join("")}
       </div>
     `;
   }
@@ -633,99 +630,36 @@
       return;
     }
 
+    const cellId = parseIntVal(button.dataset.cellId);
+    if (cellId > 0) {
+      if (action === "build-property") {
+        panelState.manageStep = "menu";
+        await root.monopolyHelpers.submitAction(root.GAME_ACTION_TYPES.BUILD_HOUSE, { cellId });
+        return;
+      }
+      if (action === "sell-structure") {
+        panelState.manageStep = "menu";
+        await root.monopolyHelpers.submitAction(root.GAME_ACTION_TYPES.SELL_HOUSE, { cellId });
+        return;
+      }
+      if (action === "mortgage-property") {
+        panelState.manageStep = "menu";
+        await root.monopolyHelpers.submitAction(root.GAME_ACTION_TYPES.MORTGAGE, { cellId });
+        return;
+      }
+      if (action === "unmortgage-property") {
+        panelState.manageStep = "menu";
+        await root.monopolyHelpers.submitAction(root.GAME_ACTION_TYPES.UNMORTGAGE, { cellId });
+        return;
+      }
+      if (action === "sell-property") {
+        panelState.manageStep = "menu";
+        await root.monopolyHelpers.submitAction(root.GAME_ACTION_TYPES.SELL_PROPERTY, { cellId });
+        return;
+      }
+    }
+
     await submitSimpleAction(action);
-  }
-
-  async function onPanelSubmit(event) {
-    const form = event.target.closest("form[data-form]");
-    if (!form) {
-      return;
-    }
-
-    event.preventDefault();
-    const formType = String(form.dataset.form ?? "").trim();
-    const formData = new FormData(form);
-
-    switch (formType) {
-      case "bid-auction": {
-        const bidAmount = parseIntVal(formData.get("bidAmount"));
-        if (bidAmount <= 0) {
-          root.feedback.logEvent("กรุณาใส่ราคาบิดที่ถูกต้อง", true);
-          return;
-        }
-
-        await root.monopolyHelpers.submitAction(root.GAME_ACTION_TYPES.BID_AUCTION, {
-          bidAmount,
-        });
-        return;
-      }
-
-      case "build-house":
-      case "sell-house":
-      case "mortgage":
-      case "unmortgage": {
-        const cellId = parseIntVal(formData.get("cellId"));
-        if (cellId <= 0) {
-          root.feedback.logEvent("กรุณาเลือกทรัพย์สิน", true);
-          return;
-        }
-
-        const map = {
-          "build-house": root.GAME_ACTION_TYPES.BUILD_HOUSE,
-          "sell-house": root.GAME_ACTION_TYPES.SELL_HOUSE,
-          mortgage: root.GAME_ACTION_TYPES.MORTGAGE,
-          unmortgage: root.GAME_ACTION_TYPES.UNMORTGAGE,
-        };
-
-        await root.monopolyHelpers.submitAction(map[formType], { cellId });
-        panelState.manageStep = "menu";
-        return;
-      }
-
-      case "offer-trade": {
-        const targetPlayerId = String(formData.get("targetPlayerId") ?? "").trim();
-        if (!targetPlayerId) {
-          root.feedback.logEvent("กรุณาเลือกผู้เล่นเป้าหมาย", true);
-          return;
-        }
-
-        const cashGive = Math.max(0, parseIntVal(formData.get("cashGive")));
-        const cashReceive = Math.max(0, parseIntVal(formData.get("cashReceive")));
-        const giveCells = formData
-          .getAll("giveCells")
-          .map((value) => parseIntVal(value))
-          .filter((value) => value > 0);
-        const receiveCells = formData
-          .getAll("receiveCells")
-          .map((value) => parseIntVal(value))
-          .filter((value) => value > 0);
-
-        await root.monopolyHelpers.submitAction(root.GAME_ACTION_TYPES.OFFER_TRADE, {
-          targetPlayerId,
-          tradeOffer: {
-            cashGive,
-            cashReceive,
-            giveCells,
-            receiveCells,
-          },
-        });
-        panelState.manageStep = "menu";
-        return;
-      }
-
-      default:
-        return;
-    }
-  }
-
-  function onPanelChange(event) {
-    const select = event.target.closest("select[data-field='trade-target']");
-    if (!select) {
-      return;
-    }
-
-    panelState.tradeTargetPlayerId = String(select.value ?? "").trim();
-    render();
   }
 
   async function submitSimpleAction(action) {
@@ -747,15 +681,6 @@
       case "decline-property":
         await submit(root.GAME_ACTION_TYPES.DECLINE_PURCHASE, {});
         return;
-      case "pass-auction":
-        await submit(root.GAME_ACTION_TYPES.PASS_AUCTION, {});
-        return;
-      case "accept-trade":
-        await submit(root.GAME_ACTION_TYPES.ACCEPT_TRADE, {});
-        return;
-      case "reject-trade":
-        await submit(root.GAME_ACTION_TYPES.REJECT_TRADE, {});
-        return;
       case "end-turn":
         await submit(root.GAME_ACTION_TYPES.END_TURN, {});
         return;
@@ -763,6 +688,18 @@
         await submit(root.GAME_ACTION_TYPES.DECLARE_BANKRUPTCY, {});
         panelState.manageStep = "menu";
         return;
+      case "upgrade-landed-now": {
+        const landingOpportunity = resolveLandingUpgradeOpportunity(currentMonopolyState());
+        if (!landingOpportunity?.cellId) {
+          root.feedback.logEvent("ตอนนี้ยังไม่มีเมืองที่อัปเกรดได้ทันที", true);
+          return;
+        }
+
+        await submit(root.GAME_ACTION_TYPES.BUILD_HOUSE, {
+          cellId: landingOpportunity.cellId,
+        });
+        return;
+      }
       default:
         return;
     }
@@ -773,21 +710,6 @@
       const owner = String(cell?.ownerPlayerId ?? cell?.OwnerPlayerId ?? "").trim();
       return owner === playerId;
     });
-  }
-
-  function getTradeableAssets(playerId) {
-    return ownedCellsOf(playerId).filter((cell) => {
-      const type = resolveType(cell);
-      const houses = parseIntVal(cell?.houseCount ?? cell?.HouseCount);
-      const hasHotel = Boolean(cell?.hasHotel ?? cell?.HasHotel);
-      return (type === 1 || type === 2 || type === 3) && houses <= 0 && !hasHotel;
-    });
-  }
-
-  function getTradeTargets() {
-    return (state.room?.players ?? []).filter(
-      (player) => player.playerId !== state.playerId && !player.isBankrupt,
-    );
   }
 
   function currentPlayerCash(monopoly) {
@@ -824,12 +746,17 @@
       }
 
       const hasHotel = Boolean(cell?.hasHotel ?? cell?.HasHotel);
+      const landmark = hasLandmark(cell);
       const houseCount = parseIntVal(cell?.houseCount ?? cell?.HouseCount);
-      if (hasHotel) {
+      if (landmark) {
         return false;
       }
 
-      const houseCost = parseIntVal(cell?.houseCost ?? cell?.HouseCost);
+      const houseCost = houseCostForCell(cell);
+      if (hasHotel) {
+        return cash >= landmarkCostForCell(cell);
+      }
+
       if (cash < houseCost) {
         return false;
       }
@@ -851,6 +778,10 @@
       const group = String(cell?.colorGroup ?? cell?.ColorGroup ?? "").trim();
       if (!canSellEvenly(playerId, cell, group)) {
         return false;
+      }
+
+      if (hasLandmark(cell)) {
+        return true;
       }
 
       const hasHotel = Boolean(cell?.hasHotel ?? cell?.HasHotel);
@@ -875,7 +806,7 @@
 
       const houses = parseIntVal(cell?.houseCount ?? cell?.HouseCount);
       const hasHotel = Boolean(cell?.hasHotel ?? cell?.HasHotel);
-      return houses <= 0 && !hasHotel;
+      return houses <= 0 && !hasHotel && !hasLandmark(cell);
     });
   }
 
@@ -892,6 +823,33 @@
       }
 
       return cash >= unmortgageCost(cell);
+    });
+  }
+
+  function getDebtSaleCandidates(playerId, monopoly) {
+    const creditorId = String(monopoly?.pendingDebtToPlayerId ?? "").trim();
+    const debtAmount = parseIntVal(monopoly?.pendingDebtAmount);
+    const creditorCash = parseIntVal(
+      (state.room?.players ?? []).find((player) => player.playerId === creditorId)?.cash,
+    );
+
+    return ownedCellsOf(playerId).filter((cell) => {
+      const type = resolveType(cell);
+      if (type !== 1 && type !== 2 && type !== 3) {
+        return false;
+      }
+
+      if (!creditorId) {
+        return true;
+      }
+
+      if (hasLandmark(cell)) {
+        return false;
+      }
+
+      const saleValue = estimateDebtSaleValue(cell, monopoly);
+      const surplus = Math.max(0, saleValue - debtAmount);
+      return surplus <= creditorCash;
     });
   }
 
@@ -955,12 +913,205 @@
   }
 
   function buildingLevel(cell) {
+    if (hasLandmark(cell)) {
+      return 6;
+    }
+
     const hasHotel = Boolean(cell?.hasHotel ?? cell?.HasHotel);
     if (hasHotel) {
       return 5;
     }
     const houses = parseIntVal(cell?.houseCount ?? cell?.HouseCount);
     return Math.max(0, Math.min(4, houses));
+  }
+
+  function resolveLandingUpgradeOpportunity(monopoly) {
+    const phase = root.monopolyHelpers.phase();
+    if (
+      phase !== root.MONOPOLY_PHASE.AWAIT_MANAGE &&
+      phase !== root.MONOPOLY_PHASE.AWAIT_END_TURN
+    ) {
+      return null;
+    }
+
+    const lastTurn = state.lastTurn;
+    if (!lastTurn || String(lastTurn.playerId ?? "") !== String(state.playerId ?? "")) {
+      return null;
+    }
+
+    const cellId = parseIntVal(lastTurn.endPosition);
+    if (cellId <= 0) {
+      return null;
+    }
+
+    const cell = root.monopolyHelpers.findCell(cellId);
+    if (!cell || resolveType(cell) !== 1) {
+      return null;
+    }
+
+    const ownerId = String(cell?.ownerPlayerId ?? cell?.OwnerPlayerId ?? "").trim();
+    if (ownerId !== state.playerId) {
+      return null;
+    }
+
+    const buildable = getBuildCandidates(state.playerId, monopoly, currentPlayerCash(monopoly))
+      .some((entry) => resolveCellNo(entry) === cellId);
+    if (!buildable) {
+      return null;
+    }
+
+    const nextStep = describeNextUpgradeStep(cell);
+    if (!nextStep) {
+      return null;
+    }
+
+    return {
+      cellId,
+      cellName: cellName(cell),
+      buttonLabel: nextStep.buttonLabel,
+      shortAction: nextStep.shortAction,
+      detail: nextStep.detail,
+      cost: nextStep.cost,
+    };
+  }
+
+  function describeNextUpgradeStep(cell) {
+    if (hasLandmark(cell)) {
+      return null;
+    }
+
+    const houses = parseIntVal(cell?.houseCount ?? cell?.HouseCount);
+    if (Boolean(cell?.hasHotel ?? cell?.HasHotel)) {
+      return {
+        buttonLabel: "สร้างแลนด์มาร์กที่นี่ทันที",
+        shortAction: "สร้างแลนด์มาร์ก",
+        detail: "ช่องนี้มีโรงแรมแล้ว สามารถอัปเป็นแลนด์มาร์กระดับสูงสุดได้ทันที",
+        cost: landmarkCostForCell(cell),
+      };
+    }
+
+    if (houses < 4) {
+      return {
+        buttonLabel: "อัปเกรดเมืองนี้ทันที",
+        shortAction: `สร้างบ้านหลังที่ ${houses + 1}`,
+        detail: `เพิ่มบ้านหลังที่ ${houses + 1} ให้เมืองนี้เพื่อดันค่าเช่า`,
+        cost: houseCostForCell(cell),
+      };
+    }
+
+    return {
+      buttonLabel: "สร้างโรงแรมที่นี่ทันที",
+      shortAction: "สร้างโรงแรม",
+      detail: "ช่องนี้ครบ 4 บ้านแล้ว สามารถอัปเกรดเป็นโรงแรมได้ทันที",
+      cost: houseCostForCell(cell),
+    };
+  }
+
+  function hasLandmark(cell) {
+    return Boolean(cell?.hasLandmark ?? cell?.HasLandmark);
+  }
+
+  function houseCostForCell(cell) {
+    return parseIntVal(cell?.houseCost ?? cell?.HouseCost);
+  }
+
+  function landmarkCostForCell(cell) {
+    return Math.max(0, houseCostForCell(cell) * 2);
+  }
+
+  function estimateStructureSellValue(cell) {
+    const houseCost = houseCostForCell(cell);
+    if (hasLandmark(cell)) {
+      return Math.max(1, Math.floor(landmarkCostForCell(cell) / 2));
+    }
+
+    if (Boolean(cell?.hasHotel ?? cell?.HasHotel)) {
+      return Math.max(1, Math.floor(houseCost / 2));
+    }
+
+    return Math.max(1, Math.floor(houseCost / 2));
+  }
+
+  function estimateDebtSaleValue(cell, monopoly) {
+    const creditorId = String(monopoly?.pendingDebtToPlayerId ?? "").trim();
+    const price = parseIntVal(cell?.price ?? cell?.Price);
+    const houses = parseIntVal(cell?.houseCount ?? cell?.HouseCount);
+    const mortgaged = Boolean(cell?.isMortgaged ?? cell?.IsMortgaged);
+
+    if (!creditorId) {
+      const baseValue = mortgaged
+        ? Math.floor(price / 2)
+        : Math.max(1, Math.floor(price * 0.5));
+      const buildingRefund = hasLandmark(cell)
+        ? houseCostForCell(cell) * 4
+        : Boolean(cell?.hasHotel ?? cell?.HasHotel)
+          ? Math.ceil(houseCostForCell(cell) * 2.5)
+          : Math.ceil(houses * houseCostForCell(cell) * 0.5);
+      return Math.max(1, baseValue + buildingRefund);
+    }
+
+    const baseValue = mortgaged ? Math.floor(price / 2) : price;
+    const buildingValue = hasLandmark(cell)
+      ? houseCostForCell(cell) * 7
+      : Boolean(cell?.hasHotel ?? cell?.HasHotel)
+        ? houseCostForCell(cell) * 5
+        : houses * houseCostForCell(cell);
+    return Math.max(1, baseValue + buildingValue);
+  }
+
+  function describeStructureSell(cell) {
+    if (hasLandmark(cell)) {
+      return "รื้อแลนด์มาร์กออกก่อน เพื่อรับเงินสดเพิ่ม";
+    }
+
+    if (Boolean(cell?.hasHotel ?? cell?.HasHotel)) {
+      return "ขายโรงแรมลงเป็น 4 บ้าน";
+    }
+
+    const houses = parseIntVal(cell?.houseCount ?? cell?.HouseCount);
+    return houses > 0
+      ? `ขายบ้านออก 1 หลัง (คงเหลือ ${Math.max(0, houses - 1)} หลัง)`
+      : "ขายสิ่งปลูกสร้าง";
+  }
+
+  function describeDebtSale(cell, monopoly) {
+    const creditorId = String(monopoly?.pendingDebtToPlayerId ?? "").trim();
+    const level = hasLandmark(cell)
+      ? "มีแลนด์มาร์ก"
+      : Boolean(cell?.hasHotel ?? cell?.HasHotel)
+        ? "มีโรงแรม"
+        : parseIntVal(cell?.houseCount ?? cell?.HouseCount) > 0
+          ? `บ้าน ${parseIntVal(cell?.houseCount ?? cell?.HouseCount)}`
+          : "ไม่มีสิ่งปลูกสร้าง";
+    return creditorId
+      ? `${level} | โอนให้ ${root.monopolyHelpers.playerName(creditorId)}`
+      : `${level} | ปล่อยกลับธนาคาร`;
+  }
+
+  function describeBuildCandidate(cell) {
+    const next = describeNextUpgradeStep(cell);
+    if (!next) {
+      return "ตอนนี้ยังอัปเกรดต่อไม่ได้";
+    }
+
+    const group = normalizeGroup(cell?.colorGroup ?? cell?.ColorGroup)
+      .replace(/-/g, " ")
+      .trim();
+    const groupLabel = group ? ` | ชุดสี ${group}` : "";
+    return `${next.detail}${groupLabel}`;
+  }
+
+  function describeMortgageCandidate(cell) {
+    return "รับเงินสดทันที แต่ช่องนี้จะเก็บค่าผ่านทางไม่ได้จนกว่าจะไถ่ถอน";
+  }
+
+  function describeUnmortgageCandidate(cell) {
+    return "จ่ายคืนธนาคารแล้ว ช่องนี้จะกลับมาเก็บค่าผ่านทางได้ตามปกติ";
+  }
+
+  function mortgageValue(cell) {
+    const price = parseIntVal(cell?.price ?? cell?.Price);
+    return Math.max(0, Math.floor(price / 2));
   }
 
   function unmortgageCost(cell) {
@@ -971,20 +1122,6 @@
 
   function currentMonopolyState() {
     return root.monopolyHelpers?.getMonopolyState?.() ?? null;
-  }
-
-  function resolveSelectedTradeTarget(players) {
-    if (!players || players.length === 0) {
-      return "";
-    }
-
-    const found = players.find((player) => player.playerId === panelState.tradeTargetPlayerId);
-    if (found) {
-      return found.playerId;
-    }
-
-    panelState.tradeTargetPlayerId = players[0].playerId;
-    return panelState.tradeTargetPlayerId;
   }
 
   function renderTurnMeta(monopoly) {
@@ -1002,10 +1139,6 @@
         return "ตัดสินใจตอนติดคุก";
       case root.MONOPOLY_PHASE.AWAIT_PURCHASE_DECISION:
         return "ตัดสินใจซื้อทรัพย์สิน";
-      case root.MONOPOLY_PHASE.AUCTION_IN_PROGRESS:
-        return "ประมูลทรัพย์สิน";
-      case root.MONOPOLY_PHASE.AWAIT_TRADE_RESPONSE:
-        return "ตอบข้อเสนอเทรด";
       case root.MONOPOLY_PHASE.AWAIT_MANAGE:
       case root.MONOPOLY_PHASE.AWAIT_END_TURN:
         return "จัดการทรัพย์สิน";

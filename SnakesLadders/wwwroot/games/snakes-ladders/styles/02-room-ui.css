@@ -391,6 +391,11 @@
   background: rgba(237, 247, 255, 0.9);
 }
 
+.mono-opportunity-card {
+  border-color: rgba(89, 183, 144, 0.62);
+  background: linear-gradient(180deg, rgba(233, 253, 243, 0.94), rgba(223, 247, 238, 0.92));
+}
+
 .mono-info-title {
   color: #215879;
   font-weight: 700;
@@ -417,6 +422,69 @@
   gap: 5px;
   font-size: 0.78rem;
   color: #3f6d8d;
+}
+
+.mono-list-title {
+  margin: 10px 0 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #2d678b;
+}
+
+.mono-action-list {
+  display: grid;
+  gap: 8px;
+}
+
+.mono-list-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(131, 190, 227, 0.58);
+  background: linear-gradient(180deg, rgba(251, 254, 255, 0.98), rgba(227, 244, 255, 0.94));
+  color: #1f577a;
+  text-align: left;
+}
+
+.mono-list-btn:hover,
+.mono-list-btn:focus-visible {
+  border-color: #55aee7;
+  box-shadow:
+    0 0 0 1px rgba(85, 174, 231, 0.18),
+    0 10px 20px rgba(72, 144, 189, 0.14);
+}
+
+.mono-list-btn-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mono-list-btn-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #205b7f;
+}
+
+.mono-list-btn-meta {
+  font-size: 0.74rem;
+  line-height: 1.38;
+  color: #48718d;
+}
+
+.mono-list-btn-amount {
+  flex: 0 0 auto;
+  align-self: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(91, 181, 225, 0.14);
+  color: #1d6b96;
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .mono-form-grid {
@@ -853,6 +921,12 @@
 .board.monopoly-ring .m-buildings.hotel {
   font-size: 0.68rem;
   line-height: 1;
+}
+
+.board.monopoly-ring .m-buildings.landmark {
+  font-size: 0.78rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 4px rgba(45, 103, 139, 0.28));
 }
 
 .board.monopoly-ring .m-cell.mortgaged {

@@ -233,6 +233,10 @@
   will-change: auto;
 }
 
+.roll-fab.monopoly-roll {
+  width: clamp(244px, 40vw, 324px);
+}
+
 .roll-fab:not(.charging) {
   animation: none;
 }
@@ -272,6 +276,15 @@
   will-change: transform;
 }
 
+.roll-control-dice.two-dice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.6vw, 12px);
+  width: calc(var(--dice-size) * 2 + clamp(8px, 1.6vw, 12px));
+  height: var(--dice-size);
+}
+
 .roll-dice-cube {
   position: relative;
   display: block;
@@ -281,6 +294,12 @@
   transform: translate3d(0, 0, 0) rotateX(var(--dice-rx)) rotateY(var(--dice-ry));
   transition: transform 0.2s cubic-bezier(0.22, 0.84, 0.31, 1);
   will-change: transform;
+}
+
+.roll-control-dice.two-dice .roll-dice-cube {
+  flex: 0 0 var(--dice-size);
+  width: var(--dice-size);
+  height: var(--dice-size);
 }
 
 .roll-dice-face {

@@ -1,27 +1,30 @@
 ## Objective
-Implement Monopoly "Classic Economy" end-to-end with action-based turns, full economy flows, deterministic events, and UI panels for actions/status while keeping Snakes & Ladders backward-compatible.
+Implement Thai-theme Monopoly with action-based turns, toll-and-buyout economy, forced liquidation on debt, deterministic events, and guided Thai UI while keeping Snakes & Ladders backward-compatible.
 
 ## Locked Decisions
-- Scope: Full Classic Economy
+- Scope: Simplified Thai Monopoly economy with guided action flow
 - Free Parking: Standard No Bonus
-- Auction: Realtime Ascending
+- Auction: Removed
 - Building Rule: Official Strict (even build)
-- Trade Flow: Direct Offer/Accept
+- Trade Flow: Removed
+- Ownership Transfer: After paying toll, active player may buy a non-landmark property from the current owner
+- Debt Resolution: Sell structures / sell property to creditor or bank / bankrupt if still insufficient
+- Jail Fine: Failed double-roll attempts multiply the next release fee x2 until paid
 - Dice: 2 Dice Official (double + triple doubles to jail)
 - Decision Timer: Enabled with safe auto defaults
 - Building Supply: Official limited supply (houses=32, hotels=12)
 - Chance/Community: Deterministic event table (no card UI)
-- Action Timing: Only current turn (except targeted trade-response step)
+- Action Timing: Current turn player only
 - Progress Format: Checklist + Change Log
 
 ## Milestones
 - [x] M1 Contracts + Service API + Hub scaffolding
 - [x] M2 Monopoly phase machine + jail/dice/landing refactor
-- [x] M3 Purchase/decline + auction realtime + timeout defaults
+- [x] M3 Purchase/decline + takeover prompt + timeout defaults
 - [x] M4 Build/hotel + supply limits + mortgage/unmortgage
-- [x] M5 Trade offer/accept + bankruptcy flows
+- [x] M5 Debt liquidation + bankruptcy flows
 - [x] M6 Chance/Community deterministic events
-- [x] M7 UI action panel + player economy status + auction/trade UI
+- [x] M7 UI action panel + player economy status + guided list-based management UI
 - [x] M8 Integration hardening + balancing + documentation finalization
 
 ## Current Round
@@ -36,6 +39,10 @@ Implement Monopoly "Classic Economy" end-to-end with action-based turns, full ec
 - Completed Target 9: Added clear ownership symbol on purchased properties (owner marker badge + owner initials chip) so players can instantly identify who owns each asset.
 - Completed Target 10: Added clear in-game event message for Chance/Community outcomes so players immediately see what happened after landing on event cells.
 - Completed Target 11: Improved purchase-decision clarity when funds are insufficient (explicit shortfall message + recommendation + only valid action shown).
+- Completed Target 12: Added immediate self-city upgrade guidance/actions when landing on your own buildable city, including popup shortcut and backend landing recommendations.
+- Completed Target 13: Added `แลนด์มาร์ก` as a full building tier (build/sell, rent, net worth, board rendering, status snapshot, mortgage/trade restrictions).
+- Completed Target 14: Added Thai in-room Monopoly guide/rule summary for upgrade flow, landmark path, and easier property-management guidance.
+- Completed Target 15: Replaced auction/trade flow with toll + property buyout + forced liquidation flow, converted management to clickable list actions, restored jail release after liquidation payment, and moved Monopoly to the same center-screen dual-dice control style as Snakes & Ladders.
 
 ## Change Log
 - 2026-03-04 17:00 ICT | Initialized progress tracker and round targets. | Files: `SnakesLadders/Games/Monopoly/IMPLEMENTATION_PROGRESS.md` | Risks: large cross-cutting changes pending.
@@ -48,14 +55,15 @@ Implement Monopoly "Classic Economy" end-to-end with action-based turns, full ec
 - 2026-03-04 21:00 ICT | Fixed Monopoly board clipping at bottom: Monopoly board now keeps its own scroll behavior and responsive landscape rules no longer force hard `min-height` that compressed/cut lower board details. | Files: `wwwroot/games/snakes-ladders/styles/02-room-ui.css`, `wwwroot/games/snakes-ladders/styles/05-responsive-theme-start.css`, `wwwroot/games/snakes-ladders/styles/07-board-paging-beacons.css` | Risks: on very short landscape screens, Monopoly board may require internal scroll to view all cells (intentional over clipping).
 - 2026-03-04 21:10 ICT | Added ownership marker UX on Monopoly board: purchased cells now show a compact owner badge (top-right) and owner-marker chip beside owner name so players can quickly see “ใครซื้อไว้” without reading long labels. | Files: `wwwroot/games/monopoly/js/monopoly-board-renderer.js`, `wwwroot/games/snakes-ladders/styles/02-room-ui.css`, `wwwroot/games/snakes-ladders/styles/05-responsive-theme-start.css` | Risks: marker abbreviations use 1-2 chars; with many similar names players should still rely on hover tooltip for full owner name.
 - 2026-03-04 21:15 ICT | Added explicit event feedback when landing on Chance/Community: action popup now shows “เหตุการณ์ที่เกิดขึ้น” card from latest turn logs, and realtime headline selection prefers event outcome lines (instead of dice-only lines) for clearer player feedback. | Files: `wwwroot/games/monopoly/js/monopoly-action-panel.js`, `wwwroot/games/snakes-ladders/js/net/sn-signalr.js`, `wwwroot/games/snakes-ladders/styles/02-room-ui.css`, `wwwroot/games/snakes-ladders/styles/05-responsive-theme-start.css` | Risks: event card currently appears only to the decision owner (intentional to avoid non-turn popup noise).
-- 2026-03-04 21:20 ICT | Improved insufficient-funds UX on property purchase: backend landing log now states shortfall and recommendation, purchase popup now shows price vs current cash, highlights shortfall, and hides buy button when cash is not enough (showing only actionable “ไม่ซื้อ/เปิดประมูล”). | Files: `Games/Monopoly/Services/MonopolyGameRoomModule.cs`, `wwwroot/games/monopoly/js/monopoly-action-panel.js` | Risks: players still need one extra click to decline purchase before auction (not auto-skip by design in this round).
+- 2026-03-04 21:20 ICT | Improved insufficient-funds UX on property purchase: backend landing log now states shortfall and recommendation, purchase popup now shows price vs current cash, highlights shortfall, and hides buy button when cash is not enough (showing only actionable “ข้ามการซื้อ”). | Files: `Games/Monopoly/Services/MonopolyGameRoomModule.cs`, `wwwroot/games/monopoly/js/monopoly-action-panel.js` | Risks: economy flow was still pending simplification in the next round at this point.
+- 2026-03-06 11:38 ICT | Added full landmark tier + easier self-city upgrade UX: backend now supports building/selling landmarks, landmark rent/net-worth rules, and landmark-aware mortgage/trade restrictions; Monopoly popup now surfaces immediate upgrade shortcut when landing on your own city, board/status UI shows landmarks, and the in-room rules panel now includes Thai play guide and upgrade instructions. | Files: `Games/Monopoly/Domain/MonopolyDefinitions.cs`, `Games/Monopoly/Domain/MonopolyModels.cs`, `Games/Monopoly/Services/MonopolyGameRoomModule.cs`, `Services/GameRoomService/GameRoomService.Internal.cs`, `Contracts/GameContracts.cs`, `wwwroot/games/monopoly/js/monopoly-action-panel.js`, `wwwroot/games/monopoly/js/monopoly-board-renderer.js`, `wwwroot/games/monopoly/js/monopoly-status-panel.js`, `wwwroot/games/snakes-ladders/js/ui/sn-rule-summary.js`, `wwwroot/games/snakes-ladders/js/ui/sn-room-ui.js`, `wwwroot/games/snakes-ladders/js/core/sn-state.js`, `wwwroot/index.html`, `wwwroot/games/snakes-ladders/styles/02-room-ui.css`, `wwwroot/games/snakes-ladders/styles/05-responsive-theme-start.css` | Risks: quick-upgrade shortcut currently targets only the city you just landed on; bulk multi-city upgrade planning is still done through the normal manage menu.
+- 2026-03-06 12:08 ICT | Pivoted Monopoly economy away from auction/trade: landing on another player's property now charges toll with neighborhood bonus then offers direct buyout (unless landmark), debt resolution now uses clickable liquidation lists instead of checkbox/offer forms, failed jail rolls double the next release fee, liquidation can complete jail release and return the player to `AwaitRoll`, and Monopoly now uses the same center-screen hold-and-release control with 2 visible dice. Updated the Thai guide and board center copy to match the new rules. | Files: `Games/Monopoly/Services/MonopolyGameRoomModule.cs`, `wwwroot/games/monopoly/js/monopoly-action-panel.js`, `wwwroot/games/monopoly/js/monopoly-helpers.js`, `wwwroot/games/monopoly/js/monopoly-board-renderer.js`, `wwwroot/games/snakes-ladders/js/app/sn-actions.js`, `wwwroot/games/snakes-ladders/js/ui/sn-room-ui.js`, `wwwroot/games/snakes-ladders/js/ui/sn-rule-summary.js`, `wwwroot/index.html`, `wwwroot/games/snakes-ladders/styles/02-room-ui.css`, `wwwroot/games/snakes-ladders/styles/03-board-core.css`, `wwwroot/games/snakes-ladders/styles/05-responsive-theme-start.css` | Risks: legacy auction/trade phases and compatibility contracts still exist internally, but new gameplay flow should no longer enter them.
 
 ## Known Issues
-- Auction is ascending but controlled by timed bid turns (`PendingDecisionPlayerId`) instead of free concurrent click race.
-- Trade input currently uses comma-separated cell ids (no visual property picker yet).
+- Legacy auction/trade phases and snapshots are still retained in contracts/runtime models for compatibility, even though the new Monopoly flow no longer uses them.
 - Gameplay balancing values (rent/building/event impact) need live tuning pass with players.
 
 ## Next Round Plan
-1. Run full multiplayer playtest scenarios against the 15 acceptance cases and capture regressions.
-2. Refine auction UX to optional free-bid mode if needed.
-3. Optimize mobile popup flow (compact step pages + larger hit targets on small screens).
+1. Run multiplayer playtests focused on the new toll/buyout loop: neighborhood surcharge feel, buyout pricing, and forced liquidation fairness.
+2. Decide whether legacy auction/trade contracts/phases should be deleted entirely after compatibility is no longer needed.
+3. Add richer explainers/tooltips for property math (toll preview, next upgrade cost, mortgage return, liquidation value) if players still need more guidance.

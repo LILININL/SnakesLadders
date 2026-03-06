@@ -60,6 +60,10 @@
       ? monopoly.playerEconomy
       : [];
     const economyById = new Map(economyRows.map((row) => [row.playerId, row]));
+    const totalLandmarks = economyRows.reduce(
+      (sum, row) => sum + intVal(row?.landmarks),
+      0,
+    );
 
     const playerCards = (state.room?.players ?? []).map((player) => {
       const economy = economyById.get(player.playerId) ?? {};
@@ -90,6 +94,7 @@
             <span>จำนวนชุดสีครบ: <b>${intVal(economy.monopolySetCount)}</b></span>
             <span>บ้าน: <b>${intVal(economy.houses)}</b></span>
             <span>โรงแรม: <b>${intVal(economy.hotels)}</b></span>
+            <span>แลนด์มาร์ก: <b>${intVal(economy.landmarks)}</b></span>
             <span>จำนอง: <b>${intVal(economy.mortgaged)}</b></span>
             <span>ติดคุก: <b>${economy.inJail ? "ใช่" : "ไม่"}</b></span>
           </div>
@@ -98,7 +103,7 @@
     });
 
     const debtBanner = monopoly.pendingDebtAmount > 0
-      ? `<div class="mono-status-debt">หนี้คงค้าง: ${money(monopoly.pendingDebtAmount)} ถึง ${escapeHtml(helpers.playerName(monopoly.pendingDebtToPlayerId))}</div>`
+      ? `<div class="mono-status-debt">หนี้คงค้าง: ${money(monopoly.pendingDebtAmount)} | ${escapeHtml(String(monopoly.pendingDebtReason ?? "").trim() || "รอชำระหนี้")} | เจ้าหนี้: ${escapeHtml(monopoly.pendingDebtToPlayerId ? helpers.playerName(monopoly.pendingDebtToPlayerId) : "ธนาคาร")}</div>`
       : "";
 
     el.monopolyStatusPanel.innerHTML = `
@@ -109,6 +114,7 @@
       <div class="mono-status-overview">
         <span>บ้านคงเหลือ: <b>${intVal(monopoly.availableHouses)}</b></span>
         <span>โรงแรมคงเหลือ: <b>${intVal(monopoly.availableHotels)}</b></span>
+        <span>แลนด์มาร์กที่สร้างแล้ว: <b>${totalLandmarks}</b></span>
       </div>
       ${debtBanner}
       <div class="mono-status-cards">${playerCards.join("")}</div>

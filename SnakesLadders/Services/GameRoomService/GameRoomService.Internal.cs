@@ -282,6 +282,7 @@ public sealed partial class GameRoomService
                             IsMortgaged = x.IsMortgaged,
                             HouseCount = x.HouseCount,
                             HasHotel = x.HasHotel,
+                            HasLandmark = x.HasLandmark,
                             HouseCost = x.HouseCost
                         })
                         .ToArray(),
@@ -348,8 +349,12 @@ public sealed partial class GameRoomService
             AvailableHouses = monopoly.AvailableHouses,
             AvailableHotels = monopoly.AvailableHotels,
             PendingPurchaseCellId = monopoly.PendingPurchaseCellId,
+            PendingPurchasePrice = monopoly.PendingPurchasePrice,
+            PendingPurchaseOwnerPlayerId = monopoly.PendingPurchaseOwnerPlayerId,
             PendingDebtToPlayerId = monopoly.PendingDebtToPlayerId,
             PendingDebtAmount = monopoly.PendingDebtAmount,
+            PendingDebtReason = monopoly.PendingDebtReason,
+            CurrentJailFine = ResolveCurrentJailFine(monopoly),
             ActiveAuction = auctionSnapshot,
             ActiveTradeOffer = tradeSnapshot,
             PlayerEconomy = playerEconomy
@@ -365,7 +370,8 @@ public sealed partial class GameRoomService
             .ToArray();
 
         var houses = owned.Sum(x => Math.Max(0, x.HouseCount));
-        var hotels = owned.Count(x => x.HasHotel);
+        var hotels = owned.Count(x => x.HasHotel && !x.HasLandmark);
+        var landmarks = owned.Count(x => x.HasLandmark);
         var mortgaged = owned.Count(x => x.IsMortgaged);
 
         var assetValue = owned.Sum(cell =>
@@ -373,9 +379,11 @@ public sealed partial class GameRoomService
             var baseValue = cell.IsMortgaged
                 ? Math.Max(0, (int)Math.Floor(cell.Price / 2d))
                 : Math.Max(0, cell.Price);
-            var buildingValue = cell.HasHotel
-                ? cell.HouseCost * 5
-                : Math.Max(0, cell.HouseCount) * cell.HouseCost;
+            var buildingValue = cell.HasLandmark
+                ? cell.HouseCost * 7
+                : cell.HasHotel
+                    ? cell.HouseCost * 5
+                    : Math.Max(0, cell.HouseCount) * cell.HouseCost;
             return baseValue + buildingValue;
         });
 
@@ -405,10 +413,24 @@ public sealed partial class GameRoomService
             MonopolySetCount = monopolySetCount,
             Houses = houses,
             Hotels = hotels,
+            Landmarks = landmarks,
             Mortgaged = mortgaged,
             InJail = player.JailTurnsRemaining > 0,
             IsBankrupt = player.IsBankrupt
         };
+    }
+
+    private static int ResolveCurrentJailFine(MonopolyRoomState monopoly)
+    {
+        var playerId = monopoly.PendingDecisionPlayerId ?? monopoly.ActivePlayerId;
+        if (string.IsNullOrWhiteSpace(playerId))
+        {
+            return MonopolyDefinitions.JailFine;
+        }
+
+        return monopoly.JailFineByPlayer.TryGetValue(playerId, out var fine) && fine > 0
+            ? fine
+            : MonopolyDefinitions.JailFine;
     }
 
     private static DateTimeOffset? ResolveNextActionDeadlineUnsafe(GameRoom room)

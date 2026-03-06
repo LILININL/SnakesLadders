@@ -23,6 +23,14 @@ hr {
     flex-direction: column;
     align-items: stretch;
   }
+
+  .mono-list-btn {
+    align-items: flex-start;
+  }
+
+  .mono-list-btn-amount {
+    margin-top: 2px;
+  }
 }
 
 @media (max-width: 900px) and (orientation: landscape) {
@@ -67,6 +75,20 @@ hr {
   .layout.in-room .mono-pop-btn {
     min-height: 36px;
     font-size: 0.8rem;
+  }
+
+  .layout.in-room .mono-list-btn {
+    padding: 9px 10px;
+    gap: 8px;
+  }
+
+  .layout.in-room .mono-list-btn-title {
+    font-size: 0.79rem;
+  }
+
+  .layout.in-room .mono-list-btn-meta,
+  .layout.in-room .mono-list-btn-amount {
+    font-size: 0.7rem;
   }
 
   .layout.in-room .mono-outcome {
@@ -161,6 +183,10 @@ hr {
     min-width: 11px;
     height: 11px;
     font-size: 0.42rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-buildings.landmark {
+    font-size: 0.62rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-center {
@@ -266,6 +292,10 @@ hr {
     width: clamp(192px, 52vw, 244px);
     min-height: clamp(138px, 42vw, 178px);
     padding: 21px 16px 21px;
+  }
+
+  .layout.in-room .roll-fab.monopoly-roll {
+    width: clamp(224px, 62vw, 276px);
   }
 
   .layout.in-room .roll-fab .roll-control-dice {
