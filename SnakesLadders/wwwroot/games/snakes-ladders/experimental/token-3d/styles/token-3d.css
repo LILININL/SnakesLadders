@@ -1,0 +1,145 @@
+.board-token.token-3d-active,
+.transit-token.token-3d-active {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  overflow: visible;
+  filter: drop-shadow(0 10px 14px rgba(12, 43, 72, 0.26));
+}
+
+.board-token.token-3d-active {
+  width: 58px;
+  height: 58px;
+}
+
+.transit-token.token-3d-active {
+  width: 84px;
+  height: 84px;
+}
+
+.token-3d-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: transparent;
+}
+
+.avatar-model-preview {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  min-width: 18px;
+  min-height: 18px;
+  background: transparent;
+}
+
+.avatar-model-preview-active {
+  overflow: visible;
+  filter: drop-shadow(0 6px 10px rgba(12, 43, 72, 0.18));
+}
+
+.inline-avatar.avatar-model-preview {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+}
+
+.avatar-choice-visual.avatar-model-preview {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.winner-avatar-media.avatar-model-preview,
+.first-turn-avatar-media.avatar-model-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.token-3d-active.token-3d-loading::before,
+.token-3d-active.token-3d-loading::after,
+.avatar-model-preview-active.token-3d-loading::before,
+.avatar-model-preview-active.token-3d-loading::after {
+  content: "";
+  position: absolute;
+  inset: 8% 18%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(195, 231, 255, 0.92), rgba(79, 152, 204, 0.88));
+  filter: blur(0.3px);
+}
+
+.token-3d-active.token-3d-loading::after,
+.avatar-model-preview-active.token-3d-loading::after {
+  inset: 34% 26% 8%;
+  border-radius: 18px 18px 999px 999px;
+  background: linear-gradient(180deg, rgba(241, 250, 255, 0.94), rgba(116, 179, 227, 0.86));
+  animation: token-3d-loading-float 1.1s ease-in-out infinite;
+}
+
+.token-3d-active.token-3d-ready::after,
+.token-3d-active.token-3d-ready::before,
+.avatar-model-preview-active.token-3d-ready::after,
+.avatar-model-preview-active.token-3d-ready::before {
+  display: none;
+}
+
+.board-token.token-3d-active.me,
+.transit-token.token-3d-active.me {
+  filter:
+    drop-shadow(0 0 10px rgba(255, 207, 140, 0.44))
+    drop-shadow(0 10px 14px rgba(12, 43, 72, 0.28));
+}
+
+.board-token.token-3d-active.anchor-on-turn,
+.transit-token.token-3d-active.anchor-on-turn {
+  animation: token-3d-anchor-pulse 0.95s ease-in-out infinite;
+}
+
+.token-3d-active.token-3d-error::before,
+.avatar-model-preview-active.token-3d-error::before {
+  content: "3D";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 30%, rgba(255,255,255,0.96), rgba(183,218,242,0.92));
+  color: #245d82;
+  font: 700 0.72rem/1 "Chakra Petch", sans-serif;
+}
+
+@keyframes token-3d-loading-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-2px) scale(1.03);
+  }
+}
+
+@keyframes token-3d-anchor-pulse {
+  0%, 100% {
+    filter:
+      drop-shadow(0 0 0 rgba(108, 228, 207, 0))
+      drop-shadow(0 10px 14px rgba(12, 43, 72, 0.26));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 10px rgba(108, 228, 207, 0.44))
+      drop-shadow(0 10px 16px rgba(12, 43, 72, 0.3));
+  }
+}
+
+@media (max-width: 900px) {
+  .board-token.token-3d-active {
+    width: 44px;
+    height: 44px;
+  }
+
+  .transit-token.token-3d-active {
+    width: 62px;
+    height: 62px;
+  }
+}

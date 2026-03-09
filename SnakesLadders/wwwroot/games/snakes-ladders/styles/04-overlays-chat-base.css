@@ -623,9 +623,16 @@
 .winner-avatar {
   width: min(120px, 34vw);
   height: min(120px, 34vw);
-  object-fit: contain;
   display: block;
   margin: 2px auto 10px;
+}
+
+.winner-avatar > img,
+.winner-avatar > .avatar-model-preview {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 .winner-podium {

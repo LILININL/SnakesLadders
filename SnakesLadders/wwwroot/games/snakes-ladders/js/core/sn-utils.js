@@ -1,7 +1,7 @@
 (() => {
   const root = window.SNL;
   const MIN_AVATAR_ID = 1;
-  const MAX_AVATAR_ID = 8;
+  const MAX_AVATAR_ID = 11;
   const DEFAULT_GAME_KEY = "snakes-ladders";
   const GAME_LABELS = {
     "snakes-ladders": "Snakes & Ladders",
@@ -266,9 +266,31 @@
 
   function avatarSrc(avatarId) {
     const safeId = normalizeAvatarId(avatarId);
+    if (safeId === 9) {
+      return "/games/snakes-ladders/experimental/token-3d/assets/avatar-09-token3d.svg";
+    }
     const suffix = String(safeId).padStart(2, "0");
     const extension = safeId === 8 ? "gif" : "png";
     return `/games/snakes-ladders/assets/avatars/avatar-${suffix}.${extension}`;
+  }
+
+  function isModelAvatar(avatarId) {
+    return normalizeAvatarId(avatarId) === 9;
+  }
+
+  function avatarMarkup(avatarId, options = {}) {
+    const safeId = normalizeAvatarId(avatarId);
+    const className = String(options.className ?? "").trim();
+    const variant = String(options.variant ?? "inline").trim() || "inline";
+    const altText = escapeHtml(String(options.alt ?? `Avatar ${safeId}`));
+
+    if (isModelAvatar(safeId)) {
+      const classes = [className, "avatar-model-preview"].filter(Boolean).join(" ");
+      return `<span class="${escapeHtml(classes)}" data-avatar-model-id="${safeId}" data-avatar-model-variant="${escapeHtml(variant)}" role="img" aria-label="${altText}"></span>`;
+    }
+
+    const classAttr = className ? ` class="${escapeHtml(className)}"` : "";
+    return `<img${classAttr} src="${avatarSrc(safeId)}" alt="${altText}">`;
   }
 
   function normalizeGameKey(gameKey, fallback = DEFAULT_GAME_KEY) {
@@ -313,6 +335,8 @@
     resolvePlayerAccent,
     normalizeAvatarId,
     avatarSrc,
+    isModelAvatar,
+    avatarMarkup,
     normalizeGameKey,
     gameLabel,
     gameSupportsBoardOptions,

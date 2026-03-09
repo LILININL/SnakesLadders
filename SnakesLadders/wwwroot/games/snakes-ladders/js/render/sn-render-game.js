@@ -4,7 +4,7 @@
   const {
     escapeHtml,
     formatClock,
-    avatarSrc,
+    avatarMarkup,
     normalizeAvatarId,
     gameLabel,
     boardItemMeta,
@@ -173,7 +173,11 @@
         <li class="${classes.join(" ")}">
           <div class="player-name-row">
             ${badge}
-            <img class="inline-avatar" src="${avatarSrc(safeAvatarId)}" alt="Avatar ${safeAvatarId}">
+            ${avatarMarkup(safeAvatarId, {
+              className: "inline-avatar",
+              alt: `Avatar ${safeAvatarId}`,
+              variant: "inline",
+            })}
             <strong>${escapeHtml(player.displayName)}</strong>
           </div>
           <div class="player-stats-block">${stats}</div>
@@ -188,6 +192,7 @@
     }
 
     el.playerList.innerHTML = nextHtml;
+    root.experimentalToken3d?.hydrateAvatarHosts?.(el.playerList);
     viewCache.playerListHtml = nextHtml;
   }
 

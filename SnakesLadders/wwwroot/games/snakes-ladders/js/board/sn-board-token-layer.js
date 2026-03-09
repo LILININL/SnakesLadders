@@ -140,6 +140,15 @@
     const safeAvatarId =
       root.utils?.normalizeAvatarId?.(player.avatarId, 1) ?? 1;
     const safeAvatarSrc = root.utils?.avatarSrc?.(safeAvatarId) ?? "";
+    const token3dMounted = root.experimentalToken3d?.mountToken?.(token, player, {
+      transit: false,
+    });
+    if (token3dMounted) {
+      delete token.dataset.avatarSrc;
+      return;
+    }
+
+    root.experimentalToken3d?.unmountToken?.(token);
     if (safeAvatarSrc) {
       token.classList.add("avatar");
       let avatar = token.querySelector(".token-avatar-img");

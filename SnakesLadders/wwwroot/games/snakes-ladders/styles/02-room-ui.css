@@ -31,7 +31,8 @@
   cursor: not-allowed;
 }
 
-.avatar-choice img {
+.avatar-choice img,
+.avatar-choice .avatar-model-preview {
   width: 100%;
   aspect-ratio: 1 / 1;
   display: block;

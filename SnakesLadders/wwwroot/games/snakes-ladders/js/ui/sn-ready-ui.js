@@ -1,7 +1,7 @@
 (() => {
   const root = window.SNL;
   const { state, el, GAME_STATUS } = root;
-  const { escapeHtml, avatarSrc, normalizeAvatarId } = root.utils;
+  const { escapeHtml, avatarMarkup, normalizeAvatarId } = root.utils;
   const viewCache = {
     readyListSignature: "",
     readyAvatarPickerSignature: "",
@@ -75,7 +75,7 @@
 
     if (pickerSignature !== viewCache.readyAvatarPickerSignature) {
       const choices = [];
-      for (let avatarId = 1; avatarId <= 8; avatarId += 1) {
+      for (let avatarId = 1; avatarId <= 11; avatarId += 1) {
         const selected = avatarId === currentAvatarId;
         choices.push(`
           <button
@@ -85,12 +85,17 @@
             aria-label="เลือก Avatar ${avatarId}"
             ${locked ? "disabled" : ""}
           >
-            <img src="${avatarSrc(avatarId)}" alt="Avatar ${avatarId}">
+            ${avatarMarkup(avatarId, {
+              className: "avatar-choice-visual",
+              alt: `Avatar ${avatarId}`,
+              variant: "picker",
+            })}
           </button>
         `);
       }
 
       el.readyAvatarPicker.innerHTML = choices.join("");
+      root.experimentalToken3d?.hydrateAvatarHosts?.(el.readyAvatarPicker);
       viewCache.readyAvatarPickerSignature = pickerSignature;
     }
     if (el.readyAvatarHint) {
@@ -155,7 +160,11 @@
         return `
         <li class="ready-item ${tone}">
           <span class="name-wrap">
-            <img class="inline-avatar" src="${avatarSrc(safeAvatarId)}" alt="Avatar ${safeAvatarId}">
+            ${avatarMarkup(safeAvatarId, {
+              className: "inline-avatar",
+              alt: `Avatar ${safeAvatarId}`,
+              variant: "inline",
+            })}
             <span class="name">${escapeHtml(player.displayName)}</span>
           </span>
           <span class="ready-pill ${tone}">${escapeHtml(label)}</span>
@@ -163,6 +172,7 @@
       `;
       })
       .join("");
+    root.experimentalToken3d?.hydrateAvatarHosts?.(el.readyList);
     viewCache.readyListSignature = signature;
   }
 

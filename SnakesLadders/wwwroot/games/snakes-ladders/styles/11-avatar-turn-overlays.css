@@ -69,9 +69,16 @@
 .first-turn-avatar {
   width: min(120px, 34vw);
   height: min(120px, 34vw);
-  object-fit: contain;
   display: block;
   margin: 2px auto 10px;
+}
+
+.first-turn-avatar > img,
+.first-turn-avatar > .avatar-model-preview {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
 }
 
 #firstTurnNameText {

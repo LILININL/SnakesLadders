@@ -1,5 +1,6 @@
 using SnakesLadders.Hubs;
 using SnakesLadders.Services;
+using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 var urls = Environment.GetEnvironmentVariable("ASPNETCORE_URLS");
@@ -45,6 +46,13 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+var staticContentTypeProvider = new FileExtensionContentTypeProvider();
+staticContentTypeProvider.Mappings[".glb"] = "model/gltf-binary";
+staticContentTypeProvider.Mappings[".gltf"] = "model/gltf+json";
+staticContentTypeProvider.Mappings[".bin"] = "application/octet-stream";
+staticContentTypeProvider.Mappings[".usdz"] = "model/vnd.usdz+zip";
+staticContentTypeProvider.Mappings[".obj"] = "text/plain";
+staticContentTypeProvider.Mappings[".mtl"] = "text/plain";
 
 if (app.Environment.IsDevelopment())
 {
@@ -59,6 +67,7 @@ app.UseCors("DevCors");
 app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
+    ContentTypeProvider = staticContentTypeProvider,
     OnPrepareResponse = context =>
     {
         var extension = Path.GetExtension(context.File.Name);

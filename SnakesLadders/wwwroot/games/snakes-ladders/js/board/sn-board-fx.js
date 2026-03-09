@@ -1,7 +1,7 @@
 (() => {
   const root = window.SNL;
   const { state, el } = root;
-  const { escapeHtml, avatarSrc, normalizeAvatarId, boardItemMeta } =
+  const { escapeHtml, avatarMarkup, normalizeAvatarId, boardItemMeta } =
     root.utils;
   let diceChain = Promise.resolve();
   let turnStartChain = Promise.resolve();
@@ -102,10 +102,7 @@
     el.winnerMetaText.textContent =
       String(topPlacement?.outcomeReason ?? "").trim() ||
       winnerMetaText(turn?.finishReason);
-    if (el.winnerAvatar) {
-      el.winnerAvatar.src = avatarSrc(winnerAvatarId);
-      el.winnerAvatar.alt = `Avatar ${winnerAvatarId}`;
-    }
+    renderOverlayAvatar(el.winnerAvatar, winnerAvatarId, "winner");
     renderWinnerPlacements(gameResult, room);
 
     el.winnerOverlay.classList.remove("hidden");
@@ -470,8 +467,7 @@
     el.firstTurnBadge.textContent = anchorActive
       ? `${badgeText} • Anchor x${anchorTurnsLeft}`
       : badgeText;
-    el.firstTurnAvatar.src = avatarSrc(safeAvatarId);
-    el.firstTurnAvatar.alt = `Avatar ${safeAvatarId}`;
+    renderOverlayAvatar(el.firstTurnAvatar, safeAvatarId, "first-turn");
     el.firstTurnNameText.textContent = player.displayName ?? playerId;
     el.firstTurnOverlay.classList.toggle("anchor-active", anchorActive);
 
@@ -486,6 +482,19 @@
 
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function renderOverlayAvatar(host, avatarId, variant) {
+    if (!host) {
+      return;
+    }
+
+    host.innerHTML = avatarMarkup(avatarId, {
+      className: `${variant}-avatar-media`,
+      alt: `Avatar ${normalizeAvatarId(avatarId, 1)}`,
+      variant,
+    });
+    root.experimentalToken3d?.hydrateAvatarHosts?.(host);
   }
 
   async function showJumpHint(text, durationMs = 600) {
