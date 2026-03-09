@@ -9,6 +9,7 @@
     gameLabel,
     boardItemMeta,
     normalizeGameKey,
+    resolvePlayerAccent,
   } = root.utils;
   const MONOPOLY_GAME_KEY = normalizeGameKey(
     root.GAME_KEYS?.MONOPOLY ?? "monopoly",
@@ -155,10 +156,23 @@
         stats = `ตำแหน่ง: ${player.position} | โล่: ${player.shields}${itemStatus.length ? ` | ${escapeHtml(itemStatus.join(" / "))}` : ""}`;
       }
       const safeAvatarId = normalizeAvatarId(player.avatarId, 1);
+      const accent = monopoly
+        ? resolvePlayerAccent(displayPlayers, player.playerId)
+        : null;
+      const badge = monopoly && accent?.slot
+        ? `
+            <span
+              class="mono-owner-badge"
+              style="--owner-accent:${accent.base};--owner-accent-bright:${accent.bright};--owner-accent-edge:${accent.edge};--owner-accent-deep:${accent.deep};--owner-accent-soft:${accent.soft};--owner-accent-glow:${accent.glow};"
+              title="สัญลักษณ์เจ้าของทรัพย์สิน"
+            >${escapeHtml(String(accent.emblem || "✦"))}</span>
+          `
+        : "";
 
       return `
         <li class="${classes.join(" ")}">
           <div class="player-name-row">
+            ${badge}
             <img class="inline-avatar" src="${avatarSrc(safeAvatarId)}" alt="Avatar ${safeAvatarId}">
             <strong>${escapeHtml(player.displayName)}</strong>
           </div>

@@ -265,73 +265,93 @@
   align-items: center;
   justify-content: center;
   padding: 16px;
-  background: rgba(8, 17, 29, 0.36);
+  background:
+    radial-gradient(circle at center, rgba(14, 29, 47, 0.18), rgba(4, 10, 19, 0.66)),
+    rgba(8, 17, 29, 0.42);
+  backdrop-filter: blur(8px);
   pointer-events: none;
 }
 
 .monopoly-action-panel {
-  width: min(620px, 100%);
+  width: min(700px, 100%);
   max-height: min(84vh, 640px);
   overflow: auto;
   pointer-events: auto;
-  border-radius: 14px;
-  border: 1px solid rgba(133, 186, 223, 0.7);
-  background: linear-gradient(170deg, rgba(250, 253, 255, 0.97), rgba(228, 243, 255, 0.96));
-  box-shadow: 0 24px 40px rgba(66, 130, 170, 0.26);
-  padding: 12px;
+  border-radius: 24px;
+  border: 1px solid rgba(99, 167, 212, 0.68);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(239, 247, 255, 0.98)),
+    radial-gradient(circle at top right, rgba(117, 190, 242, 0.18), transparent 42%);
+  box-shadow:
+    0 30px 56px rgba(10, 35, 58, 0.34),
+    0 0 0 1px rgba(255, 255, 255, 0.62) inset;
+  padding: 16px 16px 18px;
 }
 
 .mono-pop-head {
   display: grid;
-  gap: 5px;
+  gap: 7px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(137, 189, 223, 0.34);
 }
 
 .mono-pop-title {
-  font-size: 1.04rem;
-  font-weight: 700;
-  color: #24597a;
+  font-size: 1.28rem;
+  font-weight: 800;
+  color: #153e58;
+  letter-spacing: 0.01em;
 }
 
 .mono-pop-meta {
-  font-size: 0.82rem;
-  color: #4e7a98;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  color: #315f7d;
+  background: rgba(214, 237, 255, 0.78);
+  border: 1px solid rgba(138, 190, 223, 0.46);
 }
 
 .mono-pop-timer {
   width: fit-content;
   border-radius: 999px;
-  padding: 3px 10px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #7c4f1f;
-  border: 1px solid rgba(229, 165, 103, 0.62);
-  background: rgba(255, 223, 184, 0.86);
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #7b3f0b;
+  border: 1px solid rgba(234, 157, 86, 0.72);
+  background: linear-gradient(180deg, rgba(255, 232, 191, 0.98), rgba(255, 209, 143, 0.92));
+  box-shadow: 0 10px 20px rgba(184, 108, 41, 0.14);
 }
 
 .mono-pop-body {
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 .mono-outcome {
-  margin-top: 10px;
-  border-radius: 10px;
-  padding: 8px 10px;
-  border: 1px solid rgba(141, 191, 223, 0.56);
-  background: rgba(231, 245, 255, 0.9);
+  margin-top: 12px;
+  border-radius: 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(141, 191, 223, 0.6);
+  border-left-width: 6px;
+  background: rgba(231, 245, 255, 0.94);
+  box-shadow: 0 16px 26px rgba(94, 146, 185, 0.12);
 }
 
 .mono-outcome-label {
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  color: #3a6a8a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #336784;
 }
 
 .mono-outcome-text {
-  margin-top: 3px;
-  font-size: 0.83rem;
-  color: #285f82;
-  font-weight: 700;
+  margin-top: 6px;
+  font-size: 1rem;
+  line-height: 1.45;
+  color: #174d70;
+  font-weight: 800;
 }
 
 .mono-outcome-chance {
@@ -361,29 +381,33 @@
 
 .mono-pop-actions {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .mono-pop-btn {
   width: 100%;
-  min-height: 44px;
-  border-radius: 10px;
-  font-weight: 700;
-  color: #194e73;
-  border-color: #8dc3ea;
-  background: linear-gradient(180deg, #ffffff, #edf7ff);
+  min-height: 52px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #153f5e;
+  border-color: #76b5e0;
+  background: linear-gradient(180deg, #ffffff, #ebf7ff);
+  box-shadow: 0 12px 22px rgba(68, 136, 180, 0.12);
 }
 
 .mono-pop-btn-primary {
   border-color: #3397e0;
   color: #fff;
-  background: linear-gradient(180deg, #56beff, #2992df);
+  background: linear-gradient(180deg, #49b6ff, #1f89d9);
+  box-shadow: 0 14px 26px rgba(31, 137, 217, 0.24);
 }
 
 .mono-pop-btn-danger {
   border-color: #cf6f79;
   color: #ffe8eb;
-  background: linear-gradient(180deg, #ca7680, #a4515a);
+  background: linear-gradient(180deg, #d1737d, #a94a54);
+  box-shadow: 0 14px 26px rgba(169, 74, 84, 0.2);
 }
 
 .mono-step-badge {
@@ -400,10 +424,11 @@
 
 .mono-info-card {
   border: 1px solid rgba(135, 187, 223, 0.58);
-  border-radius: 10px;
-  padding: 9px;
-  margin-bottom: 10px;
-  background: rgba(237, 247, 255, 0.9);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: rgba(240, 248, 255, 0.94);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .mono-opportunity-card {
@@ -412,14 +437,15 @@
 }
 
 .mono-info-title {
-  color: #215879;
-  font-weight: 700;
+  color: #174863;
+  font-weight: 800;
+  font-size: 1rem;
 }
 
 .mono-info-sub {
-  margin-top: 4px;
-  color: #446f8d;
-  font-size: 0.82rem;
+  margin-top: 5px;
+  color: #3d6883;
+  font-size: 0.88rem;
 }
 
 .mono-form {
@@ -440,10 +466,11 @@
 }
 
 .mono-list-title {
-  margin: 10px 0 8px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #2d678b;
+  margin: 12px 0 10px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #245f81;
 }
 
 .mono-action-list {
@@ -457,20 +484,22 @@
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  padding: 11px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(131, 190, 227, 0.58);
-  background: linear-gradient(180deg, rgba(251, 254, 255, 0.98), rgba(227, 244, 255, 0.94));
-  color: #1f577a;
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(131, 190, 227, 0.62);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(231, 245, 255, 0.95));
+  color: #184a6d;
   text-align: left;
+  box-shadow: 0 12px 22px rgba(94, 151, 188, 0.1);
 }
 
 .mono-list-btn:hover,
 .mono-list-btn:focus-visible {
   border-color: #55aee7;
   box-shadow:
-    0 0 0 1px rgba(85, 174, 231, 0.18),
-    0 10px 20px rgba(72, 144, 189, 0.14);
+    0 0 0 1px rgba(85, 174, 231, 0.2),
+    0 16px 26px rgba(72, 144, 189, 0.16);
+  transform: translateY(-1px);
 }
 
 .mono-list-btn-main {
@@ -480,25 +509,25 @@
 }
 
 .mono-list-btn-title {
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   font-weight: 800;
-  color: #205b7f;
+  color: #164a69;
 }
 
 .mono-list-btn-meta {
-  font-size: 0.74rem;
-  line-height: 1.38;
-  color: #48718d;
+  font-size: 0.79rem;
+  line-height: 1.42;
+  color: #486c84;
 }
 
 .mono-list-btn-amount {
   flex: 0 0 auto;
   align-self: center;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(91, 181, 225, 0.14);
-  color: #1d6b96;
-  font-size: 0.76rem;
+  background: rgba(91, 181, 225, 0.18);
+  color: #165f89;
+  font-size: 0.8rem;
   font-weight: 800;
 }
 
@@ -537,11 +566,12 @@
 }
 
 .mono-tip {
-  margin-top: 10px;
-  border-radius: 10px;
-  padding: 8px 10px;
-  font-size: 0.78rem;
-  line-height: 1.4;
+  margin-top: 12px;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 0.84rem;
+  line-height: 1.48;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44);
 }
 
 .mono-tip-warn {
@@ -557,17 +587,17 @@
 }
 
 .mono-advice {
-  margin-top: 10px;
+  margin-top: 12px;
   border: 1px solid rgba(132, 186, 223, 0.56);
-  border-radius: 10px;
-  background: rgba(234, 247, 255, 0.9);
-  padding: 9px 10px;
+  border-radius: 16px;
+  background: rgba(236, 248, 255, 0.94);
+  padding: 12px 14px;
 }
 
 .mono-advice-title {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #2e678d;
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #1f5b7f;
 }
 
 .mono-advice-list {
@@ -719,11 +749,54 @@
 }
 
 .board.monopoly-ring .m-cell.owned {
-  border-color: #70b8a5;
+  border-color: var(--owner-accent-deep, #70b8a5);
+  box-shadow:
+    inset 0 0 0 1px var(--owner-accent-soft, rgba(112, 184, 165, 0.28)),
+    0 8px 16px rgba(66, 120, 156, 0.08);
+}
+
+.board.monopoly-ring .m-cell.owned::before {
+  content: "";
+  position: absolute;
+  inset: 6px 5px 5px;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at top right, var(--owner-accent-glow, rgba(112, 184, 165, 0.22)), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 54%);
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+.board.monopoly-ring .m-cell.estate-house-1,
+.board.monopoly-ring .m-cell.estate-house-2,
+.board.monopoly-ring .m-cell.estate-house-3,
+.board.monopoly-ring .m-cell.estate-house-4 {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 10px 20px rgba(49, 121, 163, 0.14);
+}
+
+.board.monopoly-ring .m-cell.estate-hotel {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    0 0 0 2px rgba(255, 214, 145, 0.34),
+    0 14px 26px rgba(163, 118, 45, 0.22);
+}
+
+.board.monopoly-ring .m-cell.estate-landmark {
+  animation: monopoly-landmark-glow 2.2s ease-in-out infinite;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
+    0 0 0 2px rgba(255, 226, 170, 0.46),
+    0 18px 30px rgba(173, 129, 64, 0.26);
+}
+
+.board.monopoly-ring .m-cell.estate-mortgaged {
+  filter: saturate(0.76) brightness(0.94);
 }
 
 .board.monopoly-ring .m-cell.owned .m-cell-top {
-  padding-right: 20px;
+  padding-right: 28px;
 }
 
 .board.monopoly-ring .m-band {
@@ -821,56 +894,100 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  min-height: 12px;
+  min-height: 18px;
   gap: 4px;
 }
 
 .board.monopoly-ring .m-owner {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   max-width: 70%;
+  min-height: 24px;
   border-radius: 999px;
-  padding: 1px 5px;
+  padding: 2px 8px 2px 4px;
   font-size: 0.56rem;
-  color: #1f664c;
-  background: rgba(101, 211, 171, 0.24);
-  border: 1px solid rgba(96, 194, 159, 0.45);
+  color: #184661;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 251, 255, 0.92)),
+    linear-gradient(90deg, var(--owner-accent-soft, rgba(101, 211, 171, 0.22)), transparent 64%);
+  border: 1px solid var(--owner-accent-edge, #cfeee0);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-shadow:
+    0 6px 12px rgba(53, 100, 135, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
 }
 
 .board.monopoly-ring .m-owner.mine {
-  border-color: rgba(55, 152, 222, 0.62);
-  background: rgba(79, 171, 237, 0.2);
-  color: #19587f;
+  box-shadow:
+    0 0 0 1px rgba(55, 152, 222, 0.18),
+    0 8px 16px rgba(53, 100, 135, 0.16);
 }
 
 .board.monopoly-ring .m-owner-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 13px;
-  height: 13px;
-  border-radius: 999px;
-  font-size: 0.5rem;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 7px;
+  font-size: 0.56rem;
   font-weight: 800;
   letter-spacing: 0.01em;
   color: #ffffff;
-  background: linear-gradient(180deg, #2eb385, #1f8a64);
-  border: 1px solid rgba(120, 226, 184, 0.72);
+  background: linear-gradient(180deg, var(--owner-accent-bright, #74d8b7), var(--owner-accent-deep, #1f8a64));
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.32);
+  transform: rotate(45deg);
 }
 
-.board.monopoly-ring .m-owner.mine .m-owner-mark {
-  background: linear-gradient(180deg, #2f9be6, #2879b3);
-  border-color: rgba(151, 210, 246, 0.82);
+.board.monopoly-ring .m-owner-mark::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.board.monopoly-ring .m-owner-mark {
+  position: relative;
+  overflow: visible;
+}
+
+.board.monopoly-ring .m-owner-mark-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  transform: rotate(-45deg);
+  font-family: "Chakra Petch", "Segoe UI Symbol", sans-serif;
+  font-size: 0.76rem;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.16);
+}
+
+.board.monopoly-ring .m-owner-copy {
+  display: grid;
+  gap: 0;
+  min-width: 0;
 }
 
 .board.monopoly-ring .m-owner-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 800;
+}
+
+.board.monopoly-ring .m-owner-stage {
+  font-size: 0.43rem;
+  letter-spacing: 0.08em;
+  color: #5f7b8f;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .board.monopoly-ring .m-owner-flag {
@@ -881,67 +998,208 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  font-size: 0.54rem;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 10px;
+  padding: 0;
+  font-size: 0.56rem;
   font-weight: 800;
   letter-spacing: 0.01em;
   color: #ffffff;
-  border: 1px solid rgba(126, 228, 187, 0.8);
-  background: linear-gradient(180deg, #2eb385, #1f8a64);
+  border: 2px solid rgba(255, 255, 255, 0.84);
+  background: linear-gradient(180deg, var(--owner-accent-bright, #74d8b7), var(--owner-accent-deep, #1f8a64));
   box-shadow:
-    0 0 0 1px rgba(17, 72, 53, 0.36),
-    0 4px 8px rgba(12, 53, 39, 0.3);
+    0 0 0 1px var(--owner-accent-glow, rgba(17, 72, 53, 0.3)),
+    0 10px 16px rgba(20, 54, 79, 0.22);
+  overflow: visible;
+  transform: rotate(45deg);
 }
 
 .board.monopoly-ring .m-owner-flag.me {
-  border-color: rgba(151, 210, 246, 0.82);
-  background: linear-gradient(180deg, #2f9be6, #2879b3);
   box-shadow:
-    0 0 0 1px rgba(26, 70, 99, 0.32),
-    0 4px 8px rgba(23, 67, 97, 0.3);
+    0 0 0 1px rgba(26, 70, 99, 0.22),
+    0 0 0 4px rgba(255, 255, 255, 0.26),
+    0 10px 16px rgba(23, 67, 97, 0.3);
 }
 
-.board.monopoly-ring .m-buildings {
+.board.monopoly-ring .m-owner-flag::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  opacity: 0.72;
+}
+
+.board.monopoly-ring .m-owner-flag.tier-hotel::before,
+.board.monopoly-ring .m-owner-flag.tier-landmark::before {
+  inset: -6px;
+  border-width: 2px;
+}
+
+.board.monopoly-ring .m-owner-flag-core {
+  transform: rotate(-45deg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  font-family: "Chakra Petch", "Segoe UI Symbol", sans-serif;
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.board.monopoly-ring .m-owner-flag.tier-hotel .m-owner-flag-core,
+.board.monopoly-ring .m-owner-flag.tier-landmark .m-owner-flag-core {
+  text-shadow: 0 0 10px rgba(255, 240, 210, 0.48);
+}
+
+.board.monopoly-ring .m-estate-stage {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(245, 251, 255, 0.86);
+  border: 1px solid rgba(166, 203, 230, 0.62);
+  box-shadow: 0 6px 12px rgba(72, 120, 156, 0.1);
+}
+
+.board.monopoly-ring .m-estate-badge-text {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: 0.43rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #365f7d;
+}
+
+.board.monopoly-ring .m-estate-stage.tier-owned {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(228, 243, 255, 0.88));
+}
+
+.board.monopoly-ring .m-estate-stage.tier-mortgaged {
+  border-color: rgba(205, 154, 104, 0.56);
+  background: linear-gradient(180deg, rgba(255, 244, 229, 0.98), rgba(250, 225, 202, 0.9));
+}
+
+.board.monopoly-ring .m-estate-plot,
+.board.monopoly-ring .m-estate-skyline,
+.board.monopoly-ring .m-estate-hotel,
+.board.monopoly-ring .m-estate-monument {
   display: inline-flex;
   align-items: flex-end;
-  gap: 1px;
+  gap: 2px;
 }
 
-.board.monopoly-ring .m-buildings i {
+.board.monopoly-ring .m-estate-plot i,
+.board.monopoly-ring .m-estate-skyline i {
+  display: inline-block;
+  width: 3px;
+  border-radius: 2px 2px 0 0;
+  background: linear-gradient(180deg, #87d7ff, #338fd2);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.26) inset;
+}
+
+.board.monopoly-ring .m-estate-plot i:nth-child(1) { height: 5px; }
+.board.monopoly-ring .m-estate-plot i:nth-child(2) { height: 8px; }
+.board.monopoly-ring .m-estate-plot i:nth-child(3) { height: 6px; }
+
+.board.monopoly-ring .m-estate-skyline i:nth-child(1) { height: 6px; }
+.board.monopoly-ring .m-estate-skyline i:nth-child(2) { height: 10px; }
+.board.monopoly-ring .m-estate-skyline i:nth-child(3) { height: 8px; }
+.board.monopoly-ring .m-estate-skyline i:nth-child(4) { height: 12px; }
+
+.board.monopoly-ring .m-estate-stage.house-1,
+.board.monopoly-ring .m-estate-stage.house-2,
+.board.monopoly-ring .m-estate-stage.house-3,
+.board.monopoly-ring .m-estate-stage.house-4 {
+  border-color: rgba(93, 182, 234, 0.56);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(225, 244, 255, 0.92));
+}
+
+.board.monopoly-ring .m-estate-stage.tier-hotel {
+  border-color: rgba(236, 195, 120, 0.72);
+  background: linear-gradient(180deg, rgba(255, 250, 241, 0.98), rgba(255, 234, 198, 0.92));
+  box-shadow:
+    0 8px 14px rgba(171, 128, 59, 0.16),
+    0 0 0 1px rgba(255, 247, 230, 0.72) inset;
+}
+
+.board.monopoly-ring .m-estate-stage.tier-landmark {
+  border-color: rgba(245, 213, 126, 0.82);
+  background: linear-gradient(180deg, rgba(255, 253, 245, 0.98), rgba(255, 238, 195, 0.94));
+  box-shadow:
+    0 10px 18px rgba(183, 140, 69, 0.18),
+    0 0 0 1px rgba(255, 252, 239, 0.8) inset;
+  animation: monopoly-landmark-chip 2.2s ease-in-out infinite;
+}
+
+.board.monopoly-ring .m-estate-hotel i {
   display: inline-block;
   width: 4px;
-  height: 6px;
-  border-radius: 1px 1px 0 0;
-  background: linear-gradient(180deg, #81d5ff, #3b96d6);
+  background: linear-gradient(180deg, #ffd36a, #d48f1f);
+  border-radius: 2px 2px 0 0;
 }
 
-.board.monopoly-ring .m-buildings i:nth-child(1) {
-  height: 6px;
+.board.monopoly-ring .m-estate-hotel i:nth-child(1) { height: 6px; }
+.board.monopoly-ring .m-estate-hotel i:nth-child(2) { height: 11px; }
+.board.monopoly-ring .m-estate-hotel i:nth-child(3) { height: 7px; }
+
+.board.monopoly-ring .m-estate-stage.tier-hotel .m-estate-badge-text,
+.board.monopoly-ring .m-estate-stage.tier-landmark .m-estate-badge-text {
+  color: #8a5a14;
 }
 
-.board.monopoly-ring .m-buildings i:nth-child(2) {
-  height: 9px;
+.board.monopoly-ring .m-estate-monument i {
+  display: inline-block;
+  background: linear-gradient(180deg, #ffe39a, #d9a73d);
 }
 
-.board.monopoly-ring .m-buildings i:nth-child(3) {
+.board.monopoly-ring .m-estate-monument i:nth-child(1) {
+  width: 4px;
   height: 7px;
+  border-radius: 2px 2px 0 0;
 }
 
-.board.monopoly-ring .m-buildings i:nth-child(4) {
-  height: 10px;
+.board.monopoly-ring .m-estate-monument i:nth-child(2) {
+  width: 6px;
+  height: 13px;
+  border-radius: 3px 3px 0 0;
 }
 
-.board.monopoly-ring .m-buildings.hotel {
-  font-size: 0.68rem;
-  line-height: 1;
+.board.monopoly-ring .m-estate-monument i:nth-child(3) {
+  width: 4px;
+  height: 9px;
+  border-radius: 2px 2px 0 0;
 }
 
-.board.monopoly-ring .m-buildings.landmark {
-  font-size: 0.78rem;
-  line-height: 1;
-  filter: drop-shadow(0 1px 4px rgba(45, 103, 139, 0.28));
+.board.monopoly-ring .m-estate-slash {
+  position: relative;
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+}
+
+.board.monopoly-ring .m-estate-slash::before,
+.board.monopoly-ring .m-estate-slash::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: #9a5b23;
+  transform-origin: center;
+}
+
+.board.monopoly-ring .m-estate-slash::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.board.monopoly-ring .m-estate-slash::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .board.monopoly-ring .m-cell.mortgaged {
@@ -960,6 +1218,36 @@
   color: #ffd9a1;
   background: rgba(114, 60, 27, 0.76);
   border: 1px solid rgba(230, 168, 109, 0.54);
+}
+
+@keyframes monopoly-landmark-glow {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.24),
+      0 0 0 2px rgba(255, 226, 170, 0.46),
+      0 18px 30px rgba(173, 129, 64, 0.26);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.32),
+      0 0 0 3px rgba(255, 231, 178, 0.58),
+      0 24px 34px rgba(173, 129, 64, 0.34);
+  }
+}
+
+@keyframes monopoly-landmark-chip {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow:
+      0 10px 18px rgba(183, 140, 69, 0.18),
+      0 0 0 1px rgba(255, 252, 239, 0.8) inset;
+  }
+  50% {
+    transform: translateY(-1px);
+    box-shadow:
+      0 14px 22px rgba(183, 140, 69, 0.24),
+      0 0 0 1px rgba(255, 252, 239, 0.9) inset;
+  }
 }
 
 .board.monopoly-ring .m-center {

@@ -64,6 +64,80 @@
       desc: "เพิ่มงูชั่วคราวทั้งกระดาน 1 รอบ",
     },
   };
+  const PLAYER_ACCENT_PALETTE = [
+    {
+      base: "#f26445",
+      bright: "#ff8f74",
+      edge: "#ffd2c7",
+      deep: "#b8422a",
+      soft: "rgba(242, 100, 69, 0.18)",
+      glow: "rgba(242, 100, 69, 0.34)",
+      emblem: "✦",
+    },
+    {
+      base: "#2f9cf2",
+      bright: "#6bc0ff",
+      edge: "#d3ecff",
+      deep: "#1f6fb4",
+      soft: "rgba(47, 156, 242, 0.18)",
+      glow: "rgba(47, 156, 242, 0.32)",
+      emblem: "◆",
+    },
+    {
+      base: "#31b87c",
+      bright: "#6be2aa",
+      edge: "#d4f8e5",
+      deep: "#228557",
+      soft: "rgba(49, 184, 124, 0.18)",
+      glow: "rgba(49, 184, 124, 0.32)",
+      emblem: "⬟",
+    },
+    {
+      base: "#f0af37",
+      bright: "#ffd16d",
+      edge: "#ffefcf",
+      deep: "#b67d14",
+      soft: "rgba(240, 175, 55, 0.18)",
+      glow: "rgba(240, 175, 55, 0.3)",
+      emblem: "✪",
+    },
+    {
+      base: "#b45cff",
+      bright: "#d29cff",
+      edge: "#f0ddff",
+      deep: "#7a31bc",
+      soft: "rgba(180, 92, 255, 0.18)",
+      glow: "rgba(180, 92, 255, 0.3)",
+      emblem: "❖",
+    },
+    {
+      base: "#ff5fa1",
+      bright: "#ff97c2",
+      edge: "#ffd6e7",
+      deep: "#bc2d6b",
+      soft: "rgba(255, 95, 161, 0.18)",
+      glow: "rgba(255, 95, 161, 0.3)",
+      emblem: "✷",
+    },
+    {
+      base: "#34c3c9",
+      bright: "#74e4e8",
+      edge: "#d6f9fb",
+      deep: "#21848a",
+      soft: "rgba(52, 195, 201, 0.18)",
+      glow: "rgba(52, 195, 201, 0.32)",
+      emblem: "◈",
+    },
+    {
+      base: "#9da9b8",
+      bright: "#c2cad4",
+      edge: "#ebeff4",
+      deep: "#677587",
+      soft: "rgba(157, 169, 184, 0.18)",
+      glow: "rgba(157, 169, 184, 0.28)",
+      emblem: "✹",
+    },
+  ];
 
   function normalizeName(name) {
     const value = String(name ?? "").trim();
@@ -140,6 +214,31 @@
     return getPlayerMarkerBase(displayName);
   }
 
+  function resolvePlayerSlot(players, playerId) {
+    const safePlayerId = String(playerId ?? "").trim();
+    if (!safePlayerId) {
+      return 0;
+    }
+
+    const index = (players ?? []).findIndex(
+      (player) => String(player?.playerId ?? "").trim() === safePlayerId,
+    );
+    return index >= 0 ? index + 1 : 0;
+  }
+
+  function resolvePlayerAccent(players, playerId) {
+    const slot = resolvePlayerSlot(players, playerId);
+    const palette =
+      PLAYER_ACCENT_PALETTE[
+        slot > 0 ? (slot - 1) % PLAYER_ACCENT_PALETTE.length : 0
+      ];
+
+    return {
+      slot,
+      ...palette,
+    };
+  }
+
   function markerSuffix(index) {
     if (index >= 0 && index < 26) {
       return String.fromCharCode(65 + index);
@@ -210,6 +309,8 @@
     formatClock,
     buildPlayerMarkerMap,
     resolvePlayerMarker,
+    resolvePlayerSlot,
+    resolvePlayerAccent,
     normalizeAvatarId,
     avatarSrc,
     normalizeGameKey,

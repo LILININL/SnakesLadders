@@ -161,21 +161,24 @@
 .mono-player-inline {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 8px;
+  gap: 7px 8px;
   font-size: 0.82rem;
   color: #dcecff;
+  margin-top: 4px;
 }
 
 .mono-player-inline span {
-  border: 1px solid rgba(116, 158, 194, 0.34);
+  border: 1px solid rgba(128, 175, 214, 0.36);
   border-radius: 999px;
-  padding: 3px 8px;
-  background: rgba(12, 35, 55, 0.62);
+  padding: 4px 9px;
+  background: linear-gradient(180deg, rgba(13, 37, 58, 0.8), rgba(8, 27, 42, 0.66));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .mono-player-inline-state {
-  margin-top: 6px;
-  color: #9ed9be;
+  margin-top: 8px;
+  color: #d7ebfa;
+  font-weight: 700;
 }
 
 .player-item.me {
@@ -352,6 +355,46 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.mono-owner-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  overflow: visible;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.82);
+  background: linear-gradient(180deg, var(--owner-accent, #4aa7ff), var(--owner-accent-deep, #2c6fa4));
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.08),
+    0 10px 16px var(--owner-accent-glow, rgba(74, 167, 255, 0.22));
+  color: #ffffff;
+  font-family: "Chakra Petch", "Segoe UI Symbol", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.18);
+  transform: rotate(45deg);
+}
+
+.mono-owner-badge::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+}
+
+.mono-owner-badge > span {
+  transform: rotate(-45deg);
 }
 
 .inline-avatar {

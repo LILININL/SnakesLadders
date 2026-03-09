@@ -69,12 +69,12 @@ hr {
 
   .layout.in-room .monopoly-action-panel {
     max-height: calc(100vh - 170px);
-    padding: 8px;
+    padding: 10px;
   }
 
   .layout.in-room .mono-pop-btn {
-    min-height: 36px;
-    font-size: 0.8rem;
+    min-height: 42px;
+    font-size: 0.84rem;
   }
 
   .layout.in-room .mono-list-btn {
@@ -93,15 +93,34 @@ hr {
 
   .layout.in-room .mono-outcome {
     margin-top: 8px;
-    padding: 7px 8px;
+    padding: 9px 10px;
   }
 
   .layout.in-room .mono-outcome-label {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
   }
 
   .layout.in-room .mono-outcome-text {
-    font-size: 0.74rem;
+    font-size: 0.82rem;
+  }
+
+  .layout.in-room .dice-result-fx {
+    min-width: 280px;
+    padding: 24px 20px 26px;
+  }
+
+  .layout.in-room .dice-result-fx.pair-mode {
+    min-width: 250px;
+    padding: 18px 16px 22px;
+  }
+
+  .layout.in-room .dice-result-fx.pair-mode .dice-fx-pair {
+    margin-bottom: 8px;
+  }
+
+  .layout.in-room .dice-result-fx .dice-fx-double-status {
+    font-size: 0.82rem;
+    padding: 6px 12px;
   }
 
   .layout.in-room .monopoly-status-popup {
@@ -168,21 +187,46 @@ hr {
   }
 
   .layout.in-room .board.monopoly-ring .m-cell.owned .m-cell-top {
-    padding-right: 16px;
+    padding-right: 22px;
   }
 
   .layout.in-room .board.monopoly-ring .m-owner-flag {
     top: 4px;
     right: 3px;
-    min-width: 13px;
-    height: 13px;
-    font-size: 0.44rem;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 0.42rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-owner-mark {
+    min-width: 13px;
+    height: 13px;
+    font-size: 0.42rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-owner-mark-value {
     min-width: 11px;
     height: 11px;
-    font-size: 0.42rem;
+    font-size: 0.58rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-owner-stage {
+    font-size: 0.36rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-owner-flag-core {
+    font-size: 0.6rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-estate-stage {
+    min-height: 14px;
+    padding: 1px 4px;
+    gap: 3px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-estate-badge-text {
+    font-size: 0.34rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-buildings.landmark {

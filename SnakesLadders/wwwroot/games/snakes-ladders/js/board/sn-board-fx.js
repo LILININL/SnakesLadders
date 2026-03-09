@@ -78,9 +78,9 @@
     6: { x: -106, y: 14 },
   };
 
-  function showDice(playerId, diceOne = 0, diceTwo = 0, diceValue = 0) {
+  function showDice(playerId, diceOne = 0, diceTwo = 0, diceValue = 0, meta = null) {
     diceChain = diceChain
-      .then(() => animateDice(playerId, diceOne, diceTwo, diceValue))
+      .then(() => animateDice(playerId, diceOne, diceTwo, diceValue, meta))
       .catch(() => {});
     return diceChain;
   }
@@ -185,7 +185,7 @@
     }
   }
 
-  async function animateDice(playerId, diceOne, diceTwo, diceValue) {
+  async function animateDice(playerId, diceOne, diceTwo, diceValue, meta = null) {
     if (!el.diceResultFx) {
       return;
     }
@@ -207,6 +207,7 @@
       const resolvedTotal =
         Number.parseInt(String(diceValue ?? 0), 10) ||
         resolvedDiceOne + resolvedDiceTwo;
+      const status = resolveDiceStatus(meta, resolvedDiceOne, resolvedDiceTwo);
       el.diceResultFx.innerHTML = `
         <span class="dice-fx-pair" aria-hidden="true">
           ${buildDiceCubeMarkup("dice-fx-cube dice-fx-cube-a")}
@@ -215,11 +216,13 @@
         </span>
         <span class="dice-fx-total-label">ทอยได้</span>
         <span class="dice-fx-total-value pending">?</span>
+        <span class="dice-fx-double-status pending ${status.toneClass}">${escapeHtml(status.text)}</span>
       `;
       el.diceResultFx.style.setProperty("--dice-roll-duration", `${rollDurationMs}ms`);
       const cubeAEl = el.diceResultFx.querySelector(".dice-fx-cube-a");
       const cubeBEl = el.diceResultFx.querySelector(".dice-fx-cube-b");
       const totalEl = el.diceResultFx.querySelector(".dice-fx-total-value");
+      const statusEl = el.diceResultFx.querySelector(".dice-fx-double-status");
       setFxCubeValue(cubeAEl, startOne);
       setFxCubeValue(cubeBEl, startTwo);
       el.diceResultFx.className = "dice-result-fx rolling pair-mode";
@@ -230,6 +233,10 @@
         totalEl.textContent = String(resolvedTotal);
         totalEl.classList.remove("pending");
         totalEl.classList.add("revealed");
+      }
+      if (statusEl) {
+        statusEl.classList.remove("pending");
+        statusEl.classList.add("revealed");
       }
       el.diceResultFx.className = "dice-result-fx reveal pair-mode";
       await wait(120);
@@ -276,6 +283,36 @@
     el.diceResultFx.className = "dice-result-fx hidden";
     el.diceResultFx.style.removeProperty("--dice-roll-duration");
     el.diceResultFx.textContent = "";
+  }
+
+  function resolveDiceStatus(meta, diceOne, diceTwo) {
+    const isDouble =
+      typeof meta?.isDouble === "boolean"
+        ? meta.isDouble
+        : diceOne > 0 && diceOne === diceTwo;
+    const isJailRoll = Boolean(meta?.isJailRoll);
+
+    if (isJailRoll) {
+      return isDouble
+        ? {
+            text: "ดับเบิ้ล ออกจากคุก",
+            toneClass: "is-double",
+          }
+        : {
+            text: "ไม่ดับเบิ้ล ยังอยู่ในคุก",
+            toneClass: "not-double",
+          };
+    }
+
+    return isDouble
+      ? {
+          text: "ดับเบิ้ล ได้เล่นต่อ",
+          toneClass: "is-double",
+        }
+      : {
+          text: "ไม่ดับเบิ้ล",
+          toneClass: "not-double",
+        };
   }
 
   function buildDiceCubeMarkup(className = "dice-fx-cube") {

@@ -395,6 +395,17 @@
       }
     }
 
+    if (
+      actionType === root.GAME_ACTION_TYPES.ROLL_DICE ||
+      actionType === root.GAME_ACTION_TYPES.TRY_JAIL_ROLL
+    ) {
+      const rollLine = lines.find((line) => line.startsWith("ทอย"));
+      const doubleLine = lines.find((line) => line.startsWith("ผลการทอย:"));
+      if (rollLine && doubleLine) {
+        return `${rollLine} | ${doubleLine.replace("ผลการทอย: ", "")}`;
+      }
+    }
+
     return lines[0];
   }
 

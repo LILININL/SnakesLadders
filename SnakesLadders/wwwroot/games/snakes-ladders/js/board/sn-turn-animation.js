@@ -85,7 +85,15 @@
         const diceTotal =
           Number.parseInt(String(turn.diceValue ?? 0), 10) ||
           (diceOne > 0 && diceTwo > 0 ? diceOne + diceTwo : diceOne || diceTwo || 1);
-        await root.boardFx?.showDice?.(turn.playerId, diceOne, diceTwo, diceTotal);
+        await root.boardFx?.showDice?.(turn.playerId, diceOne, diceTwo, diceTotal, {
+          actionType: turn.actionType,
+          isDouble: Boolean(turn.isDouble),
+          isJailRoll:
+            Number.parseInt(
+              String(turn.actionType ?? root.GAME_ACTION_TYPES.ROLL_DICE),
+              10,
+            ) === root.GAME_ACTION_TYPES.TRY_JAIL_ROLL,
+        });
       }
 
       if (followPlayer) {
@@ -636,6 +644,19 @@
   function resolvePrimaryLanding(turn, overflowMode, size, gameKey) {
     if (isMonopolyGameKey(gameKey)) {
       const start = clamp(turn.startPosition, 1, size);
+      const actionType =
+        Number.parseInt(
+          String(turn?.actionType ?? root.GAME_ACTION_TYPES.ROLL_DICE),
+          10,
+        ) || root.GAME_ACTION_TYPES.ROLL_DICE;
+      const end = clamp(turn.endPosition, 1, size);
+      if (
+        actionType === root.GAME_ACTION_TYPES.TRY_JAIL_ROLL &&
+        !Boolean(turn?.isDouble) &&
+        end === start
+      ) {
+        return start;
+      }
       const dice = Math.max(
         0,
         Number.parseInt(String(turn.diceValue ?? 0), 10) || 0,

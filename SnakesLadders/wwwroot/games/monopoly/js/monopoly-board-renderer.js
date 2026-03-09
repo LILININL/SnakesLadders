@@ -35,12 +35,8 @@
     const completedRounds =
       Number.parseInt(String(state?.room?.completedRounds ?? 0), 10) || 0;
     const rentBoostPercent = Math.max(0, completedRounds * 10);
-    const markerMap =
-      root.utils?.buildPlayerMarkerMap?.(state?.room?.players ?? displayPlayers) ??
-      new Map();
-
     const ringCells = cells
-      .map((cell) => renderCell(state, cell, turnPosition, markerMap))
+      .map((cell) => renderCell(state, cell, turnPosition))
       .join("");
     const center = renderCenter(freeParkingPot);
     el.board.innerHTML = `${ringCells}${center}`;
@@ -78,7 +74,7 @@
     root.boardBeacon?.hide?.();
   }
 
-  function renderCell(state, cell, turnPosition, markerMap) {
+  function renderCell(state, cell, turnPosition) {
     const cellNo = resolveCellNo(cell);
     const pos = toBoardPosition(cellNo);
     const type = resolveType(cell);
@@ -91,6 +87,8 @@
     const hasHotel = Boolean(cell?.hasHotel ?? cell?.HasHotel);
     const hasLandmark = Boolean(cell?.hasLandmark ?? cell?.HasLandmark);
     const isMortgaged = Boolean(cell?.isMortgaged ?? cell?.IsMortgaged);
+    const ownerAccent = resolveOwnerAccent(state, ownerId);
+    const estateTier = resolveEstateTier(type, houseCount, hasHotel, hasLandmark, isMortgaged);
 
     const classes = [
       "m-cell",
@@ -101,6 +99,7 @@
     }
     if (ownerId) {
       classes.push("owned");
+      classes.push(`estate-${estateTier.className}`);
     }
     if (turnPosition === cellNo) {
       classes.push("turn-cell");
@@ -129,27 +128,26 @@
     const ownerChip =
       ownerName === "-"
         ? ""
-        : renderOwnerChip(state, ownerId, ownerName, markerMap);
+        : renderOwnerChip(state, ownerId, ownerName, ownerAccent, estateTier);
 
     const ownerFlag =
       ownerName === "-"
         ? ""
-        : renderOwnerFlag(state, ownerId, ownerName, markerMap);
+        : renderOwnerFlag(state, ownerId, ownerName, ownerAccent, estateTier);
 
-    let buildings = "";
-    if (type === 1 && hasLandmark) {
-      buildings = '<span class="m-buildings landmark" title="แลนด์มาร์ก">🏛</span>';
-    } else if (type === 1 && hasHotel) {
-      buildings = '<span class="m-buildings hotel" title="โรงแรม">🏨</span>';
-    } else if (type === 1 && houseCount > 0) {
-      buildings = `<span class=\"m-buildings\" title=\"บ้าน\">${new Array(Math.min(4, houseCount)).fill("<i></i>").join("")}</span>`;
-    }
+    const buildings = ownerId
+      ? renderEstateStage(estateTier, houseCount)
+      : "";
     const mortgageBadge = isMortgaged
       ? '<span class="m-mortgage" title="Mortgaged">M</span>'
       : "";
 
+    const ownerStyle = ownerId
+      ? `--owner-accent:${ownerAccent.base};--owner-accent-bright:${ownerAccent.bright};--owner-accent-edge:${ownerAccent.edge};--owner-accent-deep:${ownerAccent.deep};--owner-accent-soft:${ownerAccent.soft};--owner-accent-glow:${ownerAccent.glow};`
+      : "";
+
     return `
-      <div class="${classes.join(" ")}" data-cell="${cellNo}" style="grid-column:${pos.col};grid-row:${pos.row};" title="${escapeHtml(resolveName(cell))}">
+      <div class="${classes.join(" ")}" data-cell="${cellNo}" style="grid-column:${pos.col};grid-row:${pos.row};${ownerStyle}" title="${escapeHtml(resolveName(cell))}">
         ${colorBand}
         ${ownerFlag}
         <div class="m-cell-top">
@@ -170,37 +168,35 @@
     `;
   }
 
-  function renderOwnerChip(state, ownerId, ownerName, markerMap) {
-    const marker = resolveOwnerMarker(state, ownerId, ownerName, markerMap);
+  function renderOwnerChip(state, ownerId, ownerName, ownerAccent, estateTier) {
     const mineClass = ownerId === String(state?.playerId ?? "").trim() ? " mine" : "";
     return `<span class="m-owner${mineClass}" title="เจ้าของ: ${escapeHtml(ownerName)}">
-      <span class="m-owner-mark" aria-hidden="true">${escapeHtml(marker)}</span>
-      <span class="m-owner-name">${escapeHtml(shortName(ownerName, 10))}</span>
+      <span class="m-owner-mark" aria-hidden="true"><span class="m-owner-mark-value">${escapeHtml(String(ownerAccent.emblem || "✦"))}</span></span>
+      <span class="m-owner-copy">
+        <span class="m-owner-name">${escapeHtml(shortName(ownerName, 10))}</span>
+        <span class="m-owner-stage">${escapeHtml(estateTier.label)}</span>
+      </span>
     </span>`;
   }
 
-  function renderOwnerFlag(state, ownerId, ownerName, markerMap) {
-    const marker = resolveOwnerMarker(state, ownerId, ownerName, markerMap);
+  function renderOwnerFlag(state, ownerId, ownerName, ownerAccent, estateTier) {
     const mineClass = ownerId === String(state?.playerId ?? "").trim() ? " me" : "";
-    return `<span class="m-owner-flag${mineClass}" title="เจ้าของ: ${escapeHtml(ownerName)}" aria-label="เจ้าของ ${escapeHtml(ownerName)}">${escapeHtml(marker)}</span>`;
+    return `<span class="m-owner-flag${mineClass} tier-${escapeHtml(estateTier.className)}" title="เจ้าของ: ${escapeHtml(ownerName)}" aria-label="เจ้าของ ${escapeHtml(ownerName)}">
+      <span class="m-owner-flag-core">${escapeHtml(String(ownerAccent.emblem || "✦"))}</span>
+    </span>`;
   }
 
-  function resolveOwnerMarker(state, ownerId, ownerName, markerMap) {
-    const safeOwnerId = String(ownerId ?? "").trim();
-    if (!safeOwnerId) {
-      return "-";
-    }
-
-    const players = Array.isArray(state?.room?.players) ? state.room.players : [];
-    const player = players.find(
-      (x) => String(x?.playerId ?? "").trim() === safeOwnerId,
-    );
-    const displayName = String(player?.displayName ?? ownerName ?? "").trim();
-
-    const marker =
-      root.utils?.resolvePlayerMarker?.(safeOwnerId, displayName, markerMap) ??
-      (displayName[0] ?? "ผ");
-    return String(marker || "ผ").slice(0, 2).toUpperCase();
+  function resolveOwnerAccent(state, ownerId) {
+    return root.utils?.resolvePlayerAccent?.(state?.room?.players ?? [], ownerId) ?? {
+      slot: 0,
+      base: "#5d91b7",
+      bright: "#8ac2ec",
+      edge: "#d9eefb",
+      deep: "#2d5e81",
+      soft: "rgba(93, 145, 183, 0.16)",
+      glow: "rgba(93, 145, 183, 0.3)",
+      emblem: "✦",
+    };
   }
 
   function renderCenter(freeParkingPot) {
@@ -221,6 +217,103 @@
         <div class="m-parking">เงินกองกลาง: <strong>${money(freeParkingPot)}</strong></div>
       </div>
     `;
+  }
+
+  function resolveEstateTier(type, houseCount, hasHotel, hasLandmark, isMortgaged) {
+    if (isMortgaged) {
+      return {
+        className: "mortgaged",
+        label: "จำนอง",
+        badgeLabel: "พักทรัพย์",
+      };
+    }
+
+    if (type !== 1) {
+      return {
+        className: "owned",
+        label: "ถือครอง",
+        badgeLabel: "โฉนด",
+      };
+    }
+
+    if (hasLandmark) {
+      return {
+        className: "landmark",
+        label: "แลนด์มาร์ก",
+        badgeLabel: "แลนด์มาร์ก",
+      };
+    }
+
+    if (hasHotel) {
+      return {
+        className: "hotel",
+        label: "โรงแรม",
+        badgeLabel: "โรงแรม",
+      };
+    }
+
+    if (houseCount > 0) {
+      return {
+        className: `house-${Math.min(4, houseCount)}`,
+        label: `บ้าน ${Math.min(4, houseCount)}`,
+        badgeLabel: `บ้าน ${Math.min(4, houseCount)}`,
+      };
+    }
+
+    return {
+      className: "owned",
+      label: "ถือครอง",
+      badgeLabel: "โฉนด",
+    };
+  }
+
+  function renderEstateStage(estateTier, houseCount) {
+    switch (estateTier.className) {
+      case "landmark":
+        return `
+          <span class="m-estate-stage tier-landmark" title="${escapeHtml(estateTier.badgeLabel)}">
+            <span class="m-estate-monument">
+              <i></i><i></i><i></i>
+            </span>
+            <span class="m-estate-badge-text">LM</span>
+          </span>
+        `;
+      case "hotel":
+        return `
+          <span class="m-estate-stage tier-hotel" title="${escapeHtml(estateTier.badgeLabel)}">
+            <span class="m-estate-hotel">
+              <i></i><i></i><i></i>
+            </span>
+            <span class="m-estate-badge-text">HT</span>
+          </span>
+        `;
+      case "house-1":
+      case "house-2":
+      case "house-3":
+      case "house-4":
+        return `
+          <span class="m-estate-stage ${escapeHtml(estateTier.className)}" title="${escapeHtml(estateTier.badgeLabel)}">
+            <span class="m-estate-skyline">${new Array(Math.min(4, Math.max(1, houseCount))).fill("<i></i>").join("")}</span>
+            <span class="m-estate-badge-text">H${Math.min(4, Math.max(1, houseCount))}</span>
+          </span>
+        `;
+      case "mortgaged":
+        return `
+          <span class="m-estate-stage tier-mortgaged" title="${escapeHtml(estateTier.badgeLabel)}">
+            <span class="m-estate-slash"></span>
+            <span class="m-estate-badge-text">พัก</span>
+          </span>
+        `;
+      default:
+        return `
+          <span class="m-estate-stage tier-owned" title="${escapeHtml(estateTier.badgeLabel)}">
+            <span class="m-estate-plot">
+              <i></i><i></i><i></i>
+            </span>
+            <span class="m-estate-badge-text">LOT</span>
+          </span>
+        `;
+    }
   }
 
   function toBoardPosition(cellNo) {

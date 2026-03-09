@@ -16,14 +16,16 @@
   display: grid;
   justify-items: center;
   gap: 8px;
-  min-width: 336px;
+  min-width: 356px;
   border: 3px solid #f0bc85;
-  border-radius: 30px;
-  padding: 31px 32px 34px;
-  background: rgba(17, 34, 52, 0.9);
+  border-radius: 34px;
+  padding: 32px 34px 36px;
+  background:
+    radial-gradient(circle at top, rgba(255, 198, 131, 0.14), transparent 48%),
+    rgba(12, 24, 39, 0.94);
   box-shadow:
     0 0 0 1px rgba(255, 208, 157, 0.3),
-    0 20px 44px rgba(0, 0, 0, 0.48);
+    0 24px 50px rgba(0, 0, 0, 0.52);
   pointer-events: none;
   opacity: 0;
   perspective: 900px;
@@ -91,6 +93,40 @@
   animation: dice-value-reveal 0.24s ease-out both;
 }
 
+.dice-result-fx .dice-fx-double-status {
+  min-height: 30px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 0.94rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #f3f7fb;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dice-result-fx .dice-fx-double-status.pending {
+  opacity: 0;
+  transform: translateY(8px) scale(0.76);
+}
+
+.dice-result-fx .dice-fx-double-status.revealed {
+  animation: dice-value-reveal 0.26s ease-out both;
+}
+
+.dice-result-fx .dice-fx-double-status.is-double {
+  color: #e9fff1;
+  border-color: rgba(113, 230, 164, 0.52);
+  background: linear-gradient(180deg, rgba(34, 133, 88, 0.9), rgba(24, 92, 63, 0.86));
+}
+
+.dice-result-fx .dice-fx-double-status.not-double {
+  color: #fff1db;
+  border-color: rgba(244, 194, 120, 0.46);
+  background: linear-gradient(180deg, rgba(121, 78, 29, 0.92), rgba(84, 54, 19, 0.88));
+}
+
 .dice-result-fx.reveal {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
@@ -127,8 +163,9 @@
 }
 
 .dice-result-fx.pair-mode {
-  min-width: 248px;
-  padding: 18px 20px;
+  min-width: 304px;
+  gap: 10px;
+  padding: 20px 24px 24px;
 }
 
 .dice-result-fx.pair-mode .dice-fx-name,
@@ -137,8 +174,34 @@
   display: none;
 }
 
+.dice-result-fx.pair-mode .dice-fx-pair {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.28));
+}
+
+.dice-result-fx.pair-mode .dice-fx-total-label,
+.dice-result-fx.pair-mode .dice-fx-total-value,
+.dice-result-fx.pair-mode .dice-fx-double-status {
+  position: relative;
+  z-index: 2;
+}
+
+.dice-result-fx.pair-mode .dice-fx-total-label {
+  margin-top: 0;
+}
+
+.dice-result-fx.pair-mode .dice-fx-total-value {
+  margin-top: -2px;
+}
+
+.dice-result-fx.pair-mode .dice-fx-double-status {
+  margin-top: 4px;
+}
+
 .dice-result-fx.pair-mode .dice-fx-cube {
-  --dice-size: clamp(44px, 6.8vw, 54px);
+  --dice-size: clamp(38px, 6vw, 48px);
 }
 
 .board-event-overlay,
@@ -153,12 +216,12 @@
 
 .board-event-card,
 .money-flow-card {
-  width: min(460px, calc(100% - 28px));
-  border-radius: 24px;
-  padding: 22px 24px;
+  width: min(520px, calc(100% - 28px));
+  border-radius: 28px;
+  padding: 24px 26px;
   text-align: center;
   box-shadow:
-    0 22px 46px rgba(0, 0, 0, 0.46),
+    0 28px 56px rgba(0, 0, 0, 0.52),
     0 0 0 1px rgba(255, 255, 255, 0.08);
   transform: translateY(10px) scale(0.94);
   opacity: 0;
@@ -186,19 +249,20 @@
 
 .board-event-kicker,
 .money-flow-title {
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 0.96rem;
+  font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(235, 216, 189, 0.86);
 }
 
 .board-event-text {
-  margin-top: 10px;
+  margin-top: 12px;
   font-family: "Chakra Petch", sans-serif;
-  font-size: clamp(1.5rem, 4vw, 2.2rem);
-  line-height: 1.18;
+  font-size: clamp(1.72rem, 4.4vw, 2.5rem);
+  line-height: 1.2;
   color: #fff2dc;
+  text-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
 }
 
 .board-event-overlay.show .board-event-card,
@@ -222,17 +286,18 @@
 }
 
 .money-flow-player {
-  margin-top: 8px;
-  font-size: 1rem;
+  margin-top: 10px;
+  font-size: 1.05rem;
   color: #d6e8f8;
 }
 
 .money-flow-amount {
-  margin-top: 10px;
+  margin-top: 12px;
   font-family: "Chakra Petch", sans-serif;
-  font-size: clamp(2.5rem, 7vw, 4rem);
+  font-size: clamp(2.8rem, 7.2vw, 4.2rem);
   line-height: 0.95;
   color: #ffd7a7;
+  text-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
 }
 
 .money-flow-card.incoming .money-flow-amount {
@@ -246,16 +311,16 @@
 }
 
 .money-flow-balance {
-  margin-top: 4px;
+  margin-top: 6px;
   font-family: "Chakra Petch", sans-serif;
   font-size: clamp(1.6rem, 4.4vw, 2.4rem);
   color: #f5f1e7;
 }
 
 .money-flow-detail {
-  margin-top: 10px;
-  font-size: 0.92rem;
-  line-height: 1.4;
+  margin-top: 12px;
+  font-size: 0.98rem;
+  line-height: 1.48;
   color: #d4e7f8;
 }
 

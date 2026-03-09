@@ -322,6 +322,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             : ResetAndGet(state.ConsecutiveDoublesByPlayer, actor.PlayerId);
 
         execution.Logs.Add($"ทอยได้ {d1} + {d2} = {d1 + d2}");
+        execution.Logs.Add(isDouble ? "ผลการทอย: ดับเบิ้ล" : "ผลการทอย: ไม่ดับเบิ้ล");
 
         ClearTransientActionState(state, keepDebt: true);
         state.Phase = MonopolyTurnPhase.Resolving;
@@ -425,6 +426,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         var isDouble = d1 == d2;
 
         execution.Logs.Add($"ทอยแก้คุกได้ {d1} + {d2} = {d1 + d2}");
+        execution.Logs.Add(isDouble ? "ผลการทอย: ดับเบิ้ล" : "ผลการทอย: ไม่ดับเบิ้ล");
 
         ClearTransientActionState(state, keepDebt: true);
 
