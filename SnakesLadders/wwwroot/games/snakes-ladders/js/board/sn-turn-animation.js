@@ -7,6 +7,7 @@
   const CROSS_PAGE_PAUSE_MS = 130;
   const JUMP_HINT_MS = 600;
   const PAGE_TRANSITION_MS = 550;
+  const MONOPOLY_RELOCATION_MIN_DISTANCE = 8;
   const MONOPOLY_GAME_KEY = String(
     root.GAME_KEYS?.MONOPOLY ?? "monopoly",
   ).trim().toLowerCase();
@@ -264,6 +265,16 @@
       }
     }
 
+    if (effectiveSegment.mode === "relocate") {
+      await runRelocationSegment(
+        effectiveSegment,
+        boardSize,
+        followPlayer,
+        pendingItemEffects,
+      );
+      return;
+    }
+
     const finalPos = await runStepSegment(
       effectiveSegment.from,
       effectiveSegment.to,
@@ -292,6 +303,52 @@
     await ensureVisiblePage(segment.to, true, boardSize);
     state.animPlayerPosition = segment.to;
     root.feedback.renderAll();
+    const movedTo = await consumeItemEffectsAtCell(
+      segment.to,
+      boardSize,
+      followPlayer,
+      pendingItemEffects,
+    );
+    if (movedTo !== segment.to) {
+      state.animPlayerPosition = movedTo;
+      root.feedback.renderAll();
+    }
+    await wait(SEGMENT_END_WAIT_MS);
+  }
+
+  async function runRelocationSegment(
+    segment,
+    boardSize,
+    followPlayer,
+    pendingItemEffects,
+  ) {
+    if (!followPlayer) {
+      state.animPlayerPosition = segment.to;
+      root.feedback.renderAll();
+      await consumeItemEffectsAtCell(
+        segment.to,
+        boardSize,
+        followPlayer,
+        pendingItemEffects,
+      );
+      await wait(STAY_WAIT_MS);
+      return;
+    }
+
+    const fromPage = root.boardPage.getPageStartForCell(segment.from);
+    const toPage = root.boardPage.getPageStartForCell(segment.to);
+    if (fromPage !== toPage) {
+      await ensureVisiblePage(segment.to, true, boardSize);
+    } else {
+      await ensureVisiblePage(segment.from, false, boardSize);
+    }
+
+    const completed = await root.pieceTransit?.run?.(segment);
+    if (!completed) {
+      state.animPlayerPosition = segment.to;
+      root.feedback.renderAll();
+    }
+
     const movedTo = await consumeItemEffectsAtCell(
       segment.to,
       boardSize,
@@ -621,8 +678,13 @@
     }
 
     if (cursor !== turn.endPosition) {
+      const finalMode =
+        monopolyEventNotice &&
+        shouldUseMonopolyRelocation(cursor, turn.endPosition, size)
+          ? "relocate"
+          : "step";
       segments.push({
-        mode: "step",
+        mode: finalMode,
         playerId: turn.playerId,
         from: cursor,
         to: turn.endPosition,
@@ -630,6 +692,20 @@
     }
 
     return segments;
+  }
+
+  function shouldUseMonopolyRelocation(from, to, boardSize) {
+    const safeFrom = clamp(
+      Number.parseInt(String(from ?? 0), 10) || 0,
+      1,
+      boardSize,
+    );
+    const safeTo = clamp(
+      Number.parseInt(String(to ?? 0), 10) || 0,
+      1,
+      boardSize,
+    );
+    return Math.abs(safeTo - safeFrom) >= MONOPOLY_RELOCATION_MIN_DISTANCE;
   }
 
   async function playMoneyEvents(turn) {

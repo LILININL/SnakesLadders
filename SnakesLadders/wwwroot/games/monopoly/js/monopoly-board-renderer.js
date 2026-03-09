@@ -170,8 +170,9 @@
 
   function renderOwnerChip(state, ownerId, ownerName, ownerAccent, estateTier) {
     const mineClass = ownerId === String(state?.playerId ?? "").trim() ? " mine" : "";
+    const emblemClass = `emblem-${escapeHtml(ownerAccent.emblemKey || "nova")}`;
     return `<span class="m-owner${mineClass}" title="เจ้าของ: ${escapeHtml(ownerName)}">
-      <span class="m-owner-mark" aria-hidden="true"><span class="m-owner-mark-value">${escapeHtml(String(ownerAccent.emblem || "✦"))}</span></span>
+      <span class="m-owner-mark ${emblemClass}" aria-hidden="true"><span class="owner-emblem-sigil"></span></span>
       <span class="m-owner-copy">
         <span class="m-owner-name">${escapeHtml(shortName(ownerName, 10))}</span>
         <span class="m-owner-stage">${escapeHtml(estateTier.label)}</span>
@@ -181,8 +182,9 @@
 
   function renderOwnerFlag(state, ownerId, ownerName, ownerAccent, estateTier) {
     const mineClass = ownerId === String(state?.playerId ?? "").trim() ? " me" : "";
+    const emblemClass = `emblem-${escapeHtml(ownerAccent.emblemKey || "nova")}`;
     return `<span class="m-owner-flag${mineClass} tier-${escapeHtml(estateTier.className)}" title="เจ้าของ: ${escapeHtml(ownerName)}" aria-label="เจ้าของ ${escapeHtml(ownerName)}">
-      <span class="m-owner-flag-core">${escapeHtml(String(ownerAccent.emblem || "✦"))}</span>
+      <span class="m-owner-flag-core ${emblemClass}" aria-hidden="true"><span class="owner-emblem-sigil"></span></span>
     </span>`;
   }
 
@@ -195,7 +197,7 @@
       deep: "#2d5e81",
       soft: "rgba(93, 145, 183, 0.16)",
       glow: "rgba(93, 145, 183, 0.3)",
-      emblem: "✦",
+      emblemKey: "nova",
     };
   }
 

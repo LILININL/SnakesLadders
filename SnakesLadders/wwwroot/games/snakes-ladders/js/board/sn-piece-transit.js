@@ -5,10 +5,17 @@
   async function run(segment) {
     if (
       !canRenderSegment(segment) ||
-      !root.boardOverlay?.getJumpPathData ||
       !root.boardOverlay?.pointAtPath ||
       !el.board
     ) {
+      return false;
+    }
+
+    if (segment?.mode === "relocate") {
+      return runRelocation(segment);
+    }
+
+    if (!root.boardOverlay?.getJumpPathData) {
       return false;
     }
 
@@ -36,6 +43,40 @@
     token.classList.remove("hidden");
 
     await animate(pathData, token, getPathDurationMs(pathData));
+
+    state.animPlayerPosition = segment.to;
+    resetTransitState();
+    hideToken();
+    root.feedback.renderAll();
+    return true;
+  }
+
+  async function runRelocation(segment) {
+    const endpoints = resolveSegmentEndpoints(segment);
+    if (!endpoints) {
+      return false;
+    }
+
+    const token = ensureToken();
+    if (!token) {
+      return false;
+    }
+
+    state.animTransitActive = true;
+    state.animTransitPlayerId = segment.playerId;
+    root.feedback.renderAll();
+
+    setTokenIdentity(token, segment.playerId);
+    token.classList.remove("snake");
+    token.classList.add("relocate");
+    token.classList.remove("hidden");
+
+    await animateRelocation(
+      endpoints.from,
+      endpoints.to,
+      token,
+      getRelocationDurationMs(endpoints.from, endpoints.to),
+    );
 
     state.animPlayerPosition = segment.to;
     resetTransitState();
@@ -75,8 +116,38 @@
         const point = root.boardOverlay.pointAtPath(pathData, t);
         const angle = root.boardOverlay.angleAtPath(pathData, t);
         if (point) {
-          placeToken(token, point, angle);
+          placeTokenAtPoint(token, point, { angle });
         }
+
+        if (raw < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          resolve();
+        }
+      };
+
+      requestAnimationFrame(frame);
+    });
+  }
+
+  async function animateRelocation(fromPoint, toPoint, token, duration) {
+    const peak = clamp(
+      Math.hypot(toPoint.x - fromPoint.x, toPoint.y - fromPoint.y) * 0.2,
+      46,
+      96,
+    );
+    await new Promise((resolve) => {
+      const start = performance.now();
+      const frame = (now) => {
+        const raw = clamp((now - start) / duration, 0, 1);
+        const t = 0.5 - Math.cos(Math.PI * raw) / 2;
+        const point = {
+          x: lerp(fromPoint.x, toPoint.x, t),
+          y: lerp(fromPoint.y, toPoint.y, t),
+        };
+        const lift = -Math.sin(Math.PI * t) * peak;
+        const scale = 1 + Math.sin(Math.PI * t) * 0.16;
+        placeTokenAtPoint(token, point, { scale, liftY: lift });
 
         if (raw < 1) {
           requestAnimationFrame(frame);
@@ -105,6 +176,11 @@
 
     const speedFactor = pathData.kind === "snake" ? 8.8 : 8.1;
     return clamp(length * speedFactor, 2200, 7200);
+  }
+
+  function getRelocationDurationMs(fromPoint, toPoint) {
+    const distance = Math.hypot(toPoint.x - fromPoint.x, toPoint.y - fromPoint.y);
+    return clamp(720 + distance * 0.9, 760, 1320);
   }
 
   function ensureToken() {
@@ -168,6 +244,10 @@
   }
 
   function placeToken(token, point, angle) {
+    placeTokenAtPoint(token, point, { angle });
+  }
+
+  function placeTokenAtPoint(token, point, options = {}) {
     const stageEl = el.boardStage ?? el.board.parentElement ?? el.board;
     const stageRect = stageEl.getBoundingClientRect();
 
@@ -182,12 +262,16 @@
 
     token.style.left = `${Math.round(left)}px`;
     token.style.top = `${Math.round(top)}px`;
+    const angle = Number.isFinite(options.angle) ? options.angle : 0;
+    const scale = Number.isFinite(options.scale) ? options.scale : 1;
+    const liftY = Number.isFinite(options.liftY) ? options.liftY : 0;
+    const baseTranslate = `translate(-50%, -50%) translateY(${Math.round(liftY)}px)`;
     if (token.classList.contains("avatar")) {
-      token.style.transform = "translate(-50%, -50%)";
+      token.style.transform = `${baseTranslate} scale(${scale.toFixed(3)})`;
       return;
     }
 
-    token.style.transform = `translate(-50%, -50%) rotate(${Math.round(angle)}deg)`;
+    token.style.transform = `${baseTranslate} rotate(${Math.round(angle)}deg) scale(${scale.toFixed(3)})`;
   }
 
   function hideToken() {
@@ -198,6 +282,7 @@
 
     token.classList.add("hidden");
     token.classList.remove("snake");
+    token.classList.remove("relocate");
     token.style.transform = "translate(-50%, -50%) rotate(0deg)";
   }
 
@@ -208,6 +293,35 @@
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
+  }
+
+  function lerp(from, to, t) {
+    return from + (to - from) * t;
+  }
+
+  function resolveSegmentEndpoints(segment) {
+    const fromEl = el.board?.querySelector?.(`[data-cell="${segment.from}"]`);
+    const toEl = el.board?.querySelector?.(`[data-cell="${segment.to}"]`);
+    if (!fromEl || !toEl) {
+      return null;
+    }
+
+    const stageEl = el.boardStage ?? el.board.parentElement ?? el.board;
+    const stageRect = stageEl.getBoundingClientRect();
+    const boardRect = el.board.getBoundingClientRect();
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+    return {
+      from: {
+        x: fromRect.left - boardRect.left + fromRect.width / 2,
+        y: fromRect.top - boardRect.top + fromRect.height / 2,
+      },
+      to: {
+        x: toRect.left - boardRect.left + toRect.width / 2,
+        y: toRect.top - boardRect.top + toRect.height / 2,
+      },
+      stage: stageRect,
+    };
   }
 
   root.pieceTransit = {

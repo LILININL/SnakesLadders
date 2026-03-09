@@ -17,15 +17,15 @@
   justify-items: center;
   gap: 8px;
   min-width: 356px;
-  border: 3px solid #f0bc85;
+  border: 2px solid #8bcaef;
   border-radius: 34px;
   padding: 32px 34px 36px;
   background:
-    radial-gradient(circle at top, rgba(255, 198, 131, 0.14), transparent 48%),
-    rgba(12, 24, 39, 0.94);
+    radial-gradient(circle at top, rgba(148, 213, 249, 0.22), transparent 54%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(233, 246, 255, 0.97));
   box-shadow:
-    0 0 0 1px rgba(255, 208, 157, 0.3),
-    0 24px 50px rgba(0, 0, 0, 0.52);
+    0 0 0 1px rgba(143, 202, 239, 0.3),
+    0 20px 44px rgba(70, 144, 190, 0.2);
   pointer-events: none;
   opacity: 0;
   perspective: 900px;
@@ -34,15 +34,15 @@
 .dice-result-fx .dice-fx-name {
   font-size: 1.2rem;
   line-height: 1;
-  color: #bcd8ef;
+  color: #4a7695;
 }
 
 .dice-result-fx .dice-fx-value {
   font-family: "Chakra Petch", sans-serif;
   font-size: clamp(3.6rem, 9.2vw, 5.4rem);
   line-height: 0.95;
-  color: #ffd7ae;
-  text-shadow: 0 0 18px rgba(255, 193, 130, 0.34);
+  color: #2386d4;
+  text-shadow: 0 0 14px rgba(89, 177, 235, 0.24);
 }
 
 .dice-result-fx .dice-fx-value.pending {
@@ -61,7 +61,7 @@
   line-height: 1;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(232, 208, 180, 0.86);
+  color: rgba(74, 118, 149, 0.86);
 }
 
 .dice-result-fx .dice-fx-value-caption.pending {
@@ -73,15 +73,15 @@
   font-size: 0.98rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(232, 208, 180, 0.84);
+  color: rgba(58, 111, 146, 0.88);
 }
 
 .dice-result-fx .dice-fx-total-value {
   font-family: "Chakra Petch", sans-serif;
   font-size: clamp(4rem, 11vw, 6rem);
   line-height: 0.9;
-  color: #ffe1bc;
-  text-shadow: 0 0 22px rgba(255, 194, 124, 0.36);
+  color: #185f98;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .dice-result-fx .dice-fx-total-value.pending {
@@ -97,13 +97,13 @@
   min-height: 30px;
   padding: 7px 14px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(139, 202, 239, 0.72);
   font-size: 0.94rem;
   font-weight: 800;
   letter-spacing: 0.04em;
-  color: #f3f7fb;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #295f86;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(226, 242, 255, 0.96));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .dice-result-fx .dice-fx-double-status.pending {
@@ -116,15 +116,15 @@
 }
 
 .dice-result-fx .dice-fx-double-status.is-double {
-  color: #e9fff1;
-  border-color: rgba(113, 230, 164, 0.52);
-  background: linear-gradient(180deg, rgba(34, 133, 88, 0.9), rgba(24, 92, 63, 0.86));
+  color: #1e6f57;
+  border-color: rgba(109, 211, 170, 0.72);
+  background: linear-gradient(180deg, rgba(232, 252, 244, 0.98), rgba(214, 247, 233, 0.96));
 }
 
 .dice-result-fx .dice-fx-double-status.not-double {
-  color: #fff1db;
-  border-color: rgba(244, 194, 120, 0.46);
-  background: linear-gradient(180deg, rgba(121, 78, 29, 0.92), rgba(84, 54, 19, 0.88));
+  color: #8a4b58;
+  border-color: rgba(236, 171, 188, 0.72);
+  background: linear-gradient(180deg, rgba(255, 244, 247, 0.98), rgba(255, 233, 239, 0.96));
 }
 
 .dice-result-fx.reveal {
@@ -159,13 +159,15 @@
   font-size: 1.2rem;
   font-weight: 700;
   line-height: 1;
-  color: rgba(233, 210, 184, 0.95);
+  color: rgba(60, 129, 175, 0.96);
 }
 
 .dice-result-fx.pair-mode {
-  min-width: 304px;
-  gap: 10px;
-  padding: 20px 24px 24px;
+  min-width: 316px;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  padding: 18px 22px 22px;
 }
 
 .dice-result-fx.pair-mode .dice-fx-name,
@@ -177,7 +179,7 @@
 .dice-result-fx.pair-mode .dice-fx-pair {
   position: relative;
   z-index: 1;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.28));
 }
 
@@ -189,19 +191,26 @@
 }
 
 .dice-result-fx.pair-mode .dice-fx-total-label {
-  margin-top: 0;
+  margin-top: 2px;
+  min-width: 132px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(147, 202, 235, 0.34);
+  text-align: center;
 }
 
 .dice-result-fx.pair-mode .dice-fx-total-value {
-  margin-top: -2px;
+  margin-top: -6px;
+  line-height: 1;
+  text-align: center;
 }
 
 .dice-result-fx.pair-mode .dice-fx-double-status {
-  margin-top: 4px;
+  margin-top: 0;
+  text-align: center;
 }
 
 .dice-result-fx.pair-mode .dice-fx-cube {
-  --dice-size: clamp(38px, 6vw, 48px);
+  --dice-size: clamp(34px, 5.4vw, 44px);
 }
 
 .board-event-overlay,
@@ -228,23 +237,23 @@
 }
 
 .board-event-card {
-  border: 1px solid rgba(240, 199, 139, 0.44);
-  background: linear-gradient(165deg, rgba(20, 44, 68, 0.96), rgba(53, 34, 18, 0.94));
+  border: 1px solid rgba(137, 198, 235, 0.72);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.98), rgba(231, 246, 255, 0.97));
 }
 
 .board-event-card.tone-chance {
-  border-color: rgba(255, 188, 112, 0.5);
-  background: linear-gradient(165deg, rgba(79, 45, 18, 0.96), rgba(26, 33, 62, 0.94));
+  border-color: rgba(137, 198, 235, 0.76);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.98), rgba(225, 243, 255, 0.97));
 }
 
 .board-event-card.tone-community {
-  border-color: rgba(111, 206, 255, 0.5);
-  background: linear-gradient(165deg, rgba(17, 58, 88, 0.96), rgba(18, 36, 58, 0.94));
+  border-color: rgba(119, 214, 184, 0.76);
+  background: linear-gradient(165deg, rgba(250, 255, 253, 0.98), rgba(229, 250, 242, 0.97));
 }
 
 .board-event-card.tone-economy {
-  border-color: rgba(141, 230, 166, 0.48);
-  background: linear-gradient(165deg, rgba(19, 66, 48, 0.96), rgba(19, 39, 37, 0.94));
+  border-color: rgba(134, 206, 239, 0.74);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.98), rgba(233, 248, 255, 0.97));
 }
 
 .board-event-kicker,
@@ -253,7 +262,7 @@
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(235, 216, 189, 0.86);
+  color: rgba(67, 116, 151, 0.84);
 }
 
 .board-event-text {
@@ -261,8 +270,8 @@
   font-family: "Chakra Petch", sans-serif;
   font-size: clamp(1.72rem, 4.4vw, 2.5rem);
   line-height: 1.2;
-  color: #fff2dc;
-  text-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  color: #1a618f;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.84);
 }
 
 .board-event-overlay.show .board-event-card,
@@ -276,19 +285,19 @@
 }
 
 .money-flow-card {
-  border: 1px solid rgba(255, 179, 125, 0.46);
-  background: linear-gradient(165deg, rgba(73, 33, 19, 0.96), rgba(26, 34, 50, 0.94));
+  border: 1px solid rgba(138, 198, 235, 0.72);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.98), rgba(231, 246, 255, 0.97));
 }
 
 .money-flow-card.incoming {
-  border-color: rgba(120, 224, 156, 0.5);
-  background: linear-gradient(165deg, rgba(19, 74, 47, 0.96), rgba(19, 38, 42, 0.94));
+  border-color: rgba(119, 214, 184, 0.72);
+  background: linear-gradient(165deg, rgba(252, 255, 253, 0.98), rgba(229, 250, 242, 0.97));
 }
 
 .money-flow-player {
   margin-top: 10px;
   font-size: 1.05rem;
-  color: #d6e8f8;
+  color: #4a7594;
 }
 
 .money-flow-amount {
@@ -296,32 +305,32 @@
   font-family: "Chakra Petch", sans-serif;
   font-size: clamp(2.8rem, 7.2vw, 4.2rem);
   line-height: 0.95;
-  color: #ffd7a7;
-  text-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+  color: #d46f56;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.88);
 }
 
 .money-flow-card.incoming .money-flow-amount {
-  color: #bff5d0;
+  color: #1f8a64;
 }
 
 .money-flow-balance-label {
   margin-top: 8px;
   font-size: 0.9rem;
-  color: rgba(223, 234, 244, 0.8);
+  color: rgba(73, 117, 148, 0.84);
 }
 
 .money-flow-balance {
   margin-top: 6px;
   font-family: "Chakra Petch", sans-serif;
   font-size: clamp(1.6rem, 4.4vw, 2.4rem);
-  color: #f5f1e7;
+  color: #195e90;
 }
 
 .money-flow-detail {
   margin-top: 12px;
   font-size: 0.98rem;
   line-height: 1.48;
-  color: #d4e7f8;
+  color: #496f8a;
 }
 
 .dice-result-fx .dice-fx-face {

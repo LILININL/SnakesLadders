@@ -194,29 +194,29 @@ hr {
     top: 4px;
     right: 3px;
     min-width: 18px;
+    width: 18px;
     height: 18px;
-    padding: 0 4px;
-    font-size: 0.42rem;
+    padding: 0;
   }
 
   .layout.in-room .board.monopoly-ring .m-owner-mark {
     min-width: 13px;
+    width: 13px;
     height: 13px;
-    font-size: 0.42rem;
   }
 
-  .layout.in-room .board.monopoly-ring .m-owner-mark-value {
-    min-width: 11px;
-    height: 11px;
-    font-size: 0.58rem;
+  .layout.in-room .board.monopoly-ring .m-owner-mark .owner-emblem-sigil {
+    width: 7px;
+    height: 7px;
   }
 
   .layout.in-room .board.monopoly-ring .m-owner-stage {
     font-size: 0.36rem;
   }
 
-  .layout.in-room .board.monopoly-ring .m-owner-flag-core {
-    font-size: 0.6rem;
+  .layout.in-room .board.monopoly-ring .m-owner-flag-core .owner-emblem-sigil {
+    width: 9px;
+    height: 9px;
   }
 
   .layout.in-room .board.monopoly-ring .m-estate-stage {

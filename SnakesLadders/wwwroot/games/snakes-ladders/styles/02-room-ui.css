@@ -248,9 +248,9 @@
   overflow: auto;
   z-index: 132;
   border-radius: 14px;
-  border: 1px solid rgba(98, 143, 177, 0.62);
-  background: rgba(5, 20, 34, 0.92);
-  box-shadow: 0 24px 44px rgba(5, 15, 26, 0.48);
+  border: 1px solid rgba(138, 196, 233, 0.72);
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.98), rgba(233, 246, 255, 0.97));
+  box-shadow: 0 24px 44px rgba(68, 143, 189, 0.2);
 }
 
 .monopoly-status-panel {
@@ -266,9 +266,9 @@
   justify-content: center;
   padding: 16px;
   background:
-    radial-gradient(circle at center, rgba(14, 29, 47, 0.18), rgba(4, 10, 19, 0.66)),
-    rgba(8, 17, 29, 0.42);
-  backdrop-filter: blur(8px);
+    radial-gradient(circle at center, rgba(159, 214, 246, 0.24), rgba(212, 237, 252, 0.56)),
+    rgba(191, 226, 249, 0.28);
+  backdrop-filter: blur(3px);
   pointer-events: none;
 }
 
@@ -278,14 +278,13 @@
   overflow: auto;
   pointer-events: auto;
   border-radius: 24px;
-  border: 1px solid rgba(99, 167, 212, 0.68);
+  border: 1px solid rgba(138, 196, 233, 0.78);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(239, 247, 255, 0.98)),
-    radial-gradient(circle at top right, rgba(117, 190, 242, 0.18), transparent 42%);
-  box-shadow:
-    0 30px 56px rgba(10, 35, 58, 0.34),
-    0 0 0 1px rgba(255, 255, 255, 0.62) inset;
+    radial-gradient(circle at top right, rgba(117, 190, 242, 0.18), transparent 42%),
+    linear-gradient(170deg, rgba(252, 254, 255, 0.98), rgba(232, 245, 255, 0.97));
+  box-shadow: 0 24px 40px rgba(68, 143, 189, 0.22);
   padding: 16px 16px 18px;
+  color: #174b6d;
 }
 
 .mono-pop-head {
@@ -612,11 +611,11 @@
 .mono-help {
   margin-top: 8px;
   font-size: 0.76rem;
-  color: #bdd8ed;
+  color: #4c7694;
 }
 
 .mono-muted {
-  color: #aacce6;
+  color: #5a7f9a;
   font-size: 0.84rem;
 }
 
@@ -640,15 +639,15 @@
   gap: 10px;
   flex-wrap: wrap;
   font-size: 0.78rem;
-  color: #cfe8fb;
+  color: #3d6d8d;
 }
 
 .mono-status-debt {
   margin-top: 8px;
   border-radius: 9px;
   border: 1px solid rgba(226, 176, 114, 0.5);
-  background: rgba(100, 58, 23, 0.58);
-  color: #ffe2bb;
+  background: rgba(255, 241, 220, 0.96);
+  color: #8a5821;
   font-size: 0.78rem;
   padding: 6px 8px;
 }
@@ -660,10 +659,10 @@
 }
 
 .mono-status-card {
-  border: 1px solid rgba(116, 160, 190, 0.35);
+  border: 1px solid rgba(150, 197, 228, 0.56);
   border-radius: 10px;
   padding: 8px;
-  background: rgba(8, 28, 45, 0.62);
+  background: rgba(248, 252, 255, 0.98);
 }
 
 .mono-status-card.me {
@@ -692,7 +691,7 @@
 
 .mono-status-money {
   font-weight: 700;
-  color: #ffe0ad;
+  color: #1f6d9f;
 }
 
 .mono-status-grid {
@@ -701,7 +700,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px 8px;
   font-size: 0.75rem;
-  color: #cae3f7;
+  color: #517a97;
 }
 
 .board.monopoly-ring {
@@ -931,42 +930,27 @@
   align-items: center;
   justify-content: center;
   min-width: 18px;
+  width: 18px;
   height: 18px;
-  border-radius: 7px;
-  font-size: 0.56rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  color: #ffffff;
-  background: linear-gradient(180deg, var(--owner-accent-bright, #74d8b7), var(--owner-accent-deep, #1f8a64));
-  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.34), transparent 42%),
+    linear-gradient(160deg, var(--owner-accent-bright, #74d8b7), var(--owner-accent-deep, #1f8a64));
+  border: 1px solid rgba(255, 255, 255, 0.78);
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.32);
-  transform: rotate(45deg);
 }
 
 .board.monopoly-ring .m-owner-mark::before {
   content: "";
   position: absolute;
   inset: 2px;
-  border-radius: 4px;
+  border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .board.monopoly-ring .m-owner-mark {
   position: relative;
   overflow: visible;
-}
-
-.board.monopoly-ring .m-owner-mark-value {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 16px;
-  height: 16px;
-  transform: rotate(-45deg);
-  font-family: "Chakra Petch", "Segoe UI Symbol", sans-serif;
-  font-size: 0.76rem;
-  line-height: 1;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.16);
 }
 
 .board.monopoly-ring .m-owner-copy {
@@ -999,20 +983,18 @@
   align-items: center;
   justify-content: center;
   min-width: 24px;
+  width: 24px;
   height: 24px;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 0;
-  font-size: 0.56rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.84);
-  background: linear-gradient(180deg, var(--owner-accent-bright, #74d8b7), var(--owner-accent-deep, #1f8a64));
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.34), transparent 42%),
+    linear-gradient(160deg, var(--owner-accent-bright, #74d8b7), var(--owner-accent-deep, #1f8a64));
   box-shadow:
     0 0 0 1px var(--owner-accent-glow, rgba(17, 72, 53, 0.3)),
     0 10px 16px rgba(20, 54, 79, 0.22);
   overflow: visible;
-  transform: rotate(45deg);
 }
 
 .board.monopoly-ring .m-owner-flag.me {
@@ -1026,7 +1008,7 @@
   content: "";
   position: absolute;
   inset: -4px;
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.32);
   opacity: 0.72;
 }
@@ -1038,20 +1020,183 @@
 }
 
 .board.monopoly-ring .m-owner-flag-core {
-  transform: rotate(-45deg);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 24px;
   height: 24px;
-  font-family: "Chakra Petch", "Segoe UI Symbol", sans-serif;
-  font-size: 0.82rem;
-  line-height: 1;
 }
 
-.board.monopoly-ring .m-owner-flag.tier-hotel .m-owner-flag-core,
-.board.monopoly-ring .m-owner-flag.tier-landmark .m-owner-flag-core {
-  text-shadow: 0 0 10px rgba(255, 240, 210, 0.48);
+.board.monopoly-ring .m-owner-mark .owner-emblem-sigil {
+  width: 10px;
+  height: 10px;
+}
+
+.board.monopoly-ring .m-owner-flag-core .owner-emblem-sigil {
+  width: 12px;
+  height: 12px;
+}
+
+.owner-emblem-sigil,
+.owner-emblem-sigil::before,
+.owner-emblem-sigil::after {
+  box-sizing: border-box;
+}
+
+.owner-emblem-sigil {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: rgba(255, 255, 255, 0.98);
+  filter: drop-shadow(0 2px 6px rgba(255, 255, 255, 0.24));
+}
+
+.owner-emblem-sigil::before,
+.owner-emblem-sigil::after {
+  content: "";
+  position: absolute;
+}
+
+.emblem-nova .owner-emblem-sigil {
+  border-radius: 4px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(216, 237, 255, 0.86));
+  transform: rotate(45deg);
+}
+
+.emblem-nova .owner-emblem-sigil::before {
+  inset: 2px;
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+}
+
+.emblem-prism .owner-emblem-sigil {
+  width: 13px;
+  height: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(204, 232, 255, 0.82));
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.emblem-prism .owner-emblem-sigil::before {
+  top: 2px;
+  left: 5px;
+  width: 2px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(110, 187, 255, 0.72);
+  transform: skewX(-12deg);
+}
+
+.emblem-crest .owner-emblem-sigil {
+  width: 12px;
+  height: 13px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(225, 245, 238, 0.82));
+  clip-path: polygon(18% 0, 82% 0, 100% 28%, 86% 78%, 50% 100%, 14% 78%, 0 28%);
+}
+
+.emblem-crest .owner-emblem-sigil::before {
+  top: 2px;
+  left: 5px;
+  width: 2px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(41, 166, 107, 0.72);
+}
+
+.emblem-crown .owner-emblem-sigil {
+  width: 14px;
+  height: 11px;
+  background: linear-gradient(180deg, rgba(255, 251, 234, 0.98), rgba(255, 233, 169, 0.86));
+  clip-path: polygon(0 100%, 0 62%, 18% 58%, 30% 18%, 50% 48%, 70% 18%, 82% 58%, 100% 62%, 100% 100%);
+}
+
+.emblem-crown .owner-emblem-sigil::before {
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: -5px 2px 0 rgba(255, 248, 217, 0.9), 5px 2px 0 rgba(255, 248, 217, 0.9);
+}
+
+.emblem-orbit .owner-emblem-sigil {
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 999px;
+}
+
+.emblem-orbit .owner-emblem-sigil::before {
+  inset: 2px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+}
+
+.emblem-orbit .owner-emblem-sigil::after {
+  top: -1px;
+  right: -1px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14);
+}
+
+.emblem-bloom .owner-emblem-sigil {
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 247, 231, 0.98) 0 18%, transparent 20%),
+    radial-gradient(circle at 50% 0, rgba(255, 255, 255, 0.96) 0 32%, transparent 34%),
+    radial-gradient(circle at 100% 50%, rgba(255, 244, 250, 0.92) 0 32%, transparent 34%),
+    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.96) 0 32%, transparent 34%),
+    radial-gradient(circle at 0 50%, rgba(255, 239, 247, 0.92) 0 32%, transparent 34%);
+}
+
+.emblem-bloom .owner-emblem-sigil::before {
+  inset: 3px;
+  border-radius: 999px;
+  background: rgba(255, 219, 238, 0.82);
+}
+
+.emblem-compass .owner-emblem-sigil {
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(212, 251, 255, 0.84));
+}
+
+.emblem-compass .owner-emblem-sigil::before {
+  top: 1px;
+  left: 5px;
+  width: 2px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(49, 192, 201, 0.84);
+}
+
+.emblem-compass .owner-emblem-sigil::after {
+  top: 5px;
+  left: 1px;
+  width: 10px;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.emblem-tide .owner-emblem-sigil {
+  width: 13px;
+  height: 11px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, transparent 0 18%, rgba(255, 255, 255, 0.96) 18% 34%, transparent 34% 48%, rgba(216, 242, 255, 0.9) 48% 66%, transparent 66% 100%);
+}
+
+.emblem-tide .owner-emblem-sigil::before {
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.82), rgba(177, 232, 255, 0.98));
 }
 
 .board.monopoly-ring .m-estate-stage {

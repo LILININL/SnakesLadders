@@ -363,38 +363,34 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  min-width: 28px;
-  height: 28px;
-  padding: 0 8px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   overflow: visible;
   box-sizing: border-box;
-  border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.82);
-  background: linear-gradient(180deg, var(--owner-accent, #4aa7ff), var(--owner-accent-deep, #2c6fa4));
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  background:
+    radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.34), transparent 42%),
+    linear-gradient(160deg, var(--owner-accent-bright, #7dc3ff), var(--owner-accent-deep, #2c6fa4));
   box-shadow:
     0 0 0 3px rgba(255, 255, 255, 0.08),
-    0 10px 16px var(--owner-accent-glow, rgba(74, 167, 255, 0.22));
-  color: #ffffff;
-  font-family: "Chakra Petch", "Segoe UI Symbol", sans-serif;
-  font-size: 0.95rem;
-  font-weight: 800;
-  line-height: 1;
+    0 10px 18px var(--owner-accent-glow, rgba(74, 167, 255, 0.24));
   pointer-events: none;
   user-select: none;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.18);
-  transform: rotate(45deg);
 }
 
 .mono-owner-badge::before {
   content: "";
   position: absolute;
   inset: 3px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.26);
 }
 
-.mono-owner-badge > span {
-  transform: rotate(-45deg);
+.mono-owner-badge .owner-emblem-sigil {
+  width: 14px;
+  height: 14px;
 }
 
 .inline-avatar {

@@ -162,10 +162,10 @@
       const badge = monopoly && accent?.slot
         ? `
             <span
-              class="mono-owner-badge"
+              class="mono-owner-badge emblem-${escapeHtml(accent.emblemKey || "nova")}"
               style="--owner-accent:${accent.base};--owner-accent-bright:${accent.bright};--owner-accent-edge:${accent.edge};--owner-accent-deep:${accent.deep};--owner-accent-soft:${accent.soft};--owner-accent-glow:${accent.glow};"
               title="สัญลักษณ์เจ้าของทรัพย์สิน"
-            >${escapeHtml(String(accent.emblem || "✦"))}</span>
+            ><span class="owner-emblem-sigil" aria-hidden="true"></span></span>
           `
         : "";
 

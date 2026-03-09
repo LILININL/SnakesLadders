@@ -72,7 +72,7 @@
       deep: "#b8422a",
       soft: "rgba(242, 100, 69, 0.18)",
       glow: "rgba(242, 100, 69, 0.34)",
-      emblem: "✦",
+      emblemKey: "nova",
     },
     {
       base: "#2f9cf2",
@@ -81,7 +81,7 @@
       deep: "#1f6fb4",
       soft: "rgba(47, 156, 242, 0.18)",
       glow: "rgba(47, 156, 242, 0.32)",
-      emblem: "◆",
+      emblemKey: "prism",
     },
     {
       base: "#31b87c",
@@ -90,7 +90,7 @@
       deep: "#228557",
       soft: "rgba(49, 184, 124, 0.18)",
       glow: "rgba(49, 184, 124, 0.32)",
-      emblem: "⬟",
+      emblemKey: "crest",
     },
     {
       base: "#f0af37",
@@ -99,7 +99,7 @@
       deep: "#b67d14",
       soft: "rgba(240, 175, 55, 0.18)",
       glow: "rgba(240, 175, 55, 0.3)",
-      emblem: "✪",
+      emblemKey: "crown",
     },
     {
       base: "#b45cff",
@@ -108,7 +108,7 @@
       deep: "#7a31bc",
       soft: "rgba(180, 92, 255, 0.18)",
       glow: "rgba(180, 92, 255, 0.3)",
-      emblem: "❖",
+      emblemKey: "orbit",
     },
     {
       base: "#ff5fa1",
@@ -117,7 +117,7 @@
       deep: "#bc2d6b",
       soft: "rgba(255, 95, 161, 0.18)",
       glow: "rgba(255, 95, 161, 0.3)",
-      emblem: "✷",
+      emblemKey: "bloom",
     },
     {
       base: "#34c3c9",
@@ -126,7 +126,7 @@
       deep: "#21848a",
       soft: "rgba(52, 195, 201, 0.18)",
       glow: "rgba(52, 195, 201, 0.32)",
-      emblem: "◈",
+      emblemKey: "compass",
     },
     {
       base: "#9da9b8",
@@ -135,7 +135,7 @@
       deep: "#677587",
       soft: "rgba(157, 169, 184, 0.18)",
       glow: "rgba(157, 169, 184, 0.28)",
-      emblem: "✹",
+      emblemKey: "tide",
     },
   ];
 
