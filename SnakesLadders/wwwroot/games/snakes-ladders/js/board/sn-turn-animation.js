@@ -679,7 +679,7 @@
 
     if (cursor !== turn.endPosition) {
       const finalMode =
-        monopolyEventNotice &&
+        monopolyMode &&
         shouldUseMonopolyRelocation(cursor, turn.endPosition, size)
           ? "relocate"
           : "step";
@@ -705,7 +705,14 @@
       1,
       boardSize,
     );
-    return Math.abs(safeTo - safeFrom) >= MONOPOLY_RELOCATION_MIN_DISTANCE;
+    const absoluteDistance = Math.abs(safeTo - safeFrom);
+    const isSpecialDestination = safeTo === 1 || safeTo === 11;
+    const isBackwardTravel = safeTo < safeFrom;
+    return (
+      isSpecialDestination ||
+      absoluteDistance >= MONOPOLY_RELOCATION_MIN_DISTANCE ||
+      (isBackwardTravel && absoluteDistance >= 6)
+    );
   }
 
   async function playMoneyEvents(turn) {

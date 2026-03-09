@@ -95,6 +95,7 @@ public sealed class MonopolyRoomState
         new(StringComparer.Ordinal);
     public int LastDiceOne { get; set; }
     public int LastDiceTwo { get; set; }
+    public int CityPriceGrowthRounds { get; set; }
     public int ChanceCursor { get; set; }
     public int CommunityCursor { get; set; }
     public bool UpgradeUsedThisTurn { get; set; }

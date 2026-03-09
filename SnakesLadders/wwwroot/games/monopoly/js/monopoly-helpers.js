@@ -15,6 +15,7 @@
   const LANDMARK_RENT_MULTIPLIER = 170;
   const RENT_ACCELERATION_MULTIPLIER = 1.6;
   const RENT_GROWTH_PER_COMPLETED_ROUND = 0.1;
+  const CITY_PRICE_GROWTH_PER_COMPLETED_ROUND = 0.07;
   const NEIGHBORHOOD_RADIUS = 2;
   const NEIGHBORHOOD_PRIMARY_BONUS = 0.55;
   const NEIGHBORHOOD_SECONDARY_BONUS = 0.32;
@@ -100,14 +101,39 @@
     return resolveNumber(room?.completedRounds ?? room?.CompletedRounds);
   }
 
-  function economyGrowthMultiplier(room = state.room) {
+  function resolveCityPriceGrowthRounds(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    return resolveNumber(
+      monopoly?.cityPriceGrowthRounds ?? monopoly?.CityPriceGrowthRounds,
+    );
+  }
+
+  function tollGrowthMultiplier(room = state.room) {
     return 1 + resolveCompletedRounds(room) * RENT_GROWTH_PER_COMPLETED_ROUND;
   }
 
-  function economyGrowthPercent(room = state.room) {
+  function tollGrowthPercent(room = state.room) {
     return Math.max(
       0,
       Math.round(resolveCompletedRounds(room) * RENT_GROWTH_PER_COMPLETED_ROUND * 100),
+    );
+  }
+
+  function cityPriceGrowthMultiplier(room = state.room) {
+    return (
+      1 +
+      resolveCityPriceGrowthRounds(room) * CITY_PRICE_GROWTH_PER_COMPLETED_ROUND
+    );
+  }
+
+  function cityPriceGrowthPercent(room = state.room) {
+    return Math.max(
+      0,
+      Math.round(
+        resolveCityPriceGrowthRounds(room) *
+          CITY_PRICE_GROWTH_PER_COMPLETED_ROUND *
+          100,
+      ),
     );
   }
 
@@ -117,7 +143,7 @@
       return 0;
     }
 
-    return Math.max(1, Math.ceil(amount * economyGrowthMultiplier(room)));
+    return Math.max(1, Math.ceil(amount * cityPriceGrowthMultiplier(room)));
   }
 
   function scaleCityPriceForCell(cell, room = state.room) {
@@ -132,7 +158,7 @@
 
     return Math.max(
       1,
-      Math.ceil(base * RENT_ACCELERATION_MULTIPLIER * economyGrowthMultiplier(room)),
+      Math.ceil(base * RENT_ACCELERATION_MULTIPLIER * tollGrowthMultiplier(room)),
     );
   }
 
@@ -427,8 +453,11 @@
     findCell,
     resolveCellNo,
     resolveCompletedRounds,
-    economyGrowthMultiplier,
-    economyGrowthPercent,
+    resolveCityPriceGrowthRounds,
+    tollGrowthMultiplier,
+    tollGrowthPercent,
+    cityPriceGrowthMultiplier,
+    cityPriceGrowthPercent,
     scaleCityPrice,
     scaleCityPriceForCell,
     previewCellToll,

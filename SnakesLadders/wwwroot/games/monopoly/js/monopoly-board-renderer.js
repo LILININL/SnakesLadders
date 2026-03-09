@@ -40,14 +40,16 @@
     const completedRounds =
       root.monopolyHelpers?.resolveCompletedRounds?.(room) ??
       (Number.parseInt(String(room?.completedRounds ?? 0), 10) || 0);
-    const economyBoostPercent =
-      root.monopolyHelpers?.economyGrowthPercent?.(room) ??
+    const tollBoostPercent =
+      root.monopolyHelpers?.tollGrowthPercent?.(room) ??
       Math.max(0, completedRounds * 10);
+    const cityPriceBoostPercent =
+      root.monopolyHelpers?.cityPriceGrowthPercent?.(room) ?? 0;
     const nextEconomyFrame = buildEconomyFrame(roomKey, room, cells, completedRounds);
     const ringCells = cells
       .map((cell) => renderCell(state, room, cell, turnPosition))
       .join("");
-    const center = renderCenter(freeParkingPot);
+    const center = renderCenter(state, room, freeParkingPot, tollBoostPercent, cityPriceBoostPercent);
     el.board.innerHTML = `${ringCells}${center}`;
 
     clearBoardClasses(el);
@@ -69,7 +71,7 @@
     lastEconomyFrame = nextEconomyFrame;
 
     const ownedAssets = cells.filter((x) => Boolean(resolveOwnerId(x))).length;
-    el.boardLegend.textContent = `กระดานเกมเศรษฐี 40 ช่อง | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | เงินกองกลาง ${money(freeParkingPot)} | เศรษฐกิจเมืองรอบนี้ +${economyBoostPercent}% (ค่าผ่านทาง + ราคาเมือง)`;
+    el.boardLegend.textContent = `กระดานเกมเศรษฐี 40 ช่อง | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | เงินกองกลาง ${money(freeParkingPot)} | ค่าผ่านทาง +${tollBoostPercent}% | ราคาเมือง +${cityPriceBoostPercent}%`;
     root.roomUi?.updateFloatingRollButton();
   }
 
@@ -343,12 +345,17 @@
     };
   }
 
-  function renderCenter(freeParkingPot) {
+  function renderCenter(state, room, freeParkingPot, tollBoostPercent, cityPriceBoostPercent) {
+    const summaryRows = renderCenterPlayerSummary(state, room);
     return `
       <div class="m-center" style="grid-column:3 / span 7;grid-row:3 / span 7;">
         <div class="m-center-badge">CITY ESTATE</div>
         <h4 class="m-center-title">เกมเศรษฐีคลาสสิก</h4>
         <div class="m-center-sub">จ่ายทาง • ซื้อสิทธิ์ • ครองเมือง</div>
+        <div class="m-economy-strip">
+          <span class="m-economy-pill toll">ค่าผ่านทาง +${escapeHtml(String(tollBoostPercent))}%</span>
+          <span class="m-economy-pill price">ราคาเมือง +${escapeHtml(String(cityPriceBoostPercent))}%</span>
+        </div>
         <div class="m-skyline" aria-hidden="true">
           <span style="--h:36px"></span>
           <span style="--h:54px"></span>
@@ -359,8 +366,85 @@
           <span style="--h:60px"></span>
         </div>
         <div class="m-parking">เงินกองกลาง: <strong>${money(freeParkingPot)}</strong></div>
+        <div class="m-center-player-list">${summaryRows}</div>
       </div>
     `;
+  }
+
+  function renderCenterPlayerSummary(state, room) {
+    const economyRows = Array.isArray(room?.monopolyState?.playerEconomy)
+      ? room.monopolyState.playerEconomy
+      : [];
+    const economyById = new Map(economyRows.map((row) => [String(row.playerId), row]));
+    const players = Array.isArray(room?.players) ? room.players.slice() : [];
+    const activePlayerId = String(room?.monopolyState?.activePlayerId ?? "").trim();
+    const pendingPlayerId = String(room?.monopolyState?.pendingDecisionPlayerId ?? "").trim();
+
+    return players
+      .sort((left, right) => {
+        const leftActive = left.playerId === activePlayerId ? 1 : 0;
+        const rightActive = right.playerId === activePlayerId ? 1 : 0;
+        if (leftActive !== rightActive) {
+          return rightActive - leftActive;
+        }
+
+        const leftEconomy = economyById.get(String(left.playerId)) ?? {};
+        const rightEconomy = economyById.get(String(right.playerId)) ?? {};
+        const leftNetWorth = resolveNumber(leftEconomy?.netWorth ?? leftEconomy?.NetWorth);
+        const rightNetWorth = resolveNumber(rightEconomy?.netWorth ?? rightEconomy?.NetWorth);
+        return rightNetWorth - leftNetWorth;
+      })
+      .map((player) => {
+        const playerId = String(player.playerId ?? "");
+        const economy = economyById.get(playerId) ?? {};
+        const accent = resolveOwnerAccent(state, playerId);
+        const classes = ["m-center-player"];
+        if (playerId === activePlayerId) {
+          classes.push("active");
+        }
+        if (playerId === pendingPlayerId) {
+          classes.push("pending");
+        }
+        if (playerId === String(state?.playerId ?? "")) {
+          classes.push("me");
+        }
+        if (Boolean(economy?.isBankrupt ?? economy?.IsBankrupt ?? player.isBankrupt)) {
+          classes.push("bankrupt");
+        }
+
+        const cash = resolveNumber(economy?.cash ?? economy?.Cash ?? player.cash);
+        const netWorth = resolveNumber(economy?.netWorth ?? economy?.NetWorth);
+        const propertyCount = resolveNumber(economy?.propertyCount ?? economy?.PropertyCount);
+        const inJail = Boolean(economy?.inJail ?? economy?.InJail);
+        const badges = [];
+        if (playerId === activePlayerId) {
+          badges.push('<span class="m-center-player-badge turn">ตาเล่น</span>');
+        }
+        if (playerId === pendingPlayerId && playerId !== activePlayerId) {
+          badges.push('<span class="m-center-player-badge wait">รอตัดสินใจ</span>');
+        }
+        if (inJail) {
+          badges.push('<span class="m-center-player-badge jail">ติดคุก</span>');
+        }
+        if (classes.includes("bankrupt")) {
+          badges.push('<span class="m-center-player-badge out">ล้มละลาย</span>');
+        }
+
+        return `
+          <div class="${classes.join(" ")}" style="--player-accent:${accent.base};--player-soft:${accent.soft};--player-edge:${accent.edge};">
+            <div class="m-center-player-head">
+              <span class="m-center-player-name">${escapeHtml(shortName(player.displayName, 12))}</span>
+              <span class="m-center-player-cash">${money(cash)}</span>
+            </div>
+            <div class="m-center-player-meta">
+              <span>สุทธิ <b>${money(netWorth)}</b></span>
+              <span>ทรัพย์ <b>${escapeHtml(String(propertyCount))}</b></span>
+            </div>
+            ${badges.length ? `<div class="m-center-player-badges">${badges.join("")}</div>` : ""}
+          </div>
+        `;
+      })
+      .join("");
   }
 
   function resolveEstateTier(type, houseCount, hasHotel, hasLandmark, isMortgaged) {

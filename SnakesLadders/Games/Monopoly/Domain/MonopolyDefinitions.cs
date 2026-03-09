@@ -19,4 +19,6 @@ public static class MonopolyDefinitions
     public const double NeighborhoodPrimaryBonus = 0.55d;
     public const double NeighborhoodSecondaryBonus = 0.32d;
     public const double RentGrowthPerCompletedRound = 0.10d;
+    public const double CityPriceGrowthPerCompletedRound = 0.07d;
+    public const double CityPriceGrowthOwnershipThreshold = 0.40d;
 }

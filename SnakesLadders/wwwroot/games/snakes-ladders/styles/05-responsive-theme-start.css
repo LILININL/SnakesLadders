@@ -275,6 +275,38 @@ hr {
     font-size: 0.54rem;
   }
 
+  .layout.in-room .board.monopoly-ring .m-economy-strip {
+    gap: 4px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-economy-pill {
+    padding: 2px 6px;
+    font-size: 0.46rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-center-player-list {
+    gap: 5px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-center-player {
+    border-radius: 9px;
+    padding: 5px 6px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-center-player-name,
+  .layout.in-room .board.monopoly-ring .m-center-player-cash {
+    font-size: 0.52rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-center-player-meta {
+    font-size: 0.44rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-center-player-badge {
+    padding: 1px 5px;
+    font-size: 0.4rem;
+  }
+
   .layout.in-room .cell {
     min-height: 38px;
     padding: 3px;
