@@ -161,42 +161,47 @@ hr {
   }
 
   .layout.in-room .board.monopoly-ring {
-    grid-template-columns: repeat(11, minmax(38px, 1fr));
-    grid-template-rows: repeat(11, minmax(38px, 1fr));
-    max-height: calc(100vh - 146px);
-    min-height: 0;
+    grid-template-columns: repeat(11, minmax(56px, 1fr));
+    grid-template-rows: repeat(11, minmax(56px, 1fr));
+    max-height: calc(100vh - 160px);
+    min-height: min(78vw, 700px);
     height: auto;
-    padding: 6px;
-    gap: 2px;
+    padding: 8px;
+    gap: 3px;
   }
 
   .layout.in-room .board.monopoly-ring .m-cell {
-    min-height: 38px;
-    padding: 3px 3px 4px;
-    border-radius: 6px;
+    min-height: 56px;
+    padding: 5px 5px 6px;
+    border-radius: 8px;
   }
 
-  .layout.in-room .board.monopoly-ring .m-name,
+  .layout.in-room .board.monopoly-ring .m-name {
+    font-size: 0.65rem;
+    min-height: 2.15em;
+  }
+
   .layout.in-room .board.monopoly-ring .m-meta,
   .layout.in-room .board.monopoly-ring .m-owner {
-    font-size: 0.5rem;
+    font-size: 0.58rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-metric {
     gap: 3px;
-    padding: 1px 4px;
+    min-height: 18px;
+    padding: 1px 5px;
   }
 
   .layout.in-room .board.monopoly-ring .m-metric-label {
-    font-size: 0.42rem;
-  }
-
-  .layout.in-room .board.monopoly-ring .m-metric-value {
     font-size: 0.48rem;
   }
 
+  .layout.in-room .board.monopoly-ring .m-metric-value {
+    font-size: 0.56rem;
+  }
+
   .layout.in-room .board.monopoly-ring .m-icon {
-    font-size: 0.7rem;
+    font-size: 0.84rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-cell.owned .m-cell-top {
@@ -224,7 +229,7 @@ hr {
   }
 
   .layout.in-room .board.monopoly-ring .m-owner-stage {
-    font-size: 0.36rem;
+    font-size: 0.42rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-owner-flag-core .owner-emblem-sigil {
@@ -233,13 +238,13 @@ hr {
   }
 
   .layout.in-room .board.monopoly-ring .m-estate-stage {
-    min-height: 14px;
-    padding: 1px 4px;
+    min-height: 16px;
+    padding: 1px 5px;
     gap: 3px;
   }
 
   .layout.in-room .board.monopoly-ring .m-estate-badge-text {
-    font-size: 0.34rem;
+    font-size: 0.4rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-buildings.landmark {
@@ -247,9 +252,9 @@ hr {
   }
 
   .layout.in-room .board.monopoly-ring .m-center {
-    border-radius: 10px;
-    padding: 6px;
-    gap: 3px;
+    border-radius: 12px;
+    padding: 8px;
+    gap: 5px;
   }
 
   .layout.in-room .board.monopoly-ring .m-center-badge {
@@ -258,21 +263,21 @@ hr {
   }
 
   .layout.in-room .board.monopoly-ring .m-center-title {
-    font-size: 0.75rem;
+    font-size: 0.84rem;
     letter-spacing: 0.05em;
   }
 
   .layout.in-room .board.monopoly-ring .m-skyline {
-    height: 44px;
-    gap: 2px;
+    height: 52px;
+    gap: 3px;
   }
 
   .layout.in-room .board.monopoly-ring .m-skyline span {
-    width: 8px;
+    width: 9px;
   }
 
   .layout.in-room .board.monopoly-ring .m-parking {
-    font-size: 0.54rem;
+    font-size: 0.6rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-economy-strip {
@@ -280,31 +285,32 @@ hr {
   }
 
   .layout.in-room .board.monopoly-ring .m-economy-pill {
-    padding: 2px 6px;
-    font-size: 0.46rem;
+    padding: 2px 7px;
+    font-size: 0.5rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-center-player-list {
+    grid-template-columns: 1fr;
     gap: 5px;
   }
 
   .layout.in-room .board.monopoly-ring .m-center-player {
     border-radius: 9px;
-    padding: 5px 6px;
+    padding: 6px 7px;
   }
 
   .layout.in-room .board.monopoly-ring .m-center-player-name,
   .layout.in-room .board.monopoly-ring .m-center-player-cash {
-    font-size: 0.52rem;
+    font-size: 0.58rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-center-player-meta {
-    font-size: 0.44rem;
+    font-size: 0.5rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-center-player-badge {
     padding: 1px 5px;
-    font-size: 0.4rem;
+    font-size: 0.44rem;
   }
 
   .layout.in-room .cell {
@@ -436,6 +442,61 @@ hr {
     width: 50px;
     height: 50px;
     font-size: 1.28rem;
+  }
+}
+
+@media (max-width: 900px) and (orientation: portrait) {
+  .layout.in-room .board-wrap.monopoly-layout {
+    gap: 8px;
+  }
+
+  .layout.in-room .board-stage.monopoly-stage {
+    min-height: calc(100vh - 220px);
+  }
+
+  .layout.in-room .board.monopoly-ring {
+    grid-template-columns: repeat(11, minmax(60px, 1fr));
+    grid-template-rows: repeat(11, minmax(60px, 1fr));
+    min-height: min(92vw, 760px);
+    max-height: calc(100vh - 214px);
+    padding: 10px;
+    gap: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-cell {
+    min-height: 60px;
+    padding: 5px 5px 6px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-name {
+    font-size: 0.68rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-meta {
+    gap: 4px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-metrics {
+    gap: 4px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-foot {
+    min-height: 28px;
+    gap: 5px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-owner {
+    font-size: 0.58rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-center {
+    padding: 10px 9px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-center-player-list {
+    grid-template-columns: 1fr;
+    max-height: 212px;
   }
 }
 

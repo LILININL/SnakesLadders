@@ -27,6 +27,8 @@
     }
 
     el.board.classList.add("monopoly-ring");
+    el.boardWrap?.classList.add("monopoly-layout");
+    el.boardStage?.classList.add("monopoly-stage");
     el.board.style.setProperty("--rows", "11");
 
     const room = state?.room ?? null;
@@ -77,6 +79,8 @@
 
   function clear({ el }) {
     el.board.classList.remove("monopoly-ring");
+    el.boardWrap?.classList.remove("monopoly-layout");
+    el.boardStage?.classList.remove("monopoly-stage");
     el.board.style.setProperty("--rows", "10");
     el.board.innerHTML = "";
     el.boardLegend.textContent = "";
@@ -161,7 +165,7 @@
           <span class="m-num">${cellNo}</span>
           <span class="m-icon" aria-hidden="true">${icon}</span>
         </div>
-        <div class="m-name">${escapeHtml(shortName(resolveName(cell), pos.isCorner ? 24 : 18))}</div>
+        <div class="m-name">${escapeHtml(shortName(resolveName(cell), pos.isCorner ? 30 : 24))}</div>
         <div class="m-meta">${metaMarkup}</div>
         <div class="m-foot">
           ${ownerChip}

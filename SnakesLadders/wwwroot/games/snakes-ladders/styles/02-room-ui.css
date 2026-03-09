@@ -74,6 +74,11 @@
   margin-top: 14px;
 }
 
+.board-wrap.monopoly-layout {
+  display: grid;
+  gap: 10px;
+}
+
 .legend {
   margin-bottom: 8px;
   color: var(--muted);
@@ -112,6 +117,13 @@
 
 .board-stage {
   position: relative;
+}
+
+.board-stage.monopoly-stage {
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  min-height: min(94vh, 1180px);
 }
 
 .board-token-layer {
@@ -705,33 +717,39 @@
 
 .board.monopoly-ring {
   --rows: 11;
-  grid-template-columns: repeat(11, minmax(58px, 1fr));
-  grid-template-rows: repeat(11, minmax(58px, 1fr));
-  gap: 4px;
-  padding: 10px;
-  width: min(100%, 980px);
-  min-height: min(86vh, 920px);
-  max-height: min(90vh, 980px);
+  grid-template-columns: repeat(11, minmax(82px, 1fr));
+  grid-template-rows: repeat(11, minmax(82px, 1fr));
+  gap: 6px;
+  padding: 14px;
+  width: min(100%, 1220px);
+  min-height: min(90vh, 1120px);
+  max-height: min(92vh, 1180px);
   overflow: auto;
   margin: 0 auto;
+  scrollbar-gutter: stable both-edges;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
   background:
     radial-gradient(circle at 22% 18%, rgba(204, 237, 255, 0.32), transparent 42%),
     radial-gradient(circle at 78% 74%, rgba(146, 210, 255, 0.24), transparent 46%),
     linear-gradient(165deg, #d9f0ff, #edf8ff 48%, #d3ebff);
   border: 1px solid #9fcdec;
-  box-shadow: inset 0 0 0 1px rgba(171, 217, 246, 0.38);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 0 0 1px rgba(171, 217, 246, 0.38),
+    0 18px 36px rgba(60, 116, 155, 0.16);
 }
 
 .board.monopoly-ring .m-cell {
   position: relative;
   border: 1px solid #8bbce0;
-  border-radius: 8px;
-  padding: 5px 5px 6px;
-  min-height: 58px;
+  border-radius: 12px;
+  padding: 8px 8px 9px;
+  min-height: 82px;
   background: linear-gradient(165deg, #ffffff, #e7f4ff);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
   overflow: hidden;
 }
 
@@ -802,7 +820,7 @@
   position: absolute;
   left: 0;
   top: 0;
-  height: 5px;
+  height: 7px;
   width: 100%;
   background: rgba(143, 186, 214, 0.48);
 }
@@ -852,42 +870,55 @@
   align-items: center;
   justify-content: space-between;
   gap: 4px;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .board.monopoly-ring .m-num {
-  font-size: 0.68rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: #365b77;
 }
 
 .board.monopoly-ring .m-icon {
-  font-size: 0.9rem;
+  font-size: 1rem;
   line-height: 1;
 }
 
 .board.monopoly-ring .m-name {
-  font-size: 0.7rem;
-  line-height: 1.16;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.8rem;
+  line-height: 1.2;
   font-weight: 700;
   color: #294f6d;
-  min-height: 1.38em;
+  min-height: 2.4em;
 }
 
 .board.monopoly-ring .m-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 4px;
-  font-size: 0.61rem;
+  display: grid;
+  justify-items: start;
+  align-content: start;
+  gap: 5px;
+  font-size: 0.66rem;
+  color: #4d7390;
+}
+
+.board.monopoly-ring .m-type {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: #4d7390;
 }
 
 .board.monopoly-ring .m-metrics {
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
   min-width: 0;
 }
 
@@ -895,7 +926,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 1px 5px;
+  min-height: 22px;
+  padding: 2px 7px;
   border-radius: 999px;
   background: rgba(230, 244, 252, 0.86);
   border: 1px solid rgba(131, 180, 214, 0.42);
@@ -904,7 +936,7 @@
 }
 
 .board.monopoly-ring .m-metric-label {
-  font-size: 0.48rem;
+  font-size: 0.52rem;
   line-height: 1;
   font-weight: 700;
   color: #537a96;
@@ -912,7 +944,7 @@
 }
 
 .board.monopoly-ring .m-metric-value {
-  font-size: 0.55rem;
+  font-size: 0.64rem;
   line-height: 1;
   font-weight: 800;
   color: #165d86;
@@ -938,6 +970,7 @@
 
 .board.monopoly-ring .m-cost {
   font-weight: 700;
+  font-size: 0.68rem;
   color: #1f678c;
 }
 
@@ -972,19 +1005,21 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  min-height: 18px;
-  gap: 4px;
+  flex-wrap: wrap;
+  min-height: 34px;
+  gap: 6px;
 }
 
 .board.monopoly-ring .m-owner {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  max-width: 70%;
-  min-height: 24px;
+  max-width: 100%;
+  min-height: 28px;
+  flex: 1 1 100%;
   border-radius: 999px;
   padding: 2px 8px 2px 4px;
-  font-size: 0.56rem;
+  font-size: 0.62rem;
   color: #184661;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 251, 255, 0.92)),
@@ -1046,7 +1081,7 @@
 }
 
 .board.monopoly-ring .m-owner-stage {
-  font-size: 0.43rem;
+  font-size: 0.5rem;
   letter-spacing: 0.08em;
   color: #5f7b8f;
   font-weight: 800;
@@ -1282,8 +1317,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-height: 18px;
-  padding: 2px 5px;
+  min-height: 20px;
+  padding: 2px 6px;
   border-radius: 999px;
   background: rgba(245, 251, 255, 0.86);
   border: 1px solid rgba(166, 203, 230, 0.62);
@@ -1292,7 +1327,7 @@
 
 .board.monopoly-ring .m-estate-badge-text {
   font-family: "Chakra Petch", sans-serif;
-  font-size: 0.43rem;
+  font-size: 0.48rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: #365f7d;
@@ -1477,7 +1512,7 @@
 .board.monopoly-ring .m-center {
   position: relative;
   z-index: 1;
-  border-radius: 16px;
+  border-radius: 20px;
   border: 1px solid rgba(130, 184, 221, 0.8);
   background:
     linear-gradient(160deg, rgba(249, 253, 255, 0.93), rgba(229, 243, 255, 0.9)),
@@ -1485,8 +1520,8 @@
   display: grid;
   align-content: center;
   justify-items: center;
-  gap: 6px;
-  padding: 10px;
+  gap: 10px;
+  padding: 16px 14px;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.72),
     0 16px 24px rgba(93, 147, 185, 0.18);
@@ -1495,8 +1530,8 @@
 
 .board.monopoly-ring .m-center-badge {
   border-radius: 999px;
-  padding: 3px 9px;
-  font-size: 0.65rem;
+  padding: 4px 10px;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: #2a6a90;
@@ -1506,13 +1541,13 @@
 
 .board.monopoly-ring .m-center-title {
   margin: 0;
-  font-size: clamp(0.95rem, 1.35vw, 1.2rem);
+  font-size: clamp(1.08rem, 1.1vw + 0.72rem, 1.42rem);
   letter-spacing: 0.08em;
   color: #1f5376;
 }
 
 .board.monopoly-ring .m-center-sub {
-  font-size: 0.66rem;
+  font-size: 0.74rem;
   font-weight: 600;
   color: #3d7396;
 }
@@ -1526,8 +1561,8 @@
 
 .board.monopoly-ring .m-economy-pill {
   border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 0.56rem;
+  padding: 4px 10px;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   border: 1px solid rgba(128, 183, 220, 0.48);
@@ -1546,13 +1581,13 @@
 .board.monopoly-ring .m-skyline {
   display: inline-flex;
   align-items: flex-end;
-  gap: 4px;
-  height: 82px;
+  gap: 6px;
+  height: 96px;
 }
 
 .board.monopoly-ring .m-skyline span {
   display: inline-block;
-  width: 14px;
+  width: 16px;
   height: var(--h, 46px);
   border-radius: 3px 3px 0 0;
   background:
@@ -1566,7 +1601,7 @@
 }
 
 .board.monopoly-ring .m-parking {
-  font-size: 0.7rem;
+  font-size: 0.76rem;
   color: #245d82;
 }
 
@@ -1578,13 +1613,16 @@
   width: 100%;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
   margin-top: 4px;
+  max-height: 300px;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .board.monopoly-ring .m-center-player {
   border-radius: 12px;
-  padding: 8px 9px;
+  padding: 10px 10px;
   text-align: left;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(240, 248, 255, 0.92)),
@@ -1621,19 +1659,19 @@
 }
 
 .board.monopoly-ring .m-center-player-name {
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 800;
   color: #234f70;
 }
 
 .board.monopoly-ring .m-center-player-cash {
-  font-size: 0.62rem;
+  font-size: 0.7rem;
   font-weight: 800;
   color: #0f6b55;
 }
 
 .board.monopoly-ring .m-center-player-meta {
-  font-size: 0.53rem;
+  font-size: 0.6rem;
   color: #466f8e;
 }
 
@@ -1649,8 +1687,8 @@
 
 .board.monopoly-ring .m-center-player-badge {
   border-radius: 999px;
-  padding: 2px 7px;
-  font-size: 0.46rem;
+  padding: 2px 8px;
+  font-size: 0.5rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   background: rgba(220, 239, 251, 0.94);
