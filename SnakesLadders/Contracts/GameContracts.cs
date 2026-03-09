@@ -163,6 +163,7 @@ public sealed class RoomSnapshot
     public required string? FinishReason { get; init; }
     public required BoardSnapshot? Board { get; init; }
     public MonopolyStateSnapshot? MonopolyState { get; init; }
+    public GameResultSnapshot? GameResult { get; init; }
 }
 
 public sealed class BoardSnapshot
@@ -228,6 +229,8 @@ public sealed class MonopolyStateSnapshot
     public int PendingDebtAmount { get; init; }
     public string? PendingDebtReason { get; init; }
     public int CurrentJailFine { get; init; }
+    public bool UpgradeUsedThisTurn { get; init; }
+    public IReadOnlyList<int> UpgradeEligibleCellIds { get; init; } = Array.Empty<int>();
     public MonopolyAuctionSnapshot? ActiveAuction { get; init; }
     public MonopolyTradeSnapshot? ActiveTradeOffer { get; init; }
     public IReadOnlyList<MonopolyPlayerEconomySnapshot> PlayerEconomy { get; init; } =
@@ -268,6 +271,25 @@ public sealed class MonopolyPlayerEconomySnapshot
     public required int Mortgaged { get; init; }
     public required bool InJail { get; init; }
     public required bool IsBankrupt { get; init; }
+}
+
+public sealed class GameResultSnapshot
+{
+    public required string? WinnerPlayerId { get; init; }
+    public required string? FinishReason { get; init; }
+    public required IReadOnlyList<GamePlacementSnapshot> Placements { get; init; }
+}
+
+public sealed class GamePlacementSnapshot
+{
+    public required string PlayerId { get; init; }
+    public required string DisplayName { get; init; }
+    public required int AvatarId { get; init; }
+    public required int Rank { get; init; }
+    public required int Cash { get; init; }
+    public required int NetWorth { get; init; }
+    public required bool IsBankrupt { get; init; }
+    public required string OutcomeReason { get; init; }
 }
 
 public sealed class PublicRoomSummary

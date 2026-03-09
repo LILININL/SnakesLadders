@@ -95,6 +95,7 @@
   }
 
   function renderPhaseOutcomeNotice(phase) {
+    const helpers = root.monopolyHelpers;
     if (
       phase !== root.MONOPOLY_PHASE.AWAIT_PURCHASE_DECISION &&
       phase !== root.MONOPOLY_PHASE.AWAIT_MANAGE &&
@@ -120,20 +121,35 @@
     const eventLine = logs.find(
       (line) => line.startsWith("โอกาส:") || line.startsWith("การ์ดชุมชน:"),
     );
-    if (!eventLine) {
-      return "";
+    const moneySummary = state.lastTurn?.clientFx?.currentPlayerMoneySummary ?? null;
+    const sections = [];
+
+    if (eventLine) {
+      const toneClass = eventLine.startsWith("โอกาส:")
+        ? "mono-outcome-chance"
+        : "mono-outcome-community";
+      sections.push(`
+        <div class="mono-outcome ${toneClass}">
+          <div class="mono-outcome-label">เหตุการณ์ที่เกิดขึ้น</div>
+          <div class="mono-outcome-text">${escapeHtml(eventLine)}</div>
+        </div>
+      `);
     }
 
-    const toneClass = eventLine.startsWith("โอกาส:")
-      ? "mono-outcome-chance"
-      : "mono-outcome-community";
+    if (moneySummary) {
+      sections.push(`
+        <div class="mono-outcome mono-outcome-money ${moneySummary.incoming ? "mono-outcome-money-in" : "mono-outcome-money-out"}">
+          <div class="mono-outcome-label">${escapeHtml(String(moneySummary.title ?? "สรุปธุรกรรม"))}</div>
+          <div class="mono-outcome-text">
+            ${moneySummary.incoming ? "รับ" : "จ่าย"} ${helpers.money(moneySummary.amount ?? 0)}
+            ${moneySummary.incoming ? " | ตอนนี้มี " : " | เหลือ "}
+            ${helpers.money(moneySummary.afterCash ?? 0)}
+          </div>
+        </div>
+      `);
+    }
 
-    return `
-      <div class="mono-outcome ${toneClass}">
-        <div class="mono-outcome-label">เหตุการณ์ที่เกิดขึ้น</div>
-        <div class="mono-outcome-text">${escapeHtml(eventLine)}</div>
-      </div>
-    `;
+    return sections.join("");
   }
 
   function shouldShowForCurrentPlayer(monopoly) {
@@ -309,11 +325,18 @@
   }
 
   function resolveManageRecommendation(available, landingOpportunity) {
+    const monopoly = currentMonopolyState();
+    const eligibleCount = Array.isArray(monopoly?.upgradeEligibleCellIds)
+      ? monopoly.upgradeEligibleCellIds.filter((value) => parseIntVal(value) > 0).length
+      : 0;
     if (landingOpportunity) {
       return `เพิ่งมาตกที่ ${landingOpportunity.cellName} และสามารถ${landingOpportunity.shortAction}ได้เลย ระบบเตรียมปุ่มลัดไว้ให้แล้ว`;
     }
+    if (eligibleCount > 1) {
+      return `รอบนี้คุณได้สิทธิ์อัปเกรด 1 เมืองจากทั้งหมด ${eligibleCount} เมืองที่เลือกได้`;
+    }
     if (available.canBuild) {
-      return "หากมีเงินเหลือ ลองเริ่มจากการสร้างบ้านเพื่อเพิ่มค่าเช่า";
+      return "รอบนี้อัปเกรดได้ 1 ครั้งเท่านั้น เลือกเมืองที่อยากดันรายได้ก่อน";
     }
     if (available.canUnmortgage) {
       return "ไถ่ถอนทรัพย์ที่จำนองก่อน เพื่อกลับมาเก็บค่าเช่าได้";
@@ -539,7 +562,7 @@
           }
         }
         tips.push("แสดงเฉพาะปุ่มที่ทำได้จริงในเทิร์นนี้ เพื่อลดความสับสน");
-        tips.push("ถ้าต้องการสร้างแลนด์มาร์ก ต้องถือชุดสีครบ อัปเกรดทุกแปลงให้สมดุลจนถึงโรงแรมก่อน");
+        tips.push("รอบนี้อัปเกรดได้แค่ 1 ครั้ง และช่องที่เลือกต้องเป็นช่องที่ระบบเปิดสิทธิ์ให้ในเทิร์นนี้");
         break;
       default:
         break;
@@ -727,21 +750,26 @@
   }
 
   function getBuildCandidates(playerId, monopoly, cash) {
+    const eligibleIds = Array.isArray(monopoly?.upgradeEligibleCellIds)
+      ? monopoly.upgradeEligibleCellIds
+        .map((value) => parseIntVal(value))
+        .filter((value) => value > 0)
+      : [];
+    const eligibleSet = new Set(eligibleIds);
+    if (eligibleSet.size === 0 || Boolean(monopoly?.upgradeUsedThisTurn)) {
+      return [];
+    }
+
     return ownedCellsOf(playerId).filter((cell) => {
       if (resolveType(cell) !== 1) {
         return false;
       }
 
+      if (!eligibleSet.has(resolveCellNo(cell))) {
+        return false;
+      }
+
       if (Boolean(cell?.isMortgaged ?? cell?.IsMortgaged)) {
-        return false;
-      }
-
-      const group = String(cell?.colorGroup ?? cell?.ColorGroup ?? "").trim();
-      if (!ownsFullColorSet(playerId, group) || hasMortgagedInColorSet(playerId, group)) {
-        return false;
-      }
-
-      if (!canBuildEvenly(playerId, cell, group)) {
         return false;
       }
 
@@ -934,12 +962,16 @@
       return null;
     }
 
-    const lastTurn = state.lastTurn;
-    if (!lastTurn || String(lastTurn.playerId ?? "") !== String(state.playerId ?? "")) {
+    const eligibleIds = Array.isArray(monopoly?.upgradeEligibleCellIds)
+      ? monopoly.upgradeEligibleCellIds
+        .map((value) => parseIntVal(value))
+        .filter((value) => value > 0)
+      : [];
+    if (Boolean(monopoly?.upgradeUsedThisTurn) || eligibleIds.length !== 1) {
       return null;
     }
 
-    const cellId = parseIntVal(lastTurn.endPosition);
+    const cellId = eligibleIds[0];
     if (cellId <= 0) {
       return null;
     }

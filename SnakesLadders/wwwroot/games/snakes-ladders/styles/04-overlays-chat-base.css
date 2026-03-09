@@ -66,6 +66,31 @@
   opacity: 0;
 }
 
+.dice-result-fx .dice-fx-total-label {
+  margin-top: 4px;
+  font-size: 0.98rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(232, 208, 180, 0.84);
+}
+
+.dice-result-fx .dice-fx-total-value {
+  font-family: "Chakra Petch", sans-serif;
+  font-size: clamp(4rem, 11vw, 6rem);
+  line-height: 0.9;
+  color: #ffe1bc;
+  text-shadow: 0 0 22px rgba(255, 194, 124, 0.36);
+}
+
+.dice-result-fx .dice-fx-total-value.pending {
+  opacity: 0;
+  transform: translateY(8px) scale(0.72);
+}
+
+.dice-result-fx .dice-fx-total-value.revealed {
+  animation: dice-value-reveal 0.24s ease-out both;
+}
+
 .dice-result-fx.reveal {
   opacity: 1;
   transform: translate(-50%, -50%) scale(1);
@@ -114,6 +139,124 @@
 
 .dice-result-fx.pair-mode .dice-fx-cube {
   --dice-size: clamp(44px, 6.8vw, 54px);
+}
+
+.board-event-overlay,
+.money-flow-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 142;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.board-event-card,
+.money-flow-card {
+  width: min(460px, calc(100% - 28px));
+  border-radius: 24px;
+  padding: 22px 24px;
+  text-align: center;
+  box-shadow:
+    0 22px 46px rgba(0, 0, 0, 0.46),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+  transform: translateY(10px) scale(0.94);
+  opacity: 0;
+}
+
+.board-event-card {
+  border: 1px solid rgba(240, 199, 139, 0.44);
+  background: linear-gradient(165deg, rgba(20, 44, 68, 0.96), rgba(53, 34, 18, 0.94));
+}
+
+.board-event-card.tone-chance {
+  border-color: rgba(255, 188, 112, 0.5);
+  background: linear-gradient(165deg, rgba(79, 45, 18, 0.96), rgba(26, 33, 62, 0.94));
+}
+
+.board-event-card.tone-community {
+  border-color: rgba(111, 206, 255, 0.5);
+  background: linear-gradient(165deg, rgba(17, 58, 88, 0.96), rgba(18, 36, 58, 0.94));
+}
+
+.board-event-card.tone-economy {
+  border-color: rgba(141, 230, 166, 0.48);
+  background: linear-gradient(165deg, rgba(19, 66, 48, 0.96), rgba(19, 39, 37, 0.94));
+}
+
+.board-event-kicker,
+.money-flow-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(235, 216, 189, 0.86);
+}
+
+.board-event-text {
+  margin-top: 10px;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  line-height: 1.18;
+  color: #fff2dc;
+}
+
+.board-event-overlay.show .board-event-card,
+.money-flow-overlay.show .money-flow-card {
+  animation: winner-pop 0.24s ease-out forwards;
+}
+
+.board-event-overlay.hide .board-event-card,
+.money-flow-overlay.hide .money-flow-card {
+  animation: dice-fx-out 0.2s ease-in forwards;
+}
+
+.money-flow-card {
+  border: 1px solid rgba(255, 179, 125, 0.46);
+  background: linear-gradient(165deg, rgba(73, 33, 19, 0.96), rgba(26, 34, 50, 0.94));
+}
+
+.money-flow-card.incoming {
+  border-color: rgba(120, 224, 156, 0.5);
+  background: linear-gradient(165deg, rgba(19, 74, 47, 0.96), rgba(19, 38, 42, 0.94));
+}
+
+.money-flow-player {
+  margin-top: 8px;
+  font-size: 1rem;
+  color: #d6e8f8;
+}
+
+.money-flow-amount {
+  margin-top: 10px;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: clamp(2.5rem, 7vw, 4rem);
+  line-height: 0.95;
+  color: #ffd7a7;
+}
+
+.money-flow-card.incoming .money-flow-amount {
+  color: #bff5d0;
+}
+
+.money-flow-balance-label {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: rgba(223, 234, 244, 0.8);
+}
+
+.money-flow-balance {
+  margin-top: 4px;
+  font-family: "Chakra Petch", sans-serif;
+  font-size: clamp(1.6rem, 4.4vw, 2.4rem);
+  color: #f5f1e7;
+}
+
+.money-flow-detail {
+  margin-top: 10px;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  color: #d4e7f8;
 }
 
 .dice-result-fx .dice-fx-face {
@@ -397,6 +540,64 @@
   object-fit: contain;
   display: block;
   margin: 2px auto 10px;
+}
+
+.winner-podium {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.winner-podium-card {
+  border: 1px solid rgba(255, 215, 163, 0.26);
+  border-radius: 16px;
+  padding: 10px 8px;
+  background: rgba(8, 22, 36, 0.4);
+}
+
+.winner-podium-card.rank-1 {
+  border-color: rgba(255, 211, 123, 0.48);
+  background: rgba(109, 72, 21, 0.34);
+}
+
+.winner-podium-rank {
+  font-size: 0.82rem;
+  color: #f6dcb9;
+}
+
+.winner-podium-name {
+  margin-top: 4px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.winner-placement-list {
+  margin-top: 14px;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+}
+
+.winner-placement-row {
+  border: 1px solid rgba(117, 159, 192, 0.2);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(7, 21, 33, 0.5);
+}
+
+.winner-placement-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #fff0d8;
+}
+
+.winner-placement-meta {
+  margin-top: 4px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #cfe3f4;
 }
 
 .winner-overlay.show .winner-card {

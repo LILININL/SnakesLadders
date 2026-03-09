@@ -68,6 +68,7 @@ public sealed class PlayerState
     public int Cash { get; set; }
     public bool IsBankrupt { get; set; }
     public int JailTurnsRemaining { get; set; }
+    public string? EliminationReason { get; set; }
 }
 
 public sealed class GameRoom

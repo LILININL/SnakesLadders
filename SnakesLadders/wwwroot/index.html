@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=20260304r13">
+  <link rel="stylesheet" href="/styles.css?v=20260306r21">
 </head>
 
 <body>
@@ -248,6 +248,12 @@
               <div id="boardItemTooltip" class="board-item-tooltip hidden"></div>
               <div id="turnDeadlineAlert" class="turn-deadline-alert hidden"></div>
               <div id="diceResultFx" class="dice-result-fx hidden"></div>
+              <div id="boardEventOverlay" class="board-event-overlay hidden">
+                <div id="boardEventCard" class="board-event-card"></div>
+              </div>
+              <div id="moneyFlowOverlay" class="money-flow-overlay hidden">
+                <div id="moneyFlowCard" class="money-flow-card"></div>
+              </div>
               <button id="rollDiceFloatingBtn" class="btn btn-primary roll-fab hidden" type="button" aria-label="กดค้างที่ลูกเต๋าเพื่อชาร์จ แล้วปล่อยเพื่อทอย">
                 <span id="rollControlDice" class="roll-control-dice" aria-hidden="true">
                   <span class="roll-dice-cube">
@@ -359,10 +365,12 @@
 
   <div id="winnerOverlay" class="winner-overlay hidden" aria-hidden="true">
     <div class="winner-card">
-      <div class="winner-badge">ผู้ชนะ</div>
+      <div class="winner-badge">ผลจบเกม</div>
       <img id="winnerAvatar" class="winner-avatar" alt="Avatar ผู้ชนะ">
       <h2 id="winnerNameText">ผู้เล่น</h2>
       <p id="winnerMetaText">คว้าชัยไปอย่างสวยงาม</p>
+      <div id="winnerPodium" class="winner-podium hidden"></div>
+      <div id="winnerPlacementList" class="winner-placement-list hidden"></div>
     </div>
   </div>
 
@@ -386,23 +394,23 @@
   <script src="/games/snakes-ladders/js/board/sn-jump-geometry.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/board/sn-board-overlay.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/board/sn-board-token-layer.js?v=20260226r7"></script>
-  <script src="/games/monopoly/js/monopoly-helpers.js?v=20260304r1"></script>
-  <script src="/games/monopoly/js/monopoly-action-panel.js?v=20260304r1"></script>
+  <script src="/games/monopoly/js/monopoly-helpers.js?v=20260306r21"></script>
+  <script src="/games/monopoly/js/monopoly-action-panel.js?v=20260306r21"></script>
   <script src="/games/monopoly/js/monopoly-status-panel.js?v=20260304r1"></script>
   <script src="/games/snakes-ladders/js/render/boards/sn-board-renderer-snakes.js?v=20260304r1"></script>
   <script src="/games/monopoly/js/monopoly-board-renderer.js?v=20260304r2"></script>
-  <script src="/games/snakes-ladders/js/render/sn-render-game.js?v=20260304r4"></script>
+  <script src="/games/snakes-ladders/js/render/sn-render-game.js?v=20260306r21"></script>
   <script src="/games/snakes-ladders/js/ui/sn-rule-summary.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/ui/sn-room-ui.js?v=20260304r2"></script>
   <script src="/games/snakes-ladders/js/ui/sn-ready-ui.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/ui/sn-rule-ui.js?v=20260226r6"></script>
-  <script src="/games/snakes-ladders/js/board/sn-board-fx.js?v=20260304r4"></script>
+  <script src="/games/snakes-ladders/js/board/sn-board-fx.js?v=20260306r21"></script>
   <script src="/games/snakes-ladders/js/board/sn-piece-transit.js?v=20260226r6"></script>
-  <script src="/games/snakes-ladders/js/board/sn-turn-animation.js?v=20260304r20"></script>
+  <script src="/games/snakes-ladders/js/board/sn-turn-animation.js?v=20260306r21"></script>
   <script src="/games/snakes-ladders/js/render/sn-render-chat.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/render/sn-render-main.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/net/sn-api.js?v=20260226r6"></script>
-  <script src="/games/snakes-ladders/js/net/sn-signalr.js?v=20260304r1"></script>
+  <script src="/games/snakes-ladders/js/net/sn-signalr.js?v=20260306r21"></script>
   <script src="/games/snakes-ladders/js/net/sn-session.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/app/sn-actions.js?v=20260304r7"></script>
   <script src="/games/snakes-ladders/js/app/sn-main.js?v=20260226r6"></script>

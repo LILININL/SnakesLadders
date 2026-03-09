@@ -90,20 +90,27 @@
       return Promise.resolve();
     }
 
+    const gameResult = room?.gameResult ?? turn?.clientFx?.gameResult ?? null;
+    const topPlacement = Array.isArray(gameResult?.placements)
+      ? gameResult.placements.find((entry) => Number(entry?.rank) === 1) ?? null
+      : null;
     const winnerId = turn?.winnerPlayerId ?? room?.winnerPlayerId;
     const winner = (room?.players ?? []).find((x) => x.playerId === winnerId);
     const winnerName = resolvePlayerName(winnerId, room);
     const winnerAvatarId = normalizeAvatarId(winner?.avatarId, 1);
     el.winnerNameText.textContent = winnerName;
-    el.winnerMetaText.textContent = winnerMetaText(turn?.finishReason);
+    el.winnerMetaText.textContent =
+      String(topPlacement?.outcomeReason ?? "").trim() ||
+      winnerMetaText(turn?.finishReason);
     if (el.winnerAvatar) {
       el.winnerAvatar.src = avatarSrc(winnerAvatarId);
       el.winnerAvatar.alt = `Avatar ${winnerAvatarId}`;
     }
+    renderWinnerPlacements(gameResult, room);
 
     el.winnerOverlay.classList.remove("hidden");
     el.winnerOverlay.classList.add("show");
-    return wait(3000)
+    return wait(gameResult?.placements?.length ? 5200 : 3000)
       .then(() => {
         el.winnerOverlay.classList.remove("show");
         return wait(240);
@@ -133,8 +140,29 @@
       el.diceResultFx.textContent = "";
     }
 
+    if (el.boardEventOverlay) {
+      el.boardEventOverlay.className = "board-event-overlay hidden";
+    }
+    if (el.boardEventCard) {
+      el.boardEventCard.innerHTML = "";
+    }
+    if (el.moneyFlowOverlay) {
+      el.moneyFlowOverlay.className = "money-flow-overlay hidden";
+    }
+    if (el.moneyFlowCard) {
+      el.moneyFlowCard.innerHTML = "";
+    }
+
     if (el.winnerOverlay) {
       el.winnerOverlay.className = "winner-overlay hidden";
+    }
+    if (el.winnerPodium) {
+      el.winnerPodium.classList.add("hidden");
+      el.winnerPodium.innerHTML = "";
+    }
+    if (el.winnerPlacementList) {
+      el.winnerPlacementList.classList.add("hidden");
+      el.winnerPlacementList.innerHTML = "";
     }
 
     if (el.firstTurnOverlay) {
@@ -176,26 +204,37 @@
     if (hasTwoDice) {
       const startOne = randomDiceFace(resolvedDiceOne);
       const startTwo = randomDiceFace(resolvedDiceTwo);
+      const resolvedTotal =
+        Number.parseInt(String(diceValue ?? 0), 10) ||
+        resolvedDiceOne + resolvedDiceTwo;
       el.diceResultFx.innerHTML = `
         <span class="dice-fx-pair" aria-hidden="true">
           ${buildDiceCubeMarkup("dice-fx-cube dice-fx-cube-a")}
           <span class="dice-fx-join">+</span>
           ${buildDiceCubeMarkup("dice-fx-cube dice-fx-cube-b")}
         </span>
+        <span class="dice-fx-total-label">ทอยได้</span>
+        <span class="dice-fx-total-value pending">?</span>
       `;
       el.diceResultFx.style.setProperty("--dice-roll-duration", `${rollDurationMs}ms`);
       const cubeAEl = el.diceResultFx.querySelector(".dice-fx-cube-a");
       const cubeBEl = el.diceResultFx.querySelector(".dice-fx-cube-b");
+      const totalEl = el.diceResultFx.querySelector(".dice-fx-total-value");
       setFxCubeValue(cubeAEl, startOne);
       setFxCubeValue(cubeBEl, startTwo);
       el.diceResultFx.className = "dice-result-fx rolling pair-mode";
       await wait(140 + rollDurationMs);
       setFxCubeValue(cubeAEl, resolvedDiceOne);
       setFxCubeValue(cubeBEl, resolvedDiceTwo);
+      if (totalEl) {
+        totalEl.textContent = String(resolvedTotal);
+        totalEl.classList.remove("pending");
+        totalEl.classList.add("revealed");
+      }
       el.diceResultFx.className = "dice-result-fx reveal pair-mode";
       await wait(120);
       el.diceResultFx.className = "dice-result-fx show pair-mode";
-      await wait(760);
+      await wait(980);
       el.diceResultFx.className = "dice-result-fx hide pair-mode";
       await wait(220);
       el.diceResultFx.className = "dice-result-fx hidden";
@@ -357,10 +396,10 @@
   }
 
   function winnerMetaText(finishReason) {
-    if (finishReason === "RoundLimit") {
+    if (finishReason === "RoundLimit" || finishReason === "RoundLimitNetWorth") {
       return "ชนะด้วยกติกาจำกัดรอบ";
     }
-    if (finishReason === "LastPlayerStanding") {
+    if (finishReason === "LastPlayerStanding" || finishReason === "MonopolyLastStanding") {
       return "ยืนหยัดเป็นคนสุดท้าย";
     }
     return "เข้าเส้นชัยได้อย่างเฉียบขาด";
@@ -429,6 +468,73 @@
     await wait(220);
     el.jumpHintBadge.className = "jump-hint-badge hidden";
     el.jumpHintBadge.textContent = "";
+  }
+
+  async function showEventOverlay(notice) {
+    if (!notice?.text) {
+      return;
+    }
+
+    if (!el.boardEventOverlay || !el.boardEventCard) {
+      await wait(notice?.holdMs ?? 3200);
+      return;
+    }
+
+    const tone = String(notice?.tone ?? "event").trim();
+    const title = String(notice?.title ?? "เหตุการณ์").trim();
+    const text = String(notice?.text ?? "").trim();
+    el.boardEventCard.className = `board-event-card tone-${escapeHtml(tone)}`;
+    el.boardEventCard.innerHTML = `
+      <div class="board-event-kicker">${escapeHtml(title)}</div>
+      <div class="board-event-text">${escapeHtml(text)}</div>
+    `;
+    el.boardEventOverlay.classList.remove("hidden");
+    el.boardEventOverlay.classList.add("show");
+    await wait(notice?.holdMs ?? 3400);
+    el.boardEventOverlay.classList.remove("show");
+    el.boardEventOverlay.classList.add("hide");
+    await wait(220);
+    el.boardEventOverlay.className = "board-event-overlay hidden";
+    el.boardEventCard.innerHTML = "";
+  }
+
+  async function showMoneyFlow(moneyEvent) {
+    if (!moneyEvent?.playerName) {
+      return;
+    }
+
+    if (!el.moneyFlowOverlay || !el.moneyFlowCard) {
+      await wait(2800);
+      return;
+    }
+
+    const incoming = Boolean(moneyEvent?.incoming);
+    const title = String(moneyEvent?.title ?? (incoming ? "รับเงิน" : "จ่ายเงิน"));
+    const detail = String(moneyEvent?.detail ?? "").trim();
+    const amount = Number.parseInt(String(moneyEvent?.amount ?? 0), 10) || 0;
+    const beforeCash = Number.parseInt(String(moneyEvent?.beforeCash ?? 0), 10) || 0;
+    const afterCash = Number.parseInt(String(moneyEvent?.afterCash ?? 0), 10) || 0;
+
+    el.moneyFlowCard.className = `money-flow-card ${incoming ? "incoming" : "outgoing"}`;
+    el.moneyFlowCard.innerHTML = `
+      <div class="money-flow-title">${escapeHtml(title)}</div>
+      <div class="money-flow-player">${escapeHtml(String(moneyEvent.playerName ?? ""))}</div>
+      <div class="money-flow-amount">${incoming ? "+" : "-"}${moneyText(amount)}</div>
+      <div class="money-flow-balance-label">${incoming ? "เงินคงเหลือใหม่" : "เงินคงเหลือ"}</div>
+      <div class="money-flow-balance">${moneyText(beforeCash)}</div>
+      ${detail ? `<div class="money-flow-detail">${escapeHtml(detail)}</div>` : ""}
+    `;
+    const balanceEl = el.moneyFlowCard.querySelector(".money-flow-balance");
+
+    el.moneyFlowOverlay.classList.remove("hidden");
+    el.moneyFlowOverlay.classList.add("show");
+    animateNumber(balanceEl, beforeCash, afterCash, 1200, moneyText);
+    await wait(3000);
+    el.moneyFlowOverlay.classList.remove("show");
+    el.moneyFlowOverlay.classList.add("hide");
+    await wait(220);
+    el.moneyFlowOverlay.className = "money-flow-overlay hidden";
+    el.moneyFlowCard.innerHTML = "";
   }
 
   function normalizeItemFxNotice(effect) {
@@ -553,11 +659,86 @@
     }
   }
 
+  function renderWinnerPlacements(gameResult, room) {
+    if (!el.winnerPodium || !el.winnerPlacementList) {
+      return;
+    }
+
+    const placements = Array.isArray(gameResult?.placements)
+      ? gameResult.placements
+      : [];
+    if (placements.length === 0) {
+      el.winnerPodium.classList.add("hidden");
+      el.winnerPodium.innerHTML = "";
+      el.winnerPlacementList.classList.add("hidden");
+      el.winnerPlacementList.innerHTML = "";
+      return;
+    }
+
+    const podium = placements.slice(0, 3);
+    el.winnerPodium.innerHTML = podium
+      .map(
+        (entry) => `
+          <div class="winner-podium-card rank-${escapeHtml(String(entry.rank ?? ""))}">
+            <div class="winner-podium-rank">อันดับ ${escapeHtml(String(entry.rank ?? ""))}</div>
+            <div class="winner-podium-name">${escapeHtml(String(entry.displayName ?? ""))}</div>
+          </div>
+        `,
+      )
+      .join("");
+    el.winnerPodium.classList.remove("hidden");
+
+    const isMonopoly =
+      String(room?.gameKey ?? "").trim().toLowerCase() ===
+      String(root.GAME_KEYS?.MONOPOLY ?? "monopoly").trim().toLowerCase();
+    el.winnerPlacementList.innerHTML = placements
+      .map(
+        (entry) => `
+          <div class="winner-placement-row">
+            <div class="winner-placement-head">
+              <strong>#${escapeHtml(String(entry.rank ?? ""))} ${escapeHtml(String(entry.displayName ?? ""))}</strong>
+              <span>${isMonopoly ? moneyText(entry.netWorth ?? 0) : `ช่อง ${escapeHtml(String(entry.netWorth ?? 0))}`}</span>
+            </div>
+            <div class="winner-placement-meta">${escapeHtml(String(entry.outcomeReason ?? ""))}</div>
+          </div>
+        `,
+      )
+      .join("");
+    el.winnerPlacementList.classList.remove("hidden");
+  }
+
+  function animateNumber(targetEl, fromValue, toValue, durationMs, formatter) {
+    if (!targetEl) {
+      return;
+    }
+
+    const start = performance.now();
+    const safeDuration = Math.max(240, durationMs);
+    const render = (timestamp) => {
+      const progress = Math.min(1, (timestamp - start) / safeDuration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(fromValue + (toValue - fromValue) * eased);
+      targetEl.textContent = formatter(current);
+      if (progress < 1) {
+        requestAnimationFrame(render);
+      }
+    };
+    requestAnimationFrame(render);
+  }
+
+  function moneyText(value) {
+    const amount = Number.parseInt(String(value ?? 0), 10) || 0;
+    const abs = Math.abs(amount).toLocaleString("th-TH");
+    return amount < 0 ? `-฿${abs}` : `฿${abs}`;
+  }
+
   root.boardFx = {
     showDice,
     showWinner,
     showTurnStart,
     showJumpHint,
+    showEventOverlay,
+    showMoneyFlow,
     showItemActivation,
     showItemPickup,
     showItemResult,

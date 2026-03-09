@@ -120,6 +120,7 @@
         room.board.size,
       );
       root.feedback.renderAll();
+      await playMoneyEvents(turn);
 
       if (turn.isGameFinished) {
         await root.boardFx?.showWinner?.(turn, room);
@@ -174,6 +175,11 @@
     followPlayer,
     pendingItemEffects,
   ) {
+    if (segment.mode === "event") {
+      await root.boardFx?.showEventOverlay?.(segment.notice);
+      return;
+    }
+
     const animatedFrom = clamp(
       Number.parseInt(String(state.animPlayerPosition ?? segment.from), 10) ||
         segment.from,
@@ -526,6 +532,16 @@
       cursor = primary;
     }
 
+    const monopolyEventNotice = monopolyMode
+      ? turn?.clientFx?.eventNotice ?? null
+      : null;
+    if (monopolyEventNotice) {
+      segments.push({
+        mode: "event",
+        notice: monopolyEventNotice,
+      });
+    }
+
     if (turn.forkCell) {
       const forkTarget =
         turn.forkChoice === 1 ? turn.forkCell.riskyTo : turn.forkCell.safeTo;
@@ -606,6 +622,15 @@
     }
 
     return segments;
+  }
+
+  async function playMoneyEvents(turn) {
+    const moneyEvents = Array.isArray(turn?.clientFx?.moneyEvents)
+      ? turn.clientFx.moneyEvents
+      : [];
+    for (const event of moneyEvents) {
+      await root.boardFx?.showMoneyFlow?.(event);
+    }
   }
 
   function resolvePrimaryLanding(turn, overflowMode, size, gameKey) {

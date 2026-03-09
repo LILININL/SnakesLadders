@@ -32,6 +32,9 @@
     const displayTurnPlayerId = root.viewState.getDisplayTurnPlayerId();
     const turnPosition = root.viewState.getPlayerPosition(displayTurnPlayerId);
     const freeParkingPot = resolveMonopolyFreeParkingPot(board);
+    const completedRounds =
+      Number.parseInt(String(state?.room?.completedRounds ?? 0), 10) || 0;
+    const rentBoostPercent = Math.max(0, completedRounds * 10);
     const markerMap =
       root.utils?.buildPlayerMarkerMap?.(state?.room?.players ?? displayPlayers) ??
       new Map();
@@ -59,7 +62,7 @@
     );
 
     const ownedAssets = cells.filter((x) => Boolean(resolveOwnerId(x))).length;
-    el.boardLegend.textContent = `กระดานเกมเศรษฐี 40 ช่อง | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | เงินกองกลาง ${money(freeParkingPot)}`;
+    el.boardLegend.textContent = `กระดานเกมเศรษฐี 40 ช่อง | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | เงินกองกลาง ${money(freeParkingPot)} | ค่าผ่านทางรอบนี้ +${rentBoostPercent}%`;
     root.roomUi?.updateFloatingRollButton();
   }
 

@@ -53,6 +53,7 @@ public sealed class SnakesLaddersGameRoomModule(
             player.LuckyRerollsLeft = room.BoardOptions.RuleOptions.LuckyRerollEnabled
                 ? room.BoardOptions.RuleOptions.LuckyRerollPerPlayer
                 : 0;
+            player.EliminationReason = null;
         }
 
         room.Status = GameStatus.Started;
@@ -90,6 +91,7 @@ public sealed class SnakesLaddersGameRoomModule(
                 ? room.BoardOptions.RuleOptions.LuckyRerollPerPlayer
                 : 0;
             player.IsReady = player.PlayerId == room.HostPlayerId;
+            player.EliminationReason = null;
         }
 
         room.Status = GameStatus.Waiting;

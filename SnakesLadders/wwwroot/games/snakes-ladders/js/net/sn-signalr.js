@@ -107,7 +107,15 @@
           ?.displayName ??
         winnerId ??
         "-";
-      root.feedback.logEvent(`จบเกมแล้ว ผู้ชนะคือ ${winnerName || "-"}`);
+      const topThree =
+        payload.room?.gameResult?.placements?.slice(0, 3)
+          ?.map((entry) => `#${entry.rank} ${entry.displayName}`)
+          ?.join(" | ") ?? "";
+      root.feedback.logEvent(
+        topThree
+          ? `จบเกมแล้ว ผู้ชนะคือ ${winnerName || "-"} | ${topThree}`
+          : `จบเกมแล้ว ผู้ชนะคือ ${winnerName || "-"}`,
+      );
       if (state.animating) {
         state.deferredRoom = payload.room;
       } else {
@@ -307,6 +315,14 @@
       return;
     }
 
+    if (isMonopoly) {
+      payload.turn.clientFx = buildMonopolyClientFx(
+        payload.turn,
+        state.deferredRoom ?? state.room,
+        room,
+      );
+    }
+
     root.feedback.logEvent(formatActionEvent(payload.turn, room));
     await root.turnAnimation.queue(payload);
   }
@@ -358,7 +374,10 @@
 
     if (actionType === root.GAME_ACTION_TYPES.ROLL_DICE) {
       const eventLine = lines.find(
-        (line) => line.startsWith("โอกาส:") || line.startsWith("การ์ดชุมชน:"),
+        (line) =>
+          line.startsWith("โอกาส:") ||
+          line.startsWith("การ์ดชุมชน:") ||
+          line.startsWith("เศรษฐกิจเมือง:"),
       );
       if (eventLine) {
         return eventLine;
@@ -455,6 +474,137 @@
     }
 
     return chunks.join(" | ");
+  }
+
+  function buildMonopolyClientFx(turn, previousRoom, nextRoom) {
+    const moneyEvents = buildMoneyEvents(turn, previousRoom, nextRoom);
+    return {
+      eventNotice: resolveEventNotice(turn),
+      moneyEvents,
+      currentPlayerMoneySummary:
+        moneyEvents.find((entry) => entry.playerId === turn?.playerId) ?? null,
+      gameResult: nextRoom?.gameResult ?? null,
+    };
+  }
+
+  function resolveEventNotice(turn) {
+    const actionLogs = Array.isArray(turn?.actionLogs) ? turn.actionLogs : [];
+    const line = actionLogs
+      .map((entry) => String(entry ?? "").trim())
+      .find(
+        (entry) =>
+          entry.startsWith("โอกาส:") ||
+          entry.startsWith("การ์ดชุมชน:") ||
+          entry.startsWith("เศรษฐกิจเมือง:"),
+      );
+    if (!line) {
+      return null;
+    }
+
+    const tone = line.startsWith("โอกาส:")
+      ? "chance"
+      : line.startsWith("การ์ดชุมชน:")
+        ? "community"
+        : "economy";
+    const title =
+      tone === "chance"
+        ? "โอกาส"
+        : tone === "community"
+          ? "การ์ดชุมชน"
+          : "เศรษฐกิจเมือง";
+    return {
+      tone,
+      title,
+      text: line,
+      holdMs: tone === "economy" ? 3000 : 3400,
+    };
+  }
+
+  function buildMoneyEvents(turn, previousRoom, nextRoom) {
+    const prevPlayers = Array.isArray(previousRoom?.players)
+      ? previousRoom.players
+      : [];
+    const nextPlayers = Array.isArray(nextRoom?.players) ? nextRoom.players : [];
+    if (prevPlayers.length === 0 || nextPlayers.length === 0) {
+      return [];
+    }
+
+    const actionLogs = Array.isArray(turn?.actionLogs) ? turn.actionLogs : [];
+    const primaryLog = actionLogs
+      .map((entry) => String(entry ?? "").trim())
+      .find((entry) => /฿|ค่าผ่านทาง|ซื้อ|จ่าย|รับ|ขาย/.test(entry));
+
+    const moneyEvents = [];
+    for (const nextPlayer of nextPlayers) {
+      const prevPlayer = prevPlayers.find(
+        (entry) => entry.playerId === nextPlayer.playerId,
+      );
+      if (!prevPlayer) {
+        continue;
+      }
+
+      const beforeCash = parseCash(prevPlayer.cash);
+      const afterCash = parseCash(nextPlayer.cash);
+      const delta = afterCash - beforeCash;
+      if (delta === 0) {
+        continue;
+      }
+
+      const incoming = delta > 0;
+      moneyEvents.push({
+        playerId: nextPlayer.playerId,
+        playerName: nextPlayer.displayName,
+        delta,
+        amount: Math.abs(delta),
+        beforeCash,
+        afterCash,
+        incoming,
+        title: resolveMoneyEventTitle(turn, incoming, primaryLog),
+        detail: primaryLog || "",
+      });
+    }
+
+    return moneyEvents.sort((left, right) => {
+      if (left.playerId === turn?.playerId && right.playerId !== turn?.playerId) {
+        return -1;
+      }
+      if (right.playerId === turn?.playerId && left.playerId !== turn?.playerId) {
+        return 1;
+      }
+      if (left.incoming !== right.incoming) {
+        return left.incoming ? 1 : -1;
+      }
+      return right.amount - left.amount;
+    });
+  }
+
+  function resolveMoneyEventTitle(turn, incoming, primaryLog) {
+    const log = String(primaryLog ?? "");
+    if (log.includes("ค่าผ่านทาง")) {
+      return incoming ? "รับค่าผ่านทาง" : "จ่ายค่าผ่านทาง";
+    }
+    if (log.includes("จ่ายค่าประกัน")) {
+      return incoming ? "เงินเข้า" : "จ่ายค่าประกัน";
+    }
+    if (log.includes("ซื้อ")) {
+      return incoming ? "ขายสิทธิ์ต่อ" : "ซื้ออสังหา";
+    }
+    if (log.includes("เวนคืน")) {
+      return incoming ? "รับเงินคืน" : "ทรัพย์ถูกเวนคืน";
+    }
+    if (
+      Number.parseInt(
+        String(turn?.actionType ?? root.GAME_ACTION_TYPES.ROLL_DICE),
+        10,
+      ) === root.GAME_ACTION_TYPES.BUILD_HOUSE
+    ) {
+      return incoming ? "เงินเข้า" : "อัปเกรดอสังหา";
+    }
+    return incoming ? "รับเงิน" : "จ่ายเงิน";
+  }
+
+  function parseCash(value) {
+    return Number.parseInt(String(value ?? 0), 10) || 0;
   }
 
   root.realtime = {

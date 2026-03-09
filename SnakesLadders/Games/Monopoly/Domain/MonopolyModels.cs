@@ -97,6 +97,8 @@ public sealed class MonopolyRoomState
     public int LastDiceTwo { get; set; }
     public int ChanceCursor { get; set; }
     public int CommunityCursor { get; set; }
+    public bool UpgradeUsedThisTurn { get; set; }
+    public List<int> UpgradeEligibleCellIds { get; } = new();
 
     public MonopolyCellState? FindCell(int cell) =>
         Cells.FirstOrDefault(x => x.Cell == cell);

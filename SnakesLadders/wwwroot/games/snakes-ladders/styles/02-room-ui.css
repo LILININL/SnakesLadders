@@ -344,6 +344,21 @@
   background: rgba(226, 252, 241, 0.9);
 }
 
+.mono-outcome-money {
+  border-color: rgba(236, 184, 112, 0.62);
+  background: rgba(255, 243, 223, 0.94);
+}
+
+.mono-outcome-money-in {
+  border-color: rgba(114, 206, 143, 0.62);
+  background: rgba(228, 255, 239, 0.92);
+}
+
+.mono-outcome-money-out {
+  border-color: rgba(235, 158, 108, 0.62);
+  background: rgba(255, 236, 228, 0.92);
+}
+
 .mono-pop-actions {
   display: grid;
   gap: 8px;

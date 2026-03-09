@@ -154,6 +154,30 @@
   background: rgba(7, 24, 40, 0.7);
 }
 
+.player-stats-block {
+  margin-top: 8px;
+}
+
+.mono-player-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  font-size: 0.82rem;
+  color: #dcecff;
+}
+
+.mono-player-inline span {
+  border: 1px solid rgba(116, 158, 194, 0.34);
+  border-radius: 999px;
+  padding: 3px 8px;
+  background: rgba(12, 35, 55, 0.62);
+}
+
+.mono-player-inline-state {
+  margin-top: 6px;
+  color: #9ed9be;
+}
+
 .player-item.me {
   border-color: #ffaf63;
 }

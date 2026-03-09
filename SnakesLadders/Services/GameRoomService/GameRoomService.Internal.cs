@@ -54,7 +54,8 @@ public sealed partial class GameRoomService
                 TurnDeadlineUtc = null,
                 WinnerPlayerId = room.WinnerPlayerId,
                 FinishReason = room.FinishReason,
-                Board = null
+                Board = null,
+                GameResult = null
             });
         }
 
@@ -288,7 +289,8 @@ public sealed partial class GameRoomService
                         .ToArray(),
                     MonopolyFreeParkingPot = room.Monopoly?.FreeParkingPot ?? 0
                 },
-            MonopolyState = BuildMonopolySnapshot(room)
+            MonopolyState = BuildMonopolySnapshot(room),
+            GameResult = BuildGameResultSnapshot(room)
         };
     }
 
@@ -355,6 +357,11 @@ public sealed partial class GameRoomService
             PendingDebtAmount = monopoly.PendingDebtAmount,
             PendingDebtReason = monopoly.PendingDebtReason,
             CurrentJailFine = ResolveCurrentJailFine(monopoly),
+            UpgradeUsedThisTurn = monopoly.UpgradeUsedThisTurn,
+            UpgradeEligibleCellIds = monopoly.UpgradeEligibleCellIds
+                .Distinct()
+                .OrderBy(x => x)
+                .ToArray(),
             ActiveAuction = auctionSnapshot,
             ActiveTradeOffer = tradeSnapshot,
             PlayerEconomy = playerEconomy
@@ -431,6 +438,147 @@ public sealed partial class GameRoomService
         return monopoly.JailFineByPlayer.TryGetValue(playerId, out var fine) && fine > 0
             ? fine
             : MonopolyDefinitions.JailFine;
+    }
+
+    private static GameResultSnapshot? BuildGameResultSnapshot(GameRoom room)
+    {
+        if (room.Status != GameStatus.Finished || room.Players.Count == 0)
+        {
+            return null;
+        }
+
+        var placements = room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase)
+            ? BuildMonopolyPlacements(room)
+            : BuildSnakesPlacements(room);
+
+        return new GameResultSnapshot
+        {
+            WinnerPlayerId = room.WinnerPlayerId,
+            FinishReason = room.FinishReason,
+            Placements = placements
+        };
+    }
+
+    private static IReadOnlyList<GamePlacementSnapshot> BuildMonopolyPlacements(GameRoom room)
+    {
+        var monopoly = room.Monopoly;
+        if (monopoly is null)
+        {
+            return Array.Empty<GamePlacementSnapshot>();
+        }
+
+        var orderedPlayers = room.Players
+            .OrderByDescending(player => !player.IsBankrupt)
+            .ThenByDescending(player => CalculateNetWorth(monopoly, player.PlayerId, player.Cash))
+            .ThenByDescending(player => player.Cash)
+            .ThenBy(player => room.Players.IndexOf(player))
+            .ToArray();
+
+        return orderedPlayers
+            .Select((player, index) => new GamePlacementSnapshot
+            {
+                PlayerId = player.PlayerId,
+                DisplayName = player.DisplayName,
+                AvatarId = NormalizeAvatarId(player.AvatarId),
+                Rank = index + 1,
+                Cash = player.Cash,
+                NetWorth = CalculateNetWorth(monopoly, player.PlayerId, player.Cash),
+                IsBankrupt = player.IsBankrupt,
+                OutcomeReason = ResolveMonopolyPlacementReason(room, monopoly, player, index == 0)
+            })
+            .ToArray();
+    }
+
+    private static IReadOnlyList<GamePlacementSnapshot> BuildSnakesPlacements(GameRoom room)
+    {
+        var orderedPlayers = room.Players
+            .OrderByDescending(player => player.PlayerId == room.WinnerPlayerId)
+            .ThenByDescending(player => player.Position)
+            .ThenBy(player => room.Players.IndexOf(player))
+            .ToArray();
+
+        return orderedPlayers
+            .Select((player, index) => new GamePlacementSnapshot
+            {
+                PlayerId = player.PlayerId,
+                DisplayName = player.DisplayName,
+                AvatarId = NormalizeAvatarId(player.AvatarId),
+                Rank = index + 1,
+                Cash = player.Cash,
+                NetWorth = player.Position,
+                IsBankrupt = false,
+                OutcomeReason = ResolveSnakesPlacementReason(room, player, index == 0)
+            })
+            .ToArray();
+    }
+
+    private static string ResolveMonopolyPlacementReason(
+        GameRoom room,
+        MonopolyRoomState monopoly,
+        PlayerState player,
+        bool isWinner)
+    {
+        if (isWinner)
+        {
+            return room.FinishReason switch
+            {
+                "RoundLimitNetWorth" => "ชนะด้วยมูลค่าสุทธิสูงสุดเมื่อครบจำนวนรอบ",
+                "MonopolyLastStanding" => "ชนะเพราะยืนเป็นคนสุดท้ายหลังคนอื่นล้มละลาย",
+                _ => "ชนะเกมนี้"
+            };
+        }
+
+        if (player.IsBankrupt)
+        {
+            return string.IsNullOrWhiteSpace(player.EliminationReason)
+                ? "แพ้เพราะล้มละลาย"
+                : player.EliminationReason!;
+        }
+
+        return room.FinishReason switch
+        {
+            "RoundLimitNetWorth" => "แพ้เพราะมูลค่าสุทธิน้อยกว่าเมื่อครบจำนวนรอบ",
+            _ => $"แพ้เพราะมูลค่าสุทธิเป็นรอง (สุทธิ {CalculateNetWorth(monopoly, player.PlayerId, player.Cash):N0})"
+        };
+    }
+
+    private static string ResolveSnakesPlacementReason(GameRoom room, PlayerState player, bool isWinner)
+    {
+        if (isWinner)
+        {
+            return room.FinishReason switch
+            {
+                "RoundLimit" => "ชนะด้วยตำแหน่งไกลสุดเมื่อครบจำนวนรอบ",
+                "LastPlayerStanding" => "ชนะเพราะเหลือคนเดียวในห้อง",
+                _ => "ถึงเส้นชัยก่อนคนอื่น"
+            };
+        }
+
+        return room.FinishReason switch
+        {
+            "RoundLimit" => "แพ้เพราะอยู่ไกลจากเส้นชัยมากกว่า",
+            _ => "แพ้เพราะยังไปไม่ถึงเส้นชัยก่อน"
+        };
+    }
+
+    private static int CalculateNetWorth(MonopolyRoomState monopoly, string playerId, int cash)
+    {
+        var assetValue = monopoly.Cells
+            .Where(cell => string.Equals(cell.OwnerPlayerId, playerId, StringComparison.Ordinal))
+            .Sum(cell =>
+            {
+                var baseValue = cell.IsMortgaged
+                    ? Math.Max(0, (int)Math.Floor(cell.Price / 2d))
+                    : Math.Max(0, cell.Price);
+                var buildingValue = cell.HasLandmark
+                    ? cell.HouseCost * 7
+                    : cell.HasHotel
+                        ? cell.HouseCost * 5
+                        : Math.Max(0, cell.HouseCount) * cell.HouseCost;
+                return baseValue + buildingValue;
+            });
+
+        return cash + assetValue;
     }
 
     private static DateTimeOffset? ResolveNextActionDeadlineUnsafe(GameRoom room)

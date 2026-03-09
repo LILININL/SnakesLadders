@@ -60,6 +60,12 @@
     const displayTurnPlayerId = root.viewState.getDisplayTurnPlayerId();
     const displayPlayers = root.viewState.getDisplayPlayers();
     const monopolyCells = getMonopolyCells(state.room?.board);
+    const economyRows = Array.isArray(state.room?.monopolyState?.playerEconomy)
+      ? state.room.monopolyState.playerEconomy
+      : [];
+    const economyById = new Map(
+      economyRows.map((entry) => [entry.playerId, entry]),
+    );
 
     const rows = displayPlayers.map((player) => {
       const classes = ["player-item"];
@@ -115,7 +121,14 @@
         stats = `สถานะ: <span class="inline-pill ${tone}">${escapeHtml(label)}</span>`;
       } else if (monopoly) {
         const ownedCount = countMonopolyAssets(monopolyCells, player.playerId);
+        const economy = economyById.get(player.playerId) ?? {};
         const cash = Number.parseInt(String(player.cash ?? 0), 10) || 0;
+        const netWorth = Number.parseInt(String(economy.netWorth ?? cash), 10) || 0;
+        const houses = Number.parseInt(String(economy.houses ?? 0), 10) || 0;
+        const hotels = Number.parseInt(String(economy.hotels ?? 0), 10) || 0;
+        const landmarks = Number.parseInt(String(economy.landmarks ?? 0), 10) || 0;
+        const mortgaged = Number.parseInt(String(economy.mortgaged ?? 0), 10) || 0;
+        const sets = Number.parseInt(String(economy.monopolySetCount ?? 0), 10) || 0;
         const jailTurns =
           Number.parseInt(String(player.jailTurnsRemaining ?? 0), 10) || 0;
         const bankrupt = Boolean(player.isBankrupt);
@@ -124,7 +137,20 @@
           : jailTurns > 0
             ? ` | ติดคุกอีก ${jailTurns} ตา`
             : "";
-        stats = `เงิน: ${monopolyMoney(cash)} | ช่อง: ${player.position} | ทรัพย์สิน: ${ownedCount}${extra}`;
+        stats = `
+          <div class="mono-player-inline">
+            <span>เงินสด <b>${monopolyMoney(cash)}</b></span>
+            <span>สุทธิ <b>${monopolyMoney(netWorth)}</b></span>
+            <span>ช่อง <b>${player.position}</b></span>
+            <span>ทรัพย์ <b>${ownedCount}</b></span>
+            <span>ชุดสี <b>${sets}</b></span>
+            <span>บ้าน <b>${houses}</b></span>
+            <span>โรงแรม <b>${hotels}</b></span>
+            <span>แลนด์มาร์ก <b>${landmarks}</b></span>
+            <span>จำนอง <b>${mortgaged}</b></span>
+          </div>
+          <div class="mono-player-inline mono-player-inline-state">${extra ? escapeHtml(extra.replace(/^ \| /, "")) : "พร้อมเล่น"}</div>
+        `;
       } else {
         stats = `ตำแหน่ง: ${player.position} | โล่: ${player.shields}${itemStatus.length ? ` | ${escapeHtml(itemStatus.join(" / "))}` : ""}`;
       }
@@ -136,8 +162,7 @@
             <img class="inline-avatar" src="${avatarSrc(safeAvatarId)}" alt="Avatar ${safeAvatarId}">
             <strong>${escapeHtml(player.displayName)}</strong>
           </div>
-          <br>
-          ${stats}
+          <div class="player-stats-block">${stats}</div>
           ${player.connected ? "" : "<br><em>หลุดการเชื่อมต่อ</em>"}
         </li>
       `;
