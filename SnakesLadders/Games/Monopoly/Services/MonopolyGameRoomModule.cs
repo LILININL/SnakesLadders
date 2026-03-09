@@ -332,7 +332,6 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         {
             SendPlayerToJail(state, actor, execution.Logs, "ทอยดับเบิล 3 ครั้งติด ถูกส่งเข้าคุก");
             state.ExtraTurnByPlayer[actor.PlayerId] = false;
-            state.Phase = MonopolyTurnPhase.AwaitEndTurn;
             return null;
         }
 
@@ -344,15 +343,14 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             state.PendingDecisionPlayerId = actor.PlayerId;
         }
 
-        if (isDouble && state.Phase is MonopolyTurnPhase.AwaitManage or MonopolyTurnPhase.AwaitEndTurn)
+        var canReceiveExtraTurn = isDouble &&
+                                  !actor.IsBankrupt &&
+                                  actor.JailTurnsRemaining <= 0;
+        state.ExtraTurnByPlayer[actor.PlayerId] = canReceiveExtraTurn;
+        execution.ExtraTurnGranted = canReceiveExtraTurn;
+        if (canReceiveExtraTurn)
         {
-            state.ExtraTurnByPlayer[actor.PlayerId] = true;
-            execution.ExtraTurnGranted = true;
             execution.Logs.Add("ได้สิทธิ์เล่นต่ออีกตา (ทอยดับเบิล)");
-        }
-        else if (!state.ExtraTurnByPlayer.ContainsKey(actor.PlayerId))
-        {
-            state.ExtraTurnByPlayer[actor.PlayerId] = false;
         }
 
         return null;

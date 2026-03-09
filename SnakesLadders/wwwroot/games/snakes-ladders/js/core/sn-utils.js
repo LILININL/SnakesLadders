@@ -293,6 +293,37 @@
     return `<img${classAttr} src="${avatarSrc(safeId)}" alt="${altText}">`;
   }
 
+  function syncAvatarHost(host, avatarId, options = {}) {
+    if (!host) {
+      return;
+    }
+
+    const safeId = normalizeAvatarId(avatarId);
+    const className = String(options.className ?? "").trim();
+    const variant = String(options.variant ?? "inline").trim() || "inline";
+    const alt = String(options.alt ?? `Avatar ${safeId}`);
+
+    if (
+      host.dataset.renderedAvatarId === String(safeId) &&
+      host.dataset.renderedAvatarClass === className &&
+      host.dataset.renderedAvatarVariant === variant &&
+      host.dataset.renderedAvatarAlt === alt
+    ) {
+      return;
+    }
+
+    host.innerHTML = avatarMarkup(safeId, {
+      className,
+      variant,
+      alt,
+    });
+    host.dataset.renderedAvatarId = String(safeId);
+    host.dataset.renderedAvatarClass = className;
+    host.dataset.renderedAvatarVariant = variant;
+    host.dataset.renderedAvatarAlt = alt;
+    window.SNL?.experimentalToken3d?.hydrateAvatarHosts?.(host);
+  }
+
   function normalizeGameKey(gameKey, fallback = DEFAULT_GAME_KEY) {
     const value = String(gameKey ?? "").trim().toLowerCase();
     if (!value) {
@@ -337,6 +368,7 @@
     avatarSrc,
     isModelAvatar,
     avatarMarkup,
+    syncAvatarHost,
     normalizeGameKey,
     gameLabel,
     gameSupportsBoardOptions,

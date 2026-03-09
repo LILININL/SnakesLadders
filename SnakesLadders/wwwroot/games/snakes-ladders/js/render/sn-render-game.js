@@ -4,12 +4,12 @@
   const {
     escapeHtml,
     formatClock,
-    avatarMarkup,
     normalizeAvatarId,
     gameLabel,
     boardItemMeta,
     normalizeGameKey,
     resolvePlayerAccent,
+    syncAvatarHost,
   } = root.utils;
   const MONOPOLY_GAME_KEY = normalizeGameKey(
     root.GAME_KEYS?.MONOPOLY ?? "monopoly",
@@ -18,7 +18,7 @@
     root.GAME_KEYS?.SNAKES_LADDERS ?? "snakes-ladders",
   );
   const viewCache = {
-    playerListHtml: "",
+    playerRows: new Map(),
   };
 
   function renderRoomHeader() {
@@ -51,7 +51,7 @@
   function renderPlayers() {
     if (!state.room) {
       el.playerList.innerHTML = "";
-      viewCache.playerListHtml = "";
+      viewCache.playerRows.clear();
       return;
     }
 
@@ -68,132 +68,208 @@
       economyRows.map((entry) => [entry.playerId, entry]),
     );
 
-    const rows = displayPlayers.map((player) => {
-      const classes = ["player-item"];
-      if (player.playerId === state.playerId) {
-        classes.push("me");
-      }
-      if (player.playerId === displayTurnPlayerId) {
-        classes.push("turn");
+    const fragment = document.createDocumentFragment();
+    const seenIds = new Set();
+
+    for (const player of displayPlayers) {
+      const playerId = String(player.playerId ?? "");
+      if (!playerId) {
+        continue;
       }
 
-      let tone = "";
-      let label = "";
-      if (waiting) {
-        tone =
-          player.playerId === hostId
-            ? "host"
-            : player.connected
-              ? player.isReady
-                ? "ready"
-                : "not-ready"
-              : "offline";
-        label =
-          tone === "host"
-            ? "หัวห้อง"
-            : tone === "ready"
-              ? "พร้อม"
-              : tone === "offline"
-                ? "ออฟไลน์"
-                : "ยังไม่พร้อม";
-        classes.push(`state-${tone}`);
+      seenIds.add(playerId);
+      let row = viewCache.playerRows.get(playerId);
+      if (!row) {
+        row = createPlayerRow();
+        viewCache.playerRows.set(playerId, row);
       }
 
-      const itemStatus = [];
-      if (
-        !waiting &&
-        Number.parseInt(String(player.snakeRepellentCharges ?? 0), 10) > 0
-      ) {
-        itemStatus.push(`กันงู ${player.snakeRepellentCharges}`);
-      }
-      if (!waiting && player.ladderHackPending) {
-        itemStatus.push("LadderHack พร้อม");
-      }
-      if (!waiting && player.anchorActive) {
-        const anchorTurnsLeft =
-          Number.parseInt(String(player.anchorTurnsLeft ?? 0), 10) || 0;
-        itemStatus.push(
-          anchorTurnsLeft > 0 ? `Anchor ${anchorTurnsLeft}` : "Anchor",
-        );
-      }
-
-      let stats = "";
-      if (waiting) {
-        stats = `สถานะ: <span class="inline-pill ${tone}">${escapeHtml(label)}</span>`;
-      } else if (monopoly) {
-        const ownedCount = countMonopolyAssets(monopolyCells, player.playerId);
-        const economy = economyById.get(player.playerId) ?? {};
-        const cash = Number.parseInt(String(player.cash ?? 0), 10) || 0;
-        const netWorth = Number.parseInt(String(economy.netWorth ?? cash), 10) || 0;
-        const houses = Number.parseInt(String(economy.houses ?? 0), 10) || 0;
-        const hotels = Number.parseInt(String(economy.hotels ?? 0), 10) || 0;
-        const landmarks = Number.parseInt(String(economy.landmarks ?? 0), 10) || 0;
-        const mortgaged = Number.parseInt(String(economy.mortgaged ?? 0), 10) || 0;
-        const sets = Number.parseInt(String(economy.monopolySetCount ?? 0), 10) || 0;
-        const jailTurns =
-          Number.parseInt(String(player.jailTurnsRemaining ?? 0), 10) || 0;
-        const bankrupt = Boolean(player.isBankrupt);
-        const extra = bankrupt
-          ? " | สถานะ: ล้มละลาย"
-          : jailTurns > 0
-            ? ` | ติดคุกอีก ${jailTurns} ตา`
-            : "";
-        stats = `
-          <div class="mono-player-inline">
-            <span>เงินสด <b>${monopolyMoney(cash)}</b></span>
-            <span>สุทธิ <b>${monopolyMoney(netWorth)}</b></span>
-            <span>ช่อง <b>${player.position}</b></span>
-            <span>ทรัพย์ <b>${ownedCount}</b></span>
-            <span>ชุดสี <b>${sets}</b></span>
-            <span>บ้าน <b>${houses}</b></span>
-            <span>โรงแรม <b>${hotels}</b></span>
-            <span>แลนด์มาร์ก <b>${landmarks}</b></span>
-            <span>จำนอง <b>${mortgaged}</b></span>
-          </div>
-          <div class="mono-player-inline mono-player-inline-state">${extra ? escapeHtml(extra.replace(/^ \| /, "")) : "พร้อมเล่น"}</div>
-        `;
-      } else {
-        stats = `ตำแหน่ง: ${player.position} | โล่: ${player.shields}${itemStatus.length ? ` | ${escapeHtml(itemStatus.join(" / "))}` : ""}`;
-      }
-      const safeAvatarId = normalizeAvatarId(player.avatarId, 1);
-      const accent = monopoly
-        ? resolvePlayerAccent(displayPlayers, player.playerId)
-        : null;
-      const badge = monopoly && accent?.slot
-        ? `
-            <span
-              class="mono-owner-badge emblem-${escapeHtml(accent.emblemKey || "nova")}"
-              style="--owner-accent:${accent.base};--owner-accent-bright:${accent.bright};--owner-accent-edge:${accent.edge};--owner-accent-deep:${accent.deep};--owner-accent-soft:${accent.soft};--owner-accent-glow:${accent.glow};"
-              title="สัญลักษณ์เจ้าของทรัพย์สิน"
-            ><span class="owner-emblem-sigil" aria-hidden="true"></span></span>
-          `
-        : "";
-
-      return `
-        <li class="${classes.join(" ")}">
-          <div class="player-name-row">
-            ${badge}
-            ${avatarMarkup(safeAvatarId, {
-              className: "inline-avatar",
-              alt: `Avatar ${safeAvatarId}`,
-              variant: "inline",
-            })}
-            <strong>${escapeHtml(player.displayName)}</strong>
-          </div>
-          <div class="player-stats-block">${stats}</div>
-          ${player.connected ? "" : "<br><em>หลุดการเชื่อมต่อ</em>"}
-        </li>
-      `;
-    });
-
-    const nextHtml = rows.join("");
-    if (nextHtml === viewCache.playerListHtml) {
-      return;
+      syncPlayerRow(row, player, {
+        waiting,
+        hostId,
+        displayTurnPlayerId,
+        monopoly,
+        displayPlayers,
+        monopolyCells,
+        economyById,
+      });
+      fragment.appendChild(row);
     }
 
-    el.playerList.innerHTML = nextHtml;
-    root.experimentalToken3d?.hydrateAvatarHosts?.(el.playerList);
-    viewCache.playerListHtml = nextHtml;
+    for (const [playerId, row] of viewCache.playerRows.entries()) {
+      if (seenIds.has(playerId)) {
+        continue;
+      }
+      row.remove();
+      viewCache.playerRows.delete(playerId);
+    }
+
+    el.playerList.replaceChildren(fragment);
+  }
+
+  function createPlayerRow() {
+    const row = document.createElement("li");
+    row.className = "player-item";
+
+    const nameRow = document.createElement("div");
+    nameRow.className = "player-name-row";
+
+    const badgeHost = document.createElement("span");
+    badgeHost.className = "player-badge-host hidden";
+
+    const avatarHost = document.createElement("span");
+    avatarHost.className = "player-avatar-host";
+
+    const name = document.createElement("strong");
+    name.className = "player-name-text";
+
+    const statsBlock = document.createElement("div");
+    statsBlock.className = "player-stats-block";
+
+    const offline = document.createElement("div");
+    offline.className = "player-offline-note hidden";
+    offline.innerHTML = "<em>หลุดการเชื่อมต่อ</em>";
+
+    nameRow.append(badgeHost, avatarHost, name);
+    row.append(nameRow, statsBlock, offline);
+    return row;
+  }
+
+  function syncPlayerRow(row, player, context) {
+    const {
+      waiting,
+      hostId,
+      displayTurnPlayerId,
+      monopoly,
+      displayPlayers,
+      monopolyCells,
+      economyById,
+    } = context;
+    const classes = ["player-item"];
+    if (player.playerId === state.playerId) {
+      classes.push("me");
+    }
+    if (player.playerId === displayTurnPlayerId) {
+      classes.push("turn");
+    }
+
+    let tone = "";
+    let label = "";
+    if (waiting) {
+      tone =
+        player.playerId === hostId
+          ? "host"
+          : player.connected
+            ? player.isReady
+              ? "ready"
+              : "not-ready"
+            : "offline";
+      label =
+        tone === "host"
+          ? "หัวห้อง"
+          : tone === "ready"
+            ? "พร้อม"
+            : tone === "offline"
+              ? "ออฟไลน์"
+              : "ยังไม่พร้อม";
+      classes.push(`state-${tone}`);
+    }
+
+    const itemStatus = [];
+    if (
+      !waiting &&
+      Number.parseInt(String(player.snakeRepellentCharges ?? 0), 10) > 0
+    ) {
+      itemStatus.push(`กันงู ${player.snakeRepellentCharges}`);
+    }
+    if (!waiting && player.ladderHackPending) {
+      itemStatus.push("LadderHack พร้อม");
+    }
+    if (!waiting && player.anchorActive) {
+      const anchorTurnsLeft =
+        Number.parseInt(String(player.anchorTurnsLeft ?? 0), 10) || 0;
+      itemStatus.push(
+        anchorTurnsLeft > 0 ? `Anchor ${anchorTurnsLeft}` : "Anchor",
+      );
+    }
+
+    let stats = "";
+    if (waiting) {
+      stats = `สถานะ: <span class="inline-pill ${tone}">${escapeHtml(label)}</span>`;
+    } else if (monopoly) {
+      const ownedCount = countMonopolyAssets(monopolyCells, player.playerId);
+      const economy = economyById.get(player.playerId) ?? {};
+      const cash = Number.parseInt(String(player.cash ?? 0), 10) || 0;
+      const netWorth =
+        Number.parseInt(String(economy.netWorth ?? cash), 10) || 0;
+      const houses = Number.parseInt(String(economy.houses ?? 0), 10) || 0;
+      const hotels = Number.parseInt(String(economy.hotels ?? 0), 10) || 0;
+      const landmarks =
+        Number.parseInt(String(economy.landmarks ?? 0), 10) || 0;
+      const mortgaged =
+        Number.parseInt(String(economy.mortgaged ?? 0), 10) || 0;
+      const sets =
+        Number.parseInt(String(economy.monopolySetCount ?? 0), 10) || 0;
+      const jailTurns =
+        Number.parseInt(String(player.jailTurnsRemaining ?? 0), 10) || 0;
+      const bankrupt = Boolean(player.isBankrupt);
+      const extra = bankrupt
+        ? "ล้มละลาย"
+        : jailTurns > 0
+          ? `ติดคุกอีก ${jailTurns} ตา`
+          : "พร้อมเล่น";
+      stats = `
+        <div class="mono-player-inline">
+          <span>เงินสด <b>${monopolyMoney(cash)}</b></span>
+          <span>สุทธิ <b>${monopolyMoney(netWorth)}</b></span>
+          <span>ช่อง <b>${player.position}</b></span>
+          <span>ทรัพย์ <b>${ownedCount}</b></span>
+          <span>ชุดสี <b>${sets}</b></span>
+          <span>บ้าน <b>${houses}</b></span>
+          <span>โรงแรม <b>${hotels}</b></span>
+          <span>แลนด์มาร์ก <b>${landmarks}</b></span>
+          <span>จำนอง <b>${mortgaged}</b></span>
+        </div>
+        <div class="mono-player-inline mono-player-inline-state">${escapeHtml(extra)}</div>
+      `;
+    } else {
+      stats = `ตำแหน่ง: ${player.position} | โล่: ${player.shields}${itemStatus.length ? ` | ${escapeHtml(itemStatus.join(" / "))}` : ""}`;
+    }
+
+    const safeAvatarId = normalizeAvatarId(player.avatarId, 1);
+    const accent = monopoly
+      ? resolvePlayerAccent(displayPlayers, player.playerId)
+      : null;
+    const badgeHost = row.querySelector(".player-badge-host");
+    const avatarHost = row.querySelector(".player-avatar-host");
+    const name = row.querySelector(".player-name-text");
+    const statsBlock = row.querySelector(".player-stats-block");
+    const offline = row.querySelector(".player-offline-note");
+
+    row.className = classes.join(" ");
+    name.textContent = String(player.displayName ?? "");
+    statsBlock.innerHTML = stats;
+    offline.classList.toggle("hidden", Boolean(player.connected));
+
+    if (monopoly && accent?.slot) {
+      badgeHost.innerHTML = `
+        <span
+          class="mono-owner-badge emblem-${escapeHtml(accent.emblemKey || "nova")}"
+          style="--owner-accent:${accent.base};--owner-accent-bright:${accent.bright};--owner-accent-edge:${accent.edge};--owner-accent-deep:${accent.deep};--owner-accent-soft:${accent.soft};--owner-accent-glow:${accent.glow};"
+          title="สัญลักษณ์เจ้าของทรัพย์สิน"
+        ><span class="owner-emblem-sigil" aria-hidden="true"></span></span>
+      `;
+      badgeHost.classList.remove("hidden");
+    } else {
+      badgeHost.innerHTML = "";
+      badgeHost.classList.add("hidden");
+    }
+
+    syncAvatarHost(avatarHost, safeAvatarId, {
+      className: "inline-avatar",
+      alt: `Avatar ${safeAvatarId}`,
+      variant: "inline",
+    });
   }
 
   function renderBoard() {

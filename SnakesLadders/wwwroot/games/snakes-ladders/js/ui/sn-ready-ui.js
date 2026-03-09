@@ -1,20 +1,20 @@
 (() => {
   const root = window.SNL;
   const { state, el, GAME_STATUS } = root;
-  const { escapeHtml, avatarMarkup, normalizeAvatarId } = root.utils;
+  const { escapeHtml, normalizeAvatarId, syncAvatarHost } = root.utils;
   const viewCache = {
-    readyListSignature: "",
-    readyAvatarPickerSignature: "",
     readyAvatarHintText: "",
+    readyAvatarPickerKey: "",
+    readyListRows: new Map(),
   };
 
   function render() {
     const waiting = isWaitingRoom();
     el.readyPanel.classList.toggle("hidden", !waiting);
     if (!waiting) {
-      viewCache.readyListSignature = "";
-      viewCache.readyAvatarPickerSignature = "";
       viewCache.readyAvatarHintText = "";
+      viewCache.readyAvatarPickerKey = "";
+      viewCache.readyListRows.clear();
       if (el.readyList) {
         el.readyList.innerHTML = "";
       }
@@ -53,7 +53,7 @@
     el.readyAvatarSection.classList.toggle("hidden", !show);
     if (!show) {
       el.readyAvatarPicker.innerHTML = "";
-      viewCache.readyAvatarPickerSignature = "";
+      viewCache.readyAvatarPickerKey = "";
       viewCache.readyAvatarHintText = "";
       return;
     }
@@ -64,40 +64,45 @@
       me.avatarId,
       state.profileAvatarId,
     );
-    const pickerSignature = [
+    const pickerKey = [
       me.playerId,
-      currentAvatarId,
       locked ? 1 : 0,
       isHost ? 1 : 0,
       me.connected ? 1 : 0,
       me.isReady ? 1 : 0,
     ].join("|");
 
-    if (pickerSignature !== viewCache.readyAvatarPickerSignature) {
-      const choices = [];
+    if (pickerKey !== viewCache.readyAvatarPickerKey) {
+      el.readyAvatarPicker.replaceChildren();
       for (let avatarId = 1; avatarId <= 11; avatarId += 1) {
-        const selected = avatarId === currentAvatarId;
-        choices.push(`
-          <button
-            class="avatar-choice ${selected ? "selected" : ""}"
-            type="button"
-            data-avatar-id="${avatarId}"
-            aria-label="เลือก Avatar ${avatarId}"
-            ${locked ? "disabled" : ""}
-          >
-            ${avatarMarkup(avatarId, {
-              className: "avatar-choice-visual",
-              alt: `Avatar ${avatarId}`,
-              variant: "picker",
-            })}
-          </button>
-        `);
-      }
+        const button = document.createElement("button");
+        button.className = "avatar-choice";
+        button.type = "button";
+        button.dataset.avatarId = String(avatarId);
+        button.setAttribute("aria-label", `เลือก Avatar ${avatarId}`);
 
-      el.readyAvatarPicker.innerHTML = choices.join("");
-      root.experimentalToken3d?.hydrateAvatarHosts?.(el.readyAvatarPicker);
-      viewCache.readyAvatarPickerSignature = pickerSignature;
+        const visual = document.createElement("span");
+        visual.className = "avatar-choice-host";
+        button.appendChild(visual);
+        syncAvatarHost(visual, avatarId, {
+          className: "avatar-choice-visual",
+          alt: `Avatar ${avatarId}`,
+          variant: "picker",
+        });
+
+        el.readyAvatarPicker.appendChild(button);
+      }
+      viewCache.readyAvatarPickerKey = pickerKey;
     }
+
+    for (const button of el.readyAvatarPicker.querySelectorAll("[data-avatar-id]")) {
+      const avatarId = normalizeAvatarId(button.dataset.avatarId, 1);
+      const selected = avatarId === currentAvatarId;
+      button.classList.toggle("selected", selected);
+      button.toggleAttribute("disabled", locked);
+      button.setAttribute("aria-pressed", selected ? "true" : "false");
+    }
+
     if (el.readyAvatarHint) {
       let hintText = "";
       if (!me.connected) {
@@ -122,58 +127,88 @@
       return;
     }
 
-    const signature = players
-      .map((player) =>
-        [
-          player.playerId,
-          player.displayName,
-          normalizeAvatarId(player.avatarId, 1),
-          player.connected ? 1 : 0,
-          player.isReady ? 1 : 0,
-          player.playerId === hostId ? 1 : 0,
-        ].join(":"),
-      )
-      .join("|");
+    const fragment = document.createDocumentFragment();
+    const seenIds = new Set();
 
-    if (signature === viewCache.readyListSignature) {
-      return;
+    for (const player of players) {
+      const playerId = String(player.playerId ?? "");
+      if (!playerId) {
+        continue;
+      }
+
+      seenIds.add(playerId);
+      let row = viewCache.readyListRows.get(playerId);
+      if (!row) {
+        row = createReadyRow();
+        viewCache.readyListRows.set(playerId, row);
+      }
+
+      syncReadyRow(row, player, hostId);
+      fragment.appendChild(row);
     }
 
-    el.readyList.innerHTML = players
-      .map((player) => {
-        const host = player.playerId === hostId;
-        const tone = host
-          ? "host"
-          : player.connected
-            ? player.isReady
-              ? "ready"
-              : "not-ready"
-            : "offline";
-        const label = host
-          ? "หัวห้อง"
-          : tone === "ready"
-            ? "พร้อม"
-            : tone === "offline"
-              ? "ออฟไลน์"
-              : "ยังไม่พร้อม";
-        const safeAvatarId = normalizeAvatarId(player.avatarId, 1);
-        return `
-        <li class="ready-item ${tone}">
-          <span class="name-wrap">
-            ${avatarMarkup(safeAvatarId, {
-              className: "inline-avatar",
-              alt: `Avatar ${safeAvatarId}`,
-              variant: "inline",
-            })}
-            <span class="name">${escapeHtml(player.displayName)}</span>
-          </span>
-          <span class="ready-pill ${tone}">${escapeHtml(label)}</span>
-        </li>
-      `;
-      })
-      .join("");
-    root.experimentalToken3d?.hydrateAvatarHosts?.(el.readyList);
-    viewCache.readyListSignature = signature;
+    for (const [playerId, row] of viewCache.readyListRows.entries()) {
+      if (seenIds.has(playerId)) {
+        continue;
+      }
+      row.remove();
+      viewCache.readyListRows.delete(playerId);
+    }
+
+    el.readyList.replaceChildren(fragment);
+  }
+
+  function createReadyRow() {
+    const row = document.createElement("li");
+    row.className = "ready-item";
+
+    const nameWrap = document.createElement("span");
+    nameWrap.className = "name-wrap";
+
+    const avatarHost = document.createElement("span");
+    avatarHost.className = "ready-avatar-host";
+
+    const name = document.createElement("span");
+    name.className = "name";
+
+    const pill = document.createElement("span");
+    pill.className = "ready-pill";
+
+    nameWrap.append(avatarHost, name);
+    row.append(nameWrap, pill);
+    return row;
+  }
+
+  function syncReadyRow(row, player, hostId) {
+    const host = player.playerId === hostId;
+    const tone = host
+      ? "host"
+      : player.connected
+        ? player.isReady
+          ? "ready"
+          : "not-ready"
+        : "offline";
+    const label = host
+      ? "หัวห้อง"
+      : tone === "ready"
+        ? "พร้อม"
+        : tone === "offline"
+          ? "ออฟไลน์"
+          : "ยังไม่พร้อม";
+    const safeAvatarId = normalizeAvatarId(player.avatarId, 1);
+    const avatarHost = row.querySelector(".ready-avatar-host");
+    const name = row.querySelector(".name");
+    const pill = row.querySelector(".ready-pill");
+
+    row.className = `ready-item ${tone}`;
+    name.textContent = String(player.displayName ?? "");
+    pill.className = `ready-pill ${tone}`;
+    pill.textContent = label;
+    syncAvatarHost(avatarHost, safeAvatarId, {
+      className: "inline-avatar",
+      alt: `Avatar ${safeAvatarId}`,
+      variant: "inline",
+    });
   }
 
   function amHost() {
