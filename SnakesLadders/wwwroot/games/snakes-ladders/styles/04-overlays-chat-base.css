@@ -229,6 +229,7 @@
   border-radius: 28px;
   padding: 24px 26px;
   text-align: center;
+  transform-origin: center center;
   box-shadow:
     0 28px 56px rgba(0, 0, 0, 0.52),
     0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -281,7 +282,7 @@
 
 .board-event-overlay.hide .board-event-card,
 .money-flow-overlay.hide .money-flow-card {
-  animation: dice-fx-out 0.2s ease-in forwards;
+  animation: overlay-card-out 0.2s ease-in forwards;
 }
 
 .money-flow-card {
@@ -481,6 +482,17 @@
   to {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.86);
+  }
+}
+
+@keyframes overlay-card-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.94);
   }
 }
 
