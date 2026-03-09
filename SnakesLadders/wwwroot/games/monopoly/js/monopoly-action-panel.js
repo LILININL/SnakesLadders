@@ -220,7 +220,9 @@
     const helpers = root.monopolyHelpers;
     const cell = helpers.findCell(monopoly.pendingPurchaseCellId);
     const name = cellName(cell);
-    const price = parseIntVal(monopoly?.pendingPurchasePrice ?? cell?.price ?? cell?.Price);
+    const price = parseIntVal(
+      monopoly?.pendingPurchasePrice ?? currentCityPrice(cell),
+    );
     const cash = currentPlayerCash(monopoly);
     const shortfall = Math.max(0, price - cash);
     const canAfford = cash >= price;
@@ -532,7 +534,9 @@
       case root.MONOPOLY_PHASE.AWAIT_PURCHASE_DECISION:
         {
           const cell = root.monopolyHelpers.findCell(monopoly?.pendingPurchaseCellId);
-          const price = parseIntVal(monopoly?.pendingPurchasePrice ?? cell?.price ?? cell?.Price);
+          const price = parseIntVal(
+            monopoly?.pendingPurchasePrice ?? currentCityPrice(cell),
+          );
           const ownerId = String(monopoly?.pendingPurchaseOwnerPlayerId ?? "").trim();
           if (price > 0 && cash < price) {
             tips.push(
@@ -1066,7 +1070,7 @@
 
   function estimateDebtSaleValue(cell, monopoly) {
     const creditorId = String(monopoly?.pendingDebtToPlayerId ?? "").trim();
-    const price = parseIntVal(cell?.price ?? cell?.Price);
+    const price = currentCityPrice(cell);
     const houses = parseIntVal(cell?.houseCount ?? cell?.HouseCount);
     const mortgaged = Boolean(cell?.isMortgaged ?? cell?.IsMortgaged);
 
@@ -1142,14 +1146,20 @@
   }
 
   function mortgageValue(cell) {
-    const price = parseIntVal(cell?.price ?? cell?.Price);
+    const price = currentCityPrice(cell);
     return Math.max(0, Math.floor(price / 2));
   }
 
   function unmortgageCost(cell) {
-    const price = parseIntVal(cell?.price ?? cell?.Price);
+    const price = currentCityPrice(cell);
     const mortgage = Math.floor(price / 2);
     return Math.ceil(mortgage * 1.1);
+  }
+
+  function currentCityPrice(cell) {
+    return parseIntVal(
+      root.monopolyHelpers?.scaleCityPriceForCell?.(cell) ?? cell?.price ?? cell?.Price,
+    );
   }
 
   function currentMonopolyState() {

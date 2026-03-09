@@ -877,15 +877,94 @@
 .board.monopoly-ring .m-meta {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
   font-size: 0.61rem;
   color: #4d7390;
 }
 
+.board.monopoly-ring .m-metrics {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 0;
+}
+
+.board.monopoly-ring .m-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: rgba(230, 244, 252, 0.86);
+  border: 1px solid rgba(131, 180, 214, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+}
+
+.board.monopoly-ring .m-metric-label {
+  font-size: 0.48rem;
+  line-height: 1;
+  font-weight: 700;
+  color: #537a96;
+  letter-spacing: 0.02em;
+}
+
+.board.monopoly-ring .m-metric-value {
+  font-size: 0.55rem;
+  line-height: 1;
+  font-weight: 800;
+  color: #165d86;
+  transition:
+    color 180ms ease,
+    text-shadow 220ms ease,
+    transform 220ms ease;
+}
+
+.board.monopoly-ring .m-metric-value.economy-live {
+  color: #0f76b4;
+  text-shadow: 0 0 14px rgba(39, 148, 219, 0.42);
+  transform: scale(1.07);
+}
+
+.board.monopoly-ring .m-metric-toll .m-metric-value {
+  color: #0d709a;
+}
+
+.board.monopoly-ring .m-metric-price .m-metric-value {
+  color: #185d89;
+}
+
 .board.monopoly-ring .m-cost {
   font-weight: 700;
   color: #1f678c;
+}
+
+.board.monopoly-ring .m-cell.economy-bump {
+  animation: monopoly-economy-bump 1.15s ease;
+}
+
+@keyframes monopoly-economy-bump {
+  0% {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      0 16px 26px rgba(61, 111, 145, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.86);
+  }
+
+  28% {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow:
+      0 0 0 2px rgba(118, 199, 244, 0.22),
+      0 0 22px rgba(91, 182, 234, 0.3),
+      0 18px 28px rgba(61, 111, 145, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+  }
 }
 
 .board.monopoly-ring .m-foot {

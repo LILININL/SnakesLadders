@@ -2,6 +2,7 @@
   const root = window.SNL;
   const GAME_KEY = root.GAME_KEYS?.MONOPOLY ?? "monopoly";
   const { escapeHtml } = root.utils;
+  let lastEconomyFrame = null;
 
   root.boardRenderers ??= {};
   root.boardRenderers[GAME_KEY] = {
@@ -28,15 +29,23 @@
     el.board.classList.add("monopoly-ring");
     el.board.style.setProperty("--rows", "11");
 
+    const room = state?.room ?? null;
+    const roomKey = String(root.state?.roomCode ?? room?.code ?? room?.roomCode ?? "")
+      .trim()
+      .toUpperCase();
     const displayPlayers = root.viewState.getDisplayPlayers();
     const displayTurnPlayerId = root.viewState.getDisplayTurnPlayerId();
     const turnPosition = root.viewState.getPlayerPosition(displayTurnPlayerId);
     const freeParkingPot = resolveMonopolyFreeParkingPot(board);
     const completedRounds =
-      Number.parseInt(String(state?.room?.completedRounds ?? 0), 10) || 0;
-    const rentBoostPercent = Math.max(0, completedRounds * 10);
+      root.monopolyHelpers?.resolveCompletedRounds?.(room) ??
+      (Number.parseInt(String(room?.completedRounds ?? 0), 10) || 0);
+    const economyBoostPercent =
+      root.monopolyHelpers?.economyGrowthPercent?.(room) ??
+      Math.max(0, completedRounds * 10);
+    const nextEconomyFrame = buildEconomyFrame(roomKey, room, cells, completedRounds);
     const ringCells = cells
-      .map((cell) => renderCell(state, cell, turnPosition))
+      .map((cell) => renderCell(state, room, cell, turnPosition))
       .join("");
     const center = renderCenter(freeParkingPot);
     el.board.innerHTML = `${ringCells}${center}`;
@@ -56,9 +65,11 @@
       displayTurnPlayerId,
       range,
     );
+    animateEconomyFrame(el.board, lastEconomyFrame, nextEconomyFrame);
+    lastEconomyFrame = nextEconomyFrame;
 
     const ownedAssets = cells.filter((x) => Boolean(resolveOwnerId(x))).length;
-    el.boardLegend.textContent = `กระดานเกมเศรษฐี 40 ช่อง | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | เงินกองกลาง ${money(freeParkingPot)} | ค่าผ่านทางรอบนี้ +${rentBoostPercent}%`;
+    el.boardLegend.textContent = `กระดานเกมเศรษฐี 40 ช่อง | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | เงินกองกลาง ${money(freeParkingPot)} | เศรษฐกิจเมืองรอบนี้ +${economyBoostPercent}% (ค่าผ่านทาง + ราคาเมือง)`;
     root.roomUi?.updateFloatingRollButton();
   }
 
@@ -68,13 +79,14 @@
     el.board.innerHTML = "";
     el.boardLegend.textContent = "";
     hideBoardItemTooltip(el);
+    lastEconomyFrame = null;
 
     root.boardOverlay?.clear();
     root.boardTokens?.clear();
     root.boardBeacon?.hide?.();
   }
 
-  function renderCell(state, cell, turnPosition) {
+  function renderCell(state, room, cell, turnPosition) {
     const cellNo = resolveCellNo(cell);
     const pos = toBoardPosition(cellNo);
     const type = resolveType(cell);
@@ -112,18 +124,11 @@
       ? `<span class="m-band ${escapeHtml(colorClass)}" aria-hidden="true"></span>`
       : '<span class="m-band" aria-hidden="true"></span>';
 
-    const price = resolveNumber(cell?.price ?? cell?.Price);
+    const price = currentCityPrice(cell, room);
+    const toll = currentToll(cell, room);
     const rent = resolveNumber(cell?.rent ?? cell?.Rent);
     const fee = resolveNumber(cell?.fee ?? cell?.Fee);
-
-    const costText =
-      price > 0
-        ? money(price)
-        : fee > 0
-          ? `-${money(fee)}`
-          : rent > 0
-            ? money(rent)
-            : "";
+    const metaMarkup = renderCellMeta(typeLabel, type, price, toll, fee, rent);
 
     const ownerChip =
       ownerName === "-"
@@ -155,10 +160,7 @@
           <span class="m-icon" aria-hidden="true">${icon}</span>
         </div>
         <div class="m-name">${escapeHtml(shortName(resolveName(cell), pos.isCorner ? 24 : 18))}</div>
-        <div class="m-meta">
-          <span class="m-type">${escapeHtml(typeLabel)}</span>
-          ${costText ? `<span class=\"m-cost\">${escapeHtml(costText)}</span>` : ""}
-        </div>
+        <div class="m-meta">${metaMarkup}</div>
         <div class="m-foot">
           ${ownerChip}
           ${buildings}
@@ -166,6 +168,146 @@
         </div>
       </div>
     `;
+  }
+
+  function renderCellMeta(typeLabel, type, price, toll, fee, rent) {
+    const assetTypes = new Set([1, 2, 3]);
+    if (assetTypes.has(type)) {
+      return `
+        <span class="m-type">${escapeHtml(typeLabel)}</span>
+        <span class="m-metrics">
+          ${renderMetricChip("ซื้อ", "price", price)}
+          ${renderMetricChip("ทาง", "toll", toll)}
+        </span>
+      `;
+    }
+
+    const costText =
+      fee > 0
+        ? `-${money(fee)}`
+        : rent > 0
+          ? money(rent)
+          : "";
+
+    return `
+      <span class="m-type">${escapeHtml(typeLabel)}</span>
+      ${costText ? `<span class="m-cost">${escapeHtml(costText)}</span>` : ""}
+    `;
+  }
+
+  function renderMetricChip(label, kind, value) {
+    if (value <= 0) {
+      return "";
+    }
+
+    return `
+      <span class="m-metric m-metric-${escapeHtml(kind)}">
+        <span class="m-metric-label">${escapeHtml(label)}</span>
+        <span class="m-metric-value" data-economy-metric="${escapeHtml(kind)}" data-value="${value}">${escapeHtml(money(value))}</span>
+      </span>
+    `;
+  }
+
+  function buildEconomyFrame(roomKey, room, cells, completedRounds) {
+    const metricsByCell = {};
+    cells.forEach((cell) => {
+      const cellNo = resolveCellNo(cell);
+      metricsByCell[cellNo] = {
+        price: currentCityPrice(cell, room),
+        toll: currentToll(cell, room),
+      };
+    });
+
+    return {
+      roomKey,
+      completedRounds,
+      metricsByCell,
+    };
+  }
+
+  function animateEconomyFrame(boardEl, previousFrame, nextFrame) {
+    if (
+      !boardEl ||
+      !previousFrame ||
+      !nextFrame ||
+      previousFrame.roomKey !== nextFrame.roomKey ||
+      nextFrame.completedRounds <= previousFrame.completedRounds
+    ) {
+      return;
+    }
+
+    Object.entries(nextFrame.metricsByCell).forEach(([cellNo, nextMetrics]) => {
+      const previousMetrics = previousFrame.metricsByCell?.[cellNo];
+      if (!previousMetrics) {
+        return;
+      }
+
+      const cellEl = boardEl.querySelector(`.m-cell[data-cell="${cellNo}"]`);
+      if (!cellEl) {
+        return;
+      }
+
+      let changed = false;
+      ["price", "toll"].forEach((kind) => {
+        const fromValue = resolveNumber(previousMetrics[kind]);
+        const toValue = resolveNumber(nextMetrics[kind]);
+        if (fromValue === toValue) {
+          return;
+        }
+
+        const metricEl = cellEl.querySelector(`[data-economy-metric="${kind}"]`);
+        if (!metricEl) {
+          return;
+        }
+
+        changed = true;
+        animateMoneyValue(metricEl, fromValue, toValue, 1120);
+      });
+
+      if (!changed) {
+        return;
+      }
+
+      cellEl.classList.remove("economy-bump");
+      void cellEl.offsetWidth;
+      cellEl.classList.add("economy-bump");
+      window.setTimeout(() => cellEl.classList.remove("economy-bump"), 1300);
+    });
+  }
+
+  function animateMoneyValue(targetEl, fromValue, toValue, durationMs) {
+    if (!targetEl) {
+      return;
+    }
+
+    const safeDuration = Math.max(280, durationMs);
+    const start = performance.now();
+    targetEl.dataset.value = String(toValue);
+    targetEl.classList.add("economy-live");
+
+    const render = (timestamp) => {
+      const progress = Math.min(1, (timestamp - start) / safeDuration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(fromValue + (toValue - fromValue) * eased);
+      targetEl.textContent = money(current);
+      if (progress < 1) {
+        requestAnimationFrame(render);
+        return;
+      }
+
+      window.setTimeout(() => targetEl.classList.remove("economy-live"), 120);
+    };
+
+    requestAnimationFrame(render);
+  }
+
+  function currentCityPrice(cell, room) {
+    return root.monopolyHelpers?.scaleCityPriceForCell?.(cell, room) ??
+      resolveNumber(cell?.price ?? cell?.Price);
+  }
+
+  function currentToll(cell, room) {
+    return root.monopolyHelpers?.previewCellToll?.(cell, room) ?? 0;
   }
 
   function renderOwnerChip(state, ownerId, ownerName, ownerAccent, estateTier) {

@@ -229,6 +229,8 @@ public sealed class MonopolyStateSnapshot
     public int PendingDebtAmount { get; init; }
     public string? PendingDebtReason { get; init; }
     public int CurrentJailFine { get; init; }
+    public int LastDiceOne { get; init; }
+    public int LastDiceTwo { get; init; }
     public bool UpgradeUsedThisTurn { get; init; }
     public IReadOnlyList<int> UpgradeEligibleCellIds { get; init; } = Array.Empty<int>();
     public MonopolyAuctionSnapshot? ActiveAuction { get; init; }

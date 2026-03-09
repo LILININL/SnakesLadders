@@ -5,6 +5,20 @@
     .trim()
     .toLowerCase();
 
+  const CELL_TYPE = {
+    PROPERTY: 1,
+    RAILROAD: 2,
+    UTILITY: 3,
+  };
+
+  const DEFAULT_BOARD_CELL_COUNT = 40;
+  const LANDMARK_RENT_MULTIPLIER = 170;
+  const RENT_ACCELERATION_MULTIPLIER = 1.6;
+  const RENT_GROWTH_PER_COMPLETED_ROUND = 0.1;
+  const NEIGHBORHOOD_RADIUS = 2;
+  const NEIGHBORHOOD_PRIMARY_BONUS = 0.55;
+  const NEIGHBORHOOD_SECONDARY_BONUS = 0.32;
+
   function isMonopolyRoom(room = state.room) {
     const gameKey = String(room?.gameKey ?? "")
       .trim()
@@ -44,7 +58,256 @@
   }
 
   function resolveCellNo(cell) {
-    return Number.parseInt(String(cell?.cell ?? cell?.Cell ?? 0), 10) || 0;
+    return resolveNumber(cell?.cell ?? cell?.Cell ?? 0);
+  }
+
+  function resolveOwnerId(cell) {
+    return String(cell?.ownerPlayerId ?? cell?.OwnerPlayerId ?? "").trim();
+  }
+
+  function resolveType(cell) {
+    return resolveNumber(cell?.type ?? cell?.Type);
+  }
+
+  function resolveColorGroup(cell) {
+    return String(cell?.colorGroup ?? cell?.ColorGroup ?? "")
+      .trim()
+      .toLowerCase();
+  }
+
+  function resolveHouseCount(cell) {
+    return resolveNumber(cell?.houseCount ?? cell?.HouseCount);
+  }
+
+  function resolveRent(cell) {
+    return resolveNumber(cell?.rent ?? cell?.Rent);
+  }
+
+  function resolvePrice(cell) {
+    return resolveNumber(cell?.price ?? cell?.Price);
+  }
+
+  function resolveLastDiceTotal(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    return Math.max(
+      2,
+      resolveNumber(monopoly?.lastDiceOne ?? monopoly?.LastDiceOne) +
+        resolveNumber(monopoly?.lastDiceTwo ?? monopoly?.LastDiceTwo),
+    );
+  }
+
+  function resolveCompletedRounds(room = state.room) {
+    return resolveNumber(room?.completedRounds ?? room?.CompletedRounds);
+  }
+
+  function economyGrowthMultiplier(room = state.room) {
+    return 1 + resolveCompletedRounds(room) * RENT_GROWTH_PER_COMPLETED_ROUND;
+  }
+
+  function economyGrowthPercent(room = state.room) {
+    return Math.max(
+      0,
+      Math.round(resolveCompletedRounds(room) * RENT_GROWTH_PER_COMPLETED_ROUND * 100),
+    );
+  }
+
+  function scaleCityPrice(value, room = state.room) {
+    const amount = resolveNumber(value);
+    if (amount <= 0) {
+      return 0;
+    }
+
+    return Math.max(1, Math.ceil(amount * economyGrowthMultiplier(room)));
+  }
+
+  function scaleCityPriceForCell(cell, room = state.room) {
+    return scaleCityPrice(resolvePrice(cell), room);
+  }
+
+  function applyRentScaling(amount, room = state.room) {
+    const base = resolveNumber(amount);
+    if (base <= 0) {
+      return 0;
+    }
+
+    return Math.max(
+      1,
+      Math.ceil(base * RENT_ACCELERATION_MULTIPLIER * economyGrowthMultiplier(room)),
+    );
+  }
+
+  function previewCellToll(cell, room = state.room) {
+    const type = resolveType(cell);
+    if (
+      type !== CELL_TYPE.PROPERTY &&
+      type !== CELL_TYPE.RAILROAD &&
+      type !== CELL_TYPE.UTILITY
+    ) {
+      return 0;
+    }
+
+    if (Boolean(cell?.isMortgaged ?? cell?.IsMortgaged)) {
+      return 0;
+    }
+
+    const ownerId = resolveOwnerId(cell);
+    const baseAmount =
+      type === CELL_TYPE.PROPERTY
+        ? previewPropertyRent(cell, room, ownerId)
+        : type === CELL_TYPE.RAILROAD
+          ? previewRailroadRent(room, ownerId)
+          : previewUtilityRent(room, ownerId);
+
+    if (baseAmount <= 0) {
+      return 0;
+    }
+
+    const scaledBase = applyRentScaling(baseAmount, room);
+    const surcharge = ownerId
+      ? previewNeighborhoodSurcharge(room, cell, ownerId, scaledBase)
+      : 0;
+    return Math.max(0, scaledBase + surcharge);
+  }
+
+  function previewPropertyRent(cell, room, ownerId) {
+    const baseRent = resolveRent(cell);
+    if (baseRent <= 0) {
+      return 0;
+    }
+
+    if (Boolean(cell?.hasLandmark ?? cell?.HasLandmark)) {
+      return baseRent * LANDMARK_RENT_MULTIPLIER;
+    }
+
+    if (Boolean(cell?.hasHotel ?? cell?.HasHotel)) {
+      return baseRent * 125;
+    }
+
+    const houses = resolveHouseCount(cell);
+    if (houses > 0) {
+      switch (Math.min(4, houses)) {
+        case 1:
+          return baseRent * 5;
+        case 2:
+          return baseRent * 15;
+        case 3:
+          return baseRent * 45;
+        default:
+          return baseRent * 80;
+      }
+    }
+
+    return ownerId && ownsFullColorSet(room, ownerId, resolveColorGroup(cell))
+      ? baseRent * 2
+      : baseRent;
+  }
+
+  function previewRailroadRent(room, ownerId) {
+    const ownedCount = ownerId
+      ? resolveCells(room).filter(
+          (candidate) =>
+            resolveType(candidate) === CELL_TYPE.RAILROAD &&
+            !Boolean(candidate?.isMortgaged ?? candidate?.IsMortgaged) &&
+            resolveOwnerId(candidate) === ownerId,
+        ).length
+      : 1;
+
+    const count = Math.max(1, ownedCount);
+    return 40 * Math.pow(2, count - 1);
+  }
+
+  function previewUtilityRent(room, ownerId) {
+    const ownedCount = ownerId
+      ? resolveCells(room).filter(
+          (candidate) =>
+            resolveType(candidate) === CELL_TYPE.UTILITY &&
+            !Boolean(candidate?.isMortgaged ?? candidate?.IsMortgaged) &&
+            resolveOwnerId(candidate) === ownerId,
+        ).length
+      : 1;
+
+    const diceTotal = resolveLastDiceTotal(room);
+    return (Math.max(1, ownedCount) >= 2 ? 14 : 6) * diceTotal;
+  }
+
+  function previewNeighborhoodSurcharge(room, cell, ownerId, baseAmount) {
+    if (!ownerId || baseAmount <= 0) {
+      return 0;
+    }
+
+    let bonus = 0;
+    resolveCells(room).forEach((candidate) => {
+      if (resolveCellNo(candidate) === resolveCellNo(cell)) {
+        return;
+      }
+      if (!resolveOwnerId(candidate) || resolveOwnerId(candidate) !== ownerId) {
+        return;
+      }
+
+      const distance = boardDistance(
+        resolveCellNo(cell),
+        resolveCellNo(candidate),
+        DEFAULT_BOARD_CELL_COUNT,
+      );
+      if (distance <= 0 || distance > NEIGHBORHOOD_RADIUS) {
+        return;
+      }
+
+      bonus +=
+        resolveNeighborhoodWeight(candidate) *
+        (distance === 1
+          ? NEIGHBORHOOD_PRIMARY_BONUS
+          : NEIGHBORHOOD_SECONDARY_BONUS);
+    });
+
+    return Math.max(0, Math.ceil(baseAmount * bonus));
+  }
+
+  function resolveNeighborhoodWeight(cell) {
+    if (Boolean(cell?.hasLandmark ?? cell?.HasLandmark)) {
+      return 2.4;
+    }
+
+    if (Boolean(cell?.hasHotel ?? cell?.HasHotel)) {
+      return 1.6;
+    }
+
+    const houses = resolveHouseCount(cell);
+    if (houses > 0) {
+      return 0.75 + houses * 0.22;
+    }
+
+    switch (resolveType(cell)) {
+      case CELL_TYPE.RAILROAD:
+        return 1.1;
+      case CELL_TYPE.UTILITY:
+        return 0.9;
+      default:
+        return 0.7;
+    }
+  }
+
+  function ownsFullColorSet(room, ownerId, colorGroup) {
+    if (!ownerId || !colorGroup) {
+      return false;
+    }
+
+    const allInGroup = resolveCells(room).filter(
+      (candidate) =>
+        resolveType(candidate) === CELL_TYPE.PROPERTY &&
+        resolveColorGroup(candidate) === colorGroup,
+    );
+
+    return (
+      allInGroup.length > 0 &&
+      allInGroup.every((candidate) => resolveOwnerId(candidate) === ownerId)
+    );
+  }
+
+  function boardDistance(fromCell, toCell, boardSize) {
+    const normalizedBoard = Math.max(1, resolveNumber(boardSize));
+    const direct = Math.abs(resolveNumber(fromCell) - resolveNumber(toCell));
+    return Math.min(direct, normalizedBoard - direct);
   }
 
   function activePlayerId(room = state.room) {
@@ -114,7 +377,7 @@
   }
 
   function money(value) {
-    const amount = Number.parseInt(String(value ?? 0), 10) || 0;
+    const amount = resolveNumber(value);
     const abs = Math.abs(amount).toLocaleString("th-TH");
     return amount < 0 ? `-฿${abs}` : `฿${abs}`;
   }
@@ -153,11 +416,22 @@
     }
   }
 
+  function resolveNumber(value) {
+    return Number.parseInt(String(value ?? 0), 10) || 0;
+  }
+
   root.monopolyHelpers = {
     isMonopolyRoom,
     getMonopolyState,
     resolveCells,
     findCell,
+    resolveCellNo,
+    resolveCompletedRounds,
+    economyGrowthMultiplier,
+    economyGrowthPercent,
+    scaleCityPrice,
+    scaleCityPriceForCell,
+    previewCellToll,
     activePlayerId,
     pendingDecisionPlayerId,
     phase,

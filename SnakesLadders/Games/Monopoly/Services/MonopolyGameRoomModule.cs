@@ -211,8 +211,8 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             GameActionType.PassAuction => "ระบบประมูลถูกปิดใช้งานแล้ว",
             GameActionType.BuildHouse => HandleBuildHouse(state, actor, request.Monopoly, execution),
             GameActionType.SellHouse => HandleSellHouse(state, actor, request.Monopoly, execution),
-            GameActionType.Mortgage => HandleMortgage(state, actor, request.Monopoly, execution),
-            GameActionType.Unmortgage => HandleUnmortgage(state, actor, request.Monopoly, execution),
+            GameActionType.Mortgage => HandleMortgage(room, state, actor, request.Monopoly, execution),
+            GameActionType.Unmortgage => HandleUnmortgage(room, state, actor, request.Monopoly, execution),
             GameActionType.OfferTrade => "ระบบเทรดถูกปิดใช้งานแล้ว",
             GameActionType.AcceptTrade => "ระบบเทรดถูกปิดใช้งานแล้ว",
             GameActionType.RejectTrade => "ระบบเทรดถูกปิดใช้งานแล้ว",
@@ -473,7 +473,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             return "ไม่พบทรัพย์สินที่รอการตัดสินใจ";
         }
 
-        var purchasePrice = ResolvePendingPurchasePrice(state, cell);
+        var purchasePrice = ResolvePendingPurchasePrice(state, cell, room.CompletedRounds);
         var sellerId = state.PendingPurchaseOwnerPlayerId;
         if (!string.IsNullOrWhiteSpace(sellerId))
         {
@@ -814,7 +814,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
                 return "อสังหาที่มีแลนด์มาร์กยังขายโอนให้ผู้เล่นอื่นไม่ได้ ต้องรื้อแลนด์มาร์กก่อน";
             }
 
-            var saleValue = CalculateTakeoverPrice(cell);
+            var saleValue = CalculateTakeoverPrice(cell, room.CompletedRounds);
             var debtAmount = Math.Max(0, state.PendingDebtAmount);
             var surplus = Math.Max(0, saleValue - debtAmount);
             if (surplus > 0 && creditor.Cash < surplus)
@@ -833,7 +833,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         }
         else
         {
-            var saleValue = CalculateBankLiquidationValue(cell);
+            var saleValue = CalculateBankLiquidationValue(cell, room.CompletedRounds);
             actor.Cash += saleValue;
             ResetCellToBank(cell);
             execution.Logs.Add($"ขาย {cell.Name} คืนธนาคาร มูลค่า ฿{saleValue}");
@@ -845,6 +845,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
     }
 
     private static string? HandleMortgage(
+        GameRoom room,
         MonopolyRoomState state,
         PlayerState actor,
         MonopolyActionPayload? payload,
@@ -871,7 +872,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             return "ต้องขายสิ่งปลูกสร้างก่อนจำนอง";
         }
 
-        var value = MortgageValue(cell);
+        var value = MortgageValue(cell, room.CompletedRounds);
         cell.IsMortgaged = true;
         actor.Cash += value;
         state.Phase = MonopolyTurnPhase.AwaitEndTurn;
@@ -880,6 +881,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
     }
 
     private static string? HandleUnmortgage(
+        GameRoom room,
         MonopolyRoomState state,
         PlayerState actor,
         MonopolyActionPayload? payload,
@@ -901,7 +903,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             return "ทรัพย์สินนี้ไม่ได้จำนองอยู่";
         }
 
-        var cost = UnmortgageCost(cell);
+        var cost = UnmortgageCost(cell, room.CompletedRounds);
         if (actor.Cash < cost)
         {
             return "เงินไม่พอสำหรับไถ่ถอน";
@@ -1230,20 +1232,21 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
                 return;
             }
 
+            var currentCityPrice = CalculateCityPrice(landing, room.CompletedRounds);
             state.PendingPurchaseCellId = landing.Cell;
-            state.PendingPurchasePrice = landing.Price;
+            state.PendingPurchasePrice = currentCityPrice;
             state.PendingPurchaseOwnerPlayerId = null;
             state.PendingDecisionPlayerId = player.PlayerId;
             state.Phase = MonopolyTurnPhase.AwaitPurchaseDecision;
-            if (player.Cash < landing.Price)
+            if (player.Cash < currentCityPrice)
             {
-                var shortfall = landing.Price - player.Cash;
+                var shortfall = currentCityPrice - player.Cash;
                 logs.Add(
                     $"{landing.Name} ยังไม่มีเจ้าของ: เงินคุณไม่พอซื้อ (ขาด ฿{shortfall}) กดข้ามการซื้อแล้วไปจัดการทรัพย์สินต่อได้");
             }
             else
             {
-                logs.Add($"{landing.Name} ยังไม่มีเจ้าของ: ซื้อได้ทันทีในราคา ฿{landing.Price} หรือกดข้ามการซื้อ");
+                logs.Add($"{landing.Name} ยังไม่มีเจ้าของ: ซื้อได้ทันทีในราคา ฿{currentCityPrice} หรือกดข้ามการซื้อ");
             }
             return;
         }
@@ -1295,7 +1298,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
 
         if (CanOfferTakeover(landing))
         {
-            var buyoutPrice = CalculateTakeoverPrice(landing);
+            var buyoutPrice = CalculateTakeoverPrice(landing, room.CompletedRounds);
             state.PendingPurchaseCellId = landing.Cell;
             state.PendingPurchasePrice = buyoutPrice;
             state.PendingPurchaseOwnerPlayerId = owner.PlayerId;
@@ -1970,7 +1973,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             if (room.CurrentTurnIndex == 0)
             {
                 room.CompletedRounds++;
-                logs?.Add($"เศรษฐกิจเมือง: ค่าผ่านทางทุกแปลงเพิ่มเป็น +{Math.Round(room.CompletedRounds * MonopolyDefinitions.RentGrowthPerCompletedRound * 100)}%");
+                logs?.Add($"เศรษฐกิจเมือง: ค่าผ่านทางและราคาเมืองทุกแปลงเพิ่มเป็น +{Math.Round(room.CompletedRounds * MonopolyDefinitions.RentGrowthPerCompletedRound * 100)}%");
             }
 
             guard++;
@@ -2024,7 +2027,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         if (rules.RoundLimitEnabled && room.CompletedRounds >= maxRounds)
         {
             var leader = alive
-                .OrderByDescending(player => CalculateNetWorth(state, player.PlayerId, player.Cash))
+                .OrderByDescending(player => CalculateNetWorth(state, player.PlayerId, player.Cash, room.CompletedRounds))
                 .ThenByDescending(player => player.Cash)
                 .ThenBy(player => room.Players.IndexOf(player))
                 .First();
@@ -2040,15 +2043,15 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         return false;
     }
 
-    private static int CalculateNetWorth(MonopolyRoomState state, string playerId, int cash)
+    private static int CalculateNetWorth(MonopolyRoomState state, string playerId, int cash, int completedRounds)
     {
         var assetValue = 0;
         foreach (var cell in state.Cells.Where(cell =>
                      string.Equals(cell.OwnerPlayerId, playerId, StringComparison.Ordinal)))
         {
             var baseValue = cell.IsMortgaged
-                ? MortgageValue(cell)
-                : Math.Max(0, cell.Price);
+                ? MortgageValue(cell, completedRounds)
+                : CalculateCityPrice(cell, completedRounds);
             var buildingValue = cell.HasLandmark
                 ? cell.HouseCost * 7
                 : cell.HasHotel
@@ -2352,7 +2355,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         state.UpgradeEligibleCellIds.Add(cellId);
     }
 
-    private static int ResolvePendingPurchasePrice(MonopolyRoomState state, MonopolyCellState cell)
+    private static int ResolvePendingPurchasePrice(MonopolyRoomState state, MonopolyCellState cell, int completedRounds)
     {
         if (state.PendingPurchasePrice > 0)
         {
@@ -2360,8 +2363,8 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         }
 
         return string.IsNullOrWhiteSpace(state.PendingPurchaseOwnerPlayerId)
-            ? Math.Max(0, cell.Price)
-            : CalculateTakeoverPrice(cell);
+            ? CalculateCityPrice(cell, completedRounds)
+            : CalculateTakeoverPrice(cell, completedRounds);
     }
 
     private static bool CanOfferTakeover(MonopolyCellState cell)
@@ -2370,11 +2373,11 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
                !cell.HasLandmark;
     }
 
-    private static int CalculateTakeoverPrice(MonopolyCellState cell)
+    private static int CalculateTakeoverPrice(MonopolyCellState cell, int completedRounds)
     {
         var baseValue = cell.IsMortgaged
-            ? MortgageValue(cell)
-            : Math.Max(0, cell.Price);
+            ? MortgageValue(cell, completedRounds)
+            : CalculateCityPrice(cell, completedRounds);
         var buildingValue = cell.HasLandmark
             ? cell.HouseCost * 7
             : cell.HasHotel
@@ -2383,11 +2386,11 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         return Math.Max(1, baseValue + buildingValue);
     }
 
-    private static int CalculateBankLiquidationValue(MonopolyCellState cell)
+    private static int CalculateBankLiquidationValue(MonopolyCellState cell, int completedRounds)
     {
         var baseValue = cell.IsMortgaged
-            ? MortgageValue(cell)
-            : Math.Max(1, (int)Math.Floor(cell.Price * MonopolyDefinitions.BankLiquidationBaseRatio));
+            ? MortgageValue(cell, completedRounds)
+            : Math.Max(1, (int)Math.Floor(CalculateCityPrice(cell, completedRounds) * MonopolyDefinitions.BankLiquidationBaseRatio));
         var buildingRefund = cell.HasLandmark
             ? cell.HouseCost * 4
             : cell.HasHotel
@@ -2467,6 +2470,17 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         var accelerated = amount * MonopolyDefinitions.RentAccelerationMultiplier;
         var growthMultiplier = 1d + (Math.Max(0, completedRounds) * MonopolyDefinitions.RentGrowthPerCompletedRound);
         return Math.Max(1, (int)Math.Ceiling(accelerated * growthMultiplier));
+    }
+
+    private static int ApplyEconomyPriceScaling(int amount, int completedRounds)
+    {
+        if (amount <= 0)
+        {
+            return 0;
+        }
+
+        var growthMultiplier = 1d + (Math.Max(0, completedRounds) * MonopolyDefinitions.RentGrowthPerCompletedRound);
+        return Math.Max(1, (int)Math.Ceiling(amount * growthMultiplier));
     }
 
     private static int CountPassGoEvents(int start, int forwardSteps, int boardSize)
@@ -2667,7 +2681,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
     {
         var owned = state.Cells
             .Where(cell => string.Equals(cell.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal))
-            .OrderByDescending(cell => CalculateTakeoverPrice(cell))
+            .OrderByDescending(cell => CalculateTakeoverPrice(cell, 0))
             .ThenByDescending(cell => cell.Cell)
             .ToArray();
 
@@ -2712,9 +2726,14 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         }
     }
 
-    private static int MortgageValue(MonopolyCellState cell)
+    private static int CalculateCityPrice(MonopolyCellState cell, int completedRounds)
     {
-        return Math.Max(0, (int)Math.Floor(cell.Price / 2d));
+        return ApplyEconomyPriceScaling(Math.Max(0, cell.Price), completedRounds);
+    }
+
+    private static int MortgageValue(MonopolyCellState cell, int completedRounds)
+    {
+        return Math.Max(0, (int)Math.Floor(CalculateCityPrice(cell, completedRounds) / 2d));
     }
 
     private static int LandmarkCost(MonopolyCellState cell)
@@ -2722,9 +2741,9 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         return Math.Max(0, cell.HouseCost * MonopolyDefinitions.LandmarkCostMultiplier);
     }
 
-    private static int UnmortgageCost(MonopolyCellState cell)
+    private static int UnmortgageCost(MonopolyCellState cell, int completedRounds)
     {
-        var mortgage = MortgageValue(cell);
+        var mortgage = MortgageValue(cell, completedRounds);
         return (int)Math.Ceiling(mortgage * 1.1d);
     }
 

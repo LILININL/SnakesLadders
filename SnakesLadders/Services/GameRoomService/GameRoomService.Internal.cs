@@ -311,7 +311,7 @@ public sealed partial class GameRoomService
         }
 
         var playerEconomy = room.Players
-            .Select(player => BuildMonopolyPlayerEconomySnapshot(monopoly, player))
+            .Select(player => BuildMonopolyPlayerEconomySnapshot(monopoly, player, room.CompletedRounds))
             .ToArray();
 
         MonopolyAuctionSnapshot? auctionSnapshot = null;
@@ -357,6 +357,8 @@ public sealed partial class GameRoomService
             PendingDebtAmount = monopoly.PendingDebtAmount,
             PendingDebtReason = monopoly.PendingDebtReason,
             CurrentJailFine = ResolveCurrentJailFine(monopoly),
+            LastDiceOne = monopoly.LastDiceOne,
+            LastDiceTwo = monopoly.LastDiceTwo,
             UpgradeUsedThisTurn = monopoly.UpgradeUsedThisTurn,
             UpgradeEligibleCellIds = monopoly.UpgradeEligibleCellIds
                 .Distinct()
@@ -370,7 +372,8 @@ public sealed partial class GameRoomService
 
     private static MonopolyPlayerEconomySnapshot BuildMonopolyPlayerEconomySnapshot(
         MonopolyRoomState monopoly,
-        PlayerState player)
+        PlayerState player,
+        int completedRounds)
     {
         var owned = monopoly.Cells
             .Where(x => string.Equals(x.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal))
@@ -384,8 +387,8 @@ public sealed partial class GameRoomService
         var assetValue = owned.Sum(cell =>
         {
             var baseValue = cell.IsMortgaged
-                ? Math.Max(0, (int)Math.Floor(cell.Price / 2d))
-                : Math.Max(0, cell.Price);
+                ? Math.Max(0, (int)Math.Floor(ScaleCityPrice(cell.Price, completedRounds) / 2d))
+                : ScaleCityPrice(cell.Price, completedRounds);
             var buildingValue = cell.HasLandmark
                 ? cell.HouseCost * 7
                 : cell.HasHotel
@@ -469,7 +472,7 @@ public sealed partial class GameRoomService
 
         var orderedPlayers = room.Players
             .OrderByDescending(player => !player.IsBankrupt)
-            .ThenByDescending(player => CalculateNetWorth(monopoly, player.PlayerId, player.Cash))
+            .ThenByDescending(player => CalculateNetWorth(monopoly, player.PlayerId, player.Cash, room.CompletedRounds))
             .ThenByDescending(player => player.Cash)
             .ThenBy(player => room.Players.IndexOf(player))
             .ToArray();
@@ -482,7 +485,7 @@ public sealed partial class GameRoomService
                 AvatarId = NormalizeAvatarId(player.AvatarId),
                 Rank = index + 1,
                 Cash = player.Cash,
-                NetWorth = CalculateNetWorth(monopoly, player.PlayerId, player.Cash),
+                NetWorth = CalculateNetWorth(monopoly, player.PlayerId, player.Cash, room.CompletedRounds),
                 IsBankrupt = player.IsBankrupt,
                 OutcomeReason = ResolveMonopolyPlacementReason(room, monopoly, player, index == 0)
             })
@@ -538,7 +541,7 @@ public sealed partial class GameRoomService
         return room.FinishReason switch
         {
             "RoundLimitNetWorth" => "แพ้เพราะมูลค่าสุทธิน้อยกว่าเมื่อครบจำนวนรอบ",
-            _ => $"แพ้เพราะมูลค่าสุทธิเป็นรอง (สุทธิ {CalculateNetWorth(monopoly, player.PlayerId, player.Cash):N0})"
+            _ => $"แพ้เพราะมูลค่าสุทธิเป็นรอง (สุทธิ {CalculateNetWorth(monopoly, player.PlayerId, player.Cash, room.CompletedRounds):N0})"
         };
     }
 
@@ -561,15 +564,15 @@ public sealed partial class GameRoomService
         };
     }
 
-    private static int CalculateNetWorth(MonopolyRoomState monopoly, string playerId, int cash)
+    private static int CalculateNetWorth(MonopolyRoomState monopoly, string playerId, int cash, int completedRounds)
     {
         var assetValue = monopoly.Cells
             .Where(cell => string.Equals(cell.OwnerPlayerId, playerId, StringComparison.Ordinal))
             .Sum(cell =>
             {
                 var baseValue = cell.IsMortgaged
-                    ? Math.Max(0, (int)Math.Floor(cell.Price / 2d))
-                    : Math.Max(0, cell.Price);
+                    ? Math.Max(0, (int)Math.Floor(ScaleCityPrice(cell.Price, completedRounds) / 2d))
+                    : ScaleCityPrice(cell.Price, completedRounds);
                 var buildingValue = cell.HasLandmark
                     ? cell.HouseCost * 7
                     : cell.HasHotel
@@ -579,6 +582,17 @@ public sealed partial class GameRoomService
             });
 
         return cash + assetValue;
+    }
+
+    private static int ScaleCityPrice(int amount, int completedRounds)
+    {
+        if (amount <= 0)
+        {
+            return 0;
+        }
+
+        var growthMultiplier = 1d + (Math.Max(0, completedRounds) * MonopolyDefinitions.RentGrowthPerCompletedRound);
+        return Math.Max(1, (int)Math.Ceiling(amount * growthMultiplier));
     }
 
     private static DateTimeOffset? ResolveNextActionDeadlineUnsafe(GameRoom room)
