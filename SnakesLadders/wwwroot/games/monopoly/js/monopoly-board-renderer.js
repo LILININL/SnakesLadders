@@ -32,7 +32,9 @@
     el.board.style.setProperty("--rows", "11");
 
     const room = state?.room ?? null;
-    const roomKey = String(root.state?.roomCode ?? room?.code ?? room?.roomCode ?? "")
+    const roomKey = String(
+      root.state?.roomCode ?? room?.code ?? room?.roomCode ?? "",
+    )
       .trim()
       .toUpperCase();
     const displayPlayers = root.viewState.getDisplayPlayers();
@@ -47,11 +49,22 @@
       Math.max(0, completedRounds * 10);
     const cityPriceBoostPercent =
       root.monopolyHelpers?.cityPriceGrowthPercent?.(room) ?? 0;
-    const nextEconomyFrame = buildEconomyFrame(roomKey, room, cells, completedRounds);
+    const nextEconomyFrame = buildEconomyFrame(
+      roomKey,
+      room,
+      cells,
+      completedRounds,
+    );
     const ringCells = cells
       .map((cell) => renderCell(state, room, cell, turnPosition))
       .join("");
-    const center = renderCenter(state, room, freeParkingPot, tollBoostPercent, cityPriceBoostPercent);
+    const center = renderCenter(
+      state,
+      room,
+      freeParkingPot,
+      tollBoostPercent,
+      cityPriceBoostPercent,
+    );
     el.board.innerHTML = `${ringCells}${center}`;
 
     clearBoardClasses(el);
@@ -64,11 +77,7 @@
       end: Math.max(1, Number.parseInt(String(board.size ?? 40), 10) || 40),
       pageSize: 100,
     };
-    root.boardTokens?.render(
-      displayPlayers,
-      displayTurnPlayerId,
-      range,
-    );
+    root.boardTokens?.render(displayPlayers, displayTurnPlayerId, range);
     animateEconomyFrame(el.board, lastEconomyFrame, nextEconomyFrame);
     lastEconomyFrame = nextEconomyFrame;
 
@@ -106,7 +115,13 @@
     const hasLandmark = Boolean(cell?.hasLandmark ?? cell?.HasLandmark);
     const isMortgaged = Boolean(cell?.isMortgaged ?? cell?.IsMortgaged);
     const ownerAccent = resolveOwnerAccent(state, ownerId);
-    const estateTier = resolveEstateTier(type, houseCount, hasHotel, hasLandmark, isMortgaged);
+    const estateTier = resolveEstateTier(
+      type,
+      houseCount,
+      hasHotel,
+      hasLandmark,
+      isMortgaged,
+    );
 
     const classes = [
       "m-cell",
@@ -146,9 +161,7 @@
         ? ""
         : renderOwnerFlag(state, ownerId, ownerName, ownerAccent, estateTier);
 
-    const buildings = ownerId
-      ? renderEstateStage(estateTier, houseCount)
-      : "";
+    const buildings = ownerId ? renderEstateStage(estateTier, houseCount) : "";
     const mortgageBadge = isMortgaged
       ? '<span class="m-mortgage" title="Mortgaged">M</span>'
       : "";
@@ -188,12 +201,7 @@
       `;
     }
 
-    const costText =
-      fee > 0
-        ? `-${money(fee)}`
-        : rent > 0
-          ? money(rent)
-          : "";
+    const costText = fee > 0 ? `-${money(fee)}` : rent > 0 ? money(rent) : "";
 
     return `
       <span class="m-type">${escapeHtml(typeLabel)}</span>
@@ -261,7 +269,9 @@
           return;
         }
 
-        const metricEl = cellEl.querySelector(`[data-economy-metric="${kind}"]`);
+        const metricEl = cellEl.querySelector(
+          `[data-economy-metric="${kind}"]`,
+        );
         if (!metricEl) {
           return;
         }
@@ -308,8 +318,10 @@
   }
 
   function currentCityPrice(cell, room) {
-    return root.monopolyHelpers?.scaleCityPriceForCell?.(cell, room) ??
-      resolveNumber(cell?.price ?? cell?.Price);
+    return (
+      root.monopolyHelpers?.scaleCityPriceForCell?.(cell, room) ??
+      resolveNumber(cell?.price ?? cell?.Price)
+    );
   }
 
   function currentToll(cell, room) {
@@ -317,7 +329,8 @@
   }
 
   function renderOwnerChip(state, ownerId, ownerName, ownerAccent, estateTier) {
-    const mineClass = ownerId === String(state?.playerId ?? "").trim() ? " mine" : "";
+    const mineClass =
+      ownerId === String(state?.playerId ?? "").trim() ? " mine" : "";
     const emblemClass = `emblem-${escapeHtml(ownerAccent.emblemKey || "nova")}`;
     return `<span class="m-owner${mineClass}" title="เจ้าของ: ${escapeHtml(ownerName)}">
       <span class="m-owner-mark ${emblemClass}" aria-hidden="true"><span class="owner-emblem-sigil"></span></span>
@@ -329,7 +342,8 @@
   }
 
   function renderOwnerFlag(state, ownerId, ownerName, ownerAccent, estateTier) {
-    const mineClass = ownerId === String(state?.playerId ?? "").trim() ? " me" : "";
+    const mineClass =
+      ownerId === String(state?.playerId ?? "").trim() ? " me" : "";
     const emblemClass = `emblem-${escapeHtml(ownerAccent.emblemKey || "nova")}`;
     return `<span class="m-owner-flag${mineClass} tier-${escapeHtml(estateTier.className)}" title="เจ้าของ: ${escapeHtml(ownerName)}" aria-label="เจ้าของ ${escapeHtml(ownerName)}">
       <span class="m-owner-flag-core ${emblemClass}" aria-hidden="true"><span class="owner-emblem-sigil"></span></span>
@@ -337,19 +351,30 @@
   }
 
   function resolveOwnerAccent(state, ownerId) {
-    return root.utils?.resolvePlayerAccent?.(state?.room?.players ?? [], ownerId) ?? {
-      slot: 0,
-      base: "#5d91b7",
-      bright: "#8ac2ec",
-      edge: "#d9eefb",
-      deep: "#2d5e81",
-      soft: "rgba(93, 145, 183, 0.16)",
-      glow: "rgba(93, 145, 183, 0.3)",
-      emblemKey: "nova",
-    };
+    return (
+      root.utils?.resolvePlayerAccent?.(
+        state?.room?.players ?? [],
+        ownerId,
+      ) ?? {
+        slot: 0,
+        base: "#5d91b7",
+        bright: "#8ac2ec",
+        edge: "#d9eefb",
+        deep: "#2d5e81",
+        soft: "rgba(93, 145, 183, 0.16)",
+        glow: "rgba(93, 145, 183, 0.3)",
+        emblemKey: "nova",
+      }
+    );
   }
 
-  function renderCenter(state, room, freeParkingPot, tollBoostPercent, cityPriceBoostPercent) {
+  function renderCenter(
+    state,
+    room,
+    freeParkingPot,
+    tollBoostPercent,
+    cityPriceBoostPercent,
+  ) {
     const summaryRows = renderCenterPlayerSummary(state, room);
     return `
       <div class="m-center" style="grid-column:3 / span 7;grid-row:3 / span 7;">
@@ -379,10 +404,16 @@
     const economyRows = Array.isArray(room?.monopolyState?.playerEconomy)
       ? room.monopolyState.playerEconomy
       : [];
-    const economyById = new Map(economyRows.map((row) => [String(row.playerId), row]));
+    const economyById = new Map(
+      economyRows.map((row) => [String(row.playerId), row]),
+    );
     const players = Array.isArray(room?.players) ? room.players.slice() : [];
-    const activePlayerId = String(room?.monopolyState?.activePlayerId ?? "").trim();
-    const pendingPlayerId = String(room?.monopolyState?.pendingDecisionPlayerId ?? "").trim();
+    const activePlayerId = String(
+      room?.monopolyState?.activePlayerId ?? "",
+    ).trim();
+    const pendingPlayerId = String(
+      room?.monopolyState?.pendingDecisionPlayerId ?? "",
+    ).trim();
 
     return players
       .sort((left, right) => {
@@ -394,8 +425,12 @@
 
         const leftEconomy = economyById.get(String(left.playerId)) ?? {};
         const rightEconomy = economyById.get(String(right.playerId)) ?? {};
-        const leftNetWorth = resolveNumber(leftEconomy?.netWorth ?? leftEconomy?.NetWorth);
-        const rightNetWorth = resolveNumber(rightEconomy?.netWorth ?? rightEconomy?.NetWorth);
+        const leftNetWorth = resolveNumber(
+          leftEconomy?.netWorth ?? leftEconomy?.NetWorth,
+        );
+        const rightNetWorth = resolveNumber(
+          rightEconomy?.netWorth ?? rightEconomy?.NetWorth,
+        );
         return rightNetWorth - leftNetWorth;
       })
       .map((player) => {
@@ -412,26 +447,38 @@
         if (playerId === String(state?.playerId ?? "")) {
           classes.push("me");
         }
-        if (Boolean(economy?.isBankrupt ?? economy?.IsBankrupt ?? player.isBankrupt)) {
+        if (
+          Boolean(
+            economy?.isBankrupt ?? economy?.IsBankrupt ?? player.isBankrupt,
+          )
+        ) {
           classes.push("bankrupt");
         }
 
-        const cash = resolveNumber(economy?.cash ?? economy?.Cash ?? player.cash);
+        const cash = resolveNumber(
+          economy?.cash ?? economy?.Cash ?? player.cash,
+        );
         const netWorth = resolveNumber(economy?.netWorth ?? economy?.NetWorth);
-        const propertyCount = resolveNumber(economy?.propertyCount ?? economy?.PropertyCount);
+        const propertyCount = resolveNumber(
+          economy?.propertyCount ?? economy?.PropertyCount,
+        );
         const inJail = Boolean(economy?.inJail ?? economy?.InJail);
         const badges = [];
         if (playerId === activePlayerId) {
           badges.push('<span class="m-center-player-badge turn">ตาเล่น</span>');
         }
         if (playerId === pendingPlayerId && playerId !== activePlayerId) {
-          badges.push('<span class="m-center-player-badge wait">รอตัดสินใจ</span>');
+          badges.push(
+            '<span class="m-center-player-badge wait">รอตัดสินใจ</span>',
+          );
         }
         if (inJail) {
           badges.push('<span class="m-center-player-badge jail">ติดคุก</span>');
         }
         if (classes.includes("bankrupt")) {
-          badges.push('<span class="m-center-player-badge out">ล้มละลาย</span>');
+          badges.push(
+            '<span class="m-center-player-badge out">ล้มละลาย</span>',
+          );
         }
 
         return `
@@ -451,7 +498,13 @@
       .join("");
   }
 
-  function resolveEstateTier(type, houseCount, hasHotel, hasLandmark, isMortgaged) {
+  function resolveEstateTier(
+    type,
+    houseCount,
+    hasHotel,
+    hasLandmark,
+    isMortgaged,
+  ) {
     if (isMortgaged) {
       return {
         className: "mortgaged",

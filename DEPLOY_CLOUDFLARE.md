@@ -118,7 +118,33 @@ source ~/.nvm/nvm.sh
 nvm use 24.9.0
 ```
 
-## 10) Common Tunnel Errors
+## 10) Cloudflare Containers From Repo Root
+
+ตอนนี้ repo นี้สามารถ deploy ตรงจาก root ได้แล้ว โดยใช้ Docker สำหรับ Cloudflare ที่ [Dockerfile.cloudflare](/Users/lilin/Desktop/Alumilive/SnakesLadders/Dockerfile.cloudflare) และ build แอปจริงจาก [SnakesLadders/Dockerfile](/Users/lilin/Desktop/Alumilive/SnakesLadders/SnakesLadders/Dockerfile) logic เดิม
+
+ไฟล์หลัก:
+
+- [package.json](/Users/lilin/Desktop/Alumilive/SnakesLadders/package.json)
+- [wrangler.jsonc](/Users/lilin/Desktop/Alumilive/SnakesLadders/wrangler.jsonc)
+- [cloudflare/index.js](/Users/lilin/Desktop/Alumilive/SnakesLadders/cloudflare/index.js)
+
+คำสั่ง:
+
+```bash
+cd /Users/lilin/Desktop/Alumilive/SnakesLadders
+source ~/.nvm/nvm.sh
+nvm use 24.9.0
+npm install
+npm run deploy
+```
+
+หมายเหตุ:
+
+- Worker จะ proxy ทุก request ไปที่ container ของแอปเกม
+- ตอนนี้ตั้งเป็น singleton container เพื่อให้ state ใน memory ของเกมไม่กระจายหลาย instance
+- ถ้า container sleep/restart เกมที่เก็บใน memory จะหาย ต้องมี persistence แยกถ้าจะใช้จริงระยะยาว
+
+## 11) Common Tunnel Errors
 
 ### Error 1033 (Cloudflare Tunnel error: unable to resolve)
 

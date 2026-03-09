@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "snakesladders",
+  "main": "cloudflare/index.js",
+  "compatibility_date": "2026-03-09",
+  "observability": {
+    "enabled": true
+  },
+  "containers": [
+    {
+      "class_name": "SnakesLaddersContainer",
+      "image": "./Dockerfile.cloudflare",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "SnakesLaddersContainer",
+        "name": "APP_CONTAINER"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "new_sqlite_classes": [
+        "SnakesLaddersContainer"
+      ],
+      "tag": "v1"
+    }
+  ]
+}
