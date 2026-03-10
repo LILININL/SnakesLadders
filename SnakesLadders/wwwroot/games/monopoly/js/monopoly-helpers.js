@@ -61,7 +61,9 @@
       return null;
     }
 
-    return resolveCells(room).find((cell) => resolveCellNo(cell) === target) ?? null;
+    return (
+      resolveCells(room).find((cell) => resolveCellNo(cell) === target) ?? null
+    );
   }
 
   function resolveCellNo(cell) {
@@ -112,7 +114,9 @@
   }
 
   function resolveEconomyState(room = state.room) {
-    const roomCode = String(room?.roomCode ?? room?.RoomCode ?? "").trim().toUpperCase();
+    const roomCode = String(room?.roomCode ?? room?.RoomCode ?? "")
+      .trim()
+      .toUpperCase();
     const turnCounter = resolveNumber(room?.turnCounter ?? room?.TurnCounter);
     const rawCompletedRounds = resolveNumber(
       room?.completedRounds ?? room?.CompletedRounds,
@@ -149,7 +153,10 @@
       economyTracker.completedRounds = rawCompletedRounds;
       economyTracker.cityPriceGrowthRounds = rawCityPriceGrowthRounds;
     } else {
-      economyTracker.turnCounter = Math.max(economyTracker.turnCounter, turnCounter);
+      economyTracker.turnCounter = Math.max(
+        economyTracker.turnCounter,
+        turnCounter,
+      );
       economyTracker.completedRounds = Math.max(
         economyTracker.completedRounds,
         rawCompletedRounds,
@@ -173,7 +180,9 @@
   function tollGrowthPercent(room = state.room) {
     return Math.max(
       0,
-      Math.round(resolveCompletedRounds(room) * RENT_GROWTH_PER_COMPLETED_ROUND * 100),
+      Math.round(
+        resolveCompletedRounds(room) * RENT_GROWTH_PER_COMPLETED_ROUND * 100,
+      ),
     );
   }
 
@@ -216,7 +225,9 @@
 
     return Math.max(
       1,
-      Math.ceil(base * RENT_ACCELERATION_MULTIPLIER * tollGrowthMultiplier(room)),
+      Math.ceil(
+        base * RENT_ACCELERATION_MULTIPLIER * tollGrowthMultiplier(room),
+      ),
     );
   }
 
@@ -409,11 +420,16 @@
     const parsed = Number.parseInt(String(monopoly?.phase ?? ""), 10);
     return Number.isFinite(parsed)
       ? parsed
-      : root.MONOPOLY_PHASE?.AWAIT_ROLL ?? 1;
+      : (root.MONOPOLY_PHASE?.AWAIT_ROLL ?? 1);
   }
 
   function canRollNow() {
-    if (!state.room || !state.roomCode || state.animating || !isMonopolyRoom()) {
+    if (
+      !state.room ||
+      !state.roomCode ||
+      state.animating ||
+      !isMonopolyRoom()
+    ) {
       return false;
     }
     if ((state.room?.status ?? -1) !== root.GAME_STATUS.STARTED) {

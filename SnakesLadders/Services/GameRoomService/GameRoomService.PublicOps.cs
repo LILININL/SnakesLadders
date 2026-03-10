@@ -37,7 +37,7 @@ public sealed partial class GameRoomService
             {
                 return ServiceResult<RoomSnapshot>.Fail($"ยังไม่รองรับเกม {room.GameKey}");
             }
-            
+
             gameModule.ResetFinishedGame(room);
 
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));

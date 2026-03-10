@@ -113,7 +113,7 @@ public static class MonopolyBoardTemplate
         Property(2, "นครนายก", "Brown", 60, 10),
         Cell(3, "การ์ดชุมชน", MonopolyCellType.CommunityChest),
         Property(4, "ลพบุรี", "Brown", 60, 12),
-        Tax(5, "ภาษีเงินได้", 200),
+        Tax(5, "ภาษีเงินได้", 260),
         Property(6, "สถานีรถไฟหัวลำโพง", "Railroad", 200, 25, MonopolyCellType.Railroad),
         Property(7, "เชียงราย", "Light Blue", 100, 18),
         Cell(8, "โอกาส", MonopolyCellType.Chance),
@@ -147,7 +147,7 @@ public static class MonopolyBoardTemplate
         Property(36, "สถานีรถไฟหาดใหญ่", "Railroad", 200, 25, MonopolyCellType.Railroad),
         Cell(37, "โอกาส", MonopolyCellType.Chance),
         Property(38, "กรุงเทพมหานคร", "Dark Blue", 350, 60),
-        Tax(39, "ภาษีหรูหรา", 100),
+        Tax(39, "ภาษีหรูหรา", 180),
         Property(40, "นนทบุรี", "Dark Blue", 400, 70)
     ];
 
