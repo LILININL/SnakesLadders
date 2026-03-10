@@ -1199,7 +1199,9 @@
       return;
     }
 
-    const sec = resolveDeadlineSec(state.room?.turnDeadlineUtc);
+    const sec = resolveDeadlineSec(
+      state.deferredRoom?.turnDeadlineUtc ?? state.room?.turnDeadlineUtc,
+    );
     if (sec <= 0) {
       timerEl.textContent = "กำลังหมดเวลา...";
       return;

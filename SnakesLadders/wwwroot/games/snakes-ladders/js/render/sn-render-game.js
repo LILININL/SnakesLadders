@@ -39,8 +39,10 @@
     const turnPlayer = state.room.players.find(
       (x) => x.playerId === displayTurnPlayerId,
     );
-    const deadline = state.room.turnDeadlineUtc
-      ? ` | หมดเวลา: ${formatClock(state.room.turnDeadlineUtc)}`
+    const effectiveDeadline =
+      state.deferredRoom?.turnDeadlineUtc ?? state.room.turnDeadlineUtc;
+    const deadline = effectiveDeadline
+      ? ` | หมดเวลา: ${formatClock(effectiveDeadline)}`
       : "";
     const gameName = gameLabel(state.room.gameKey);
 

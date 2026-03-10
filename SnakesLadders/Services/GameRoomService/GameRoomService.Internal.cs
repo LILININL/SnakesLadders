@@ -638,11 +638,16 @@ public sealed partial class GameRoomService
             return DateTimeOffset.UtcNow.AddSeconds(45);
         }
 
-        var animationBufferSeconds = room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase)
-            ? 0
-            : room.TurnCounter > 0
-                ? TurnAnimationBufferSeconds
-                : 0;
+        var animationBufferSeconds =
+            room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase) &&
+            room.Monopoly is not null &&
+            room.Monopoly.Phase is MonopolyTurnPhase.AwaitRoll or MonopolyTurnPhase.AwaitJailDecision
+                ? MonopolyTurnAnimationBufferSeconds
+                : room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase)
+                    ? 0
+                    : room.TurnCounter > 0
+                        ? TurnAnimationBufferSeconds
+                        : 0;
 
         return DateTimeOffset.UtcNow.AddSeconds(Math.Max(3, rules.TurnSeconds) + animationBufferSeconds);
     }

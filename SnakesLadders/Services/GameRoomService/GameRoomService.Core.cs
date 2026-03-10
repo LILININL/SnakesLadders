@@ -7,6 +7,7 @@ public sealed partial class GameRoomService : IGameRoomService
 {
     private const int OfflineAutoRollDelayMs = 700;
     private const int TurnAnimationBufferSeconds = 14;
+    private const int MonopolyTurnAnimationBufferSeconds = 5;
     private const int MinAvatarId = 1;
     private const int MaxAvatarId = 11;
 

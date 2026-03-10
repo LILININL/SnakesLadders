@@ -176,7 +176,8 @@
       return;
     }
 
-    const deadline = state.room?.turnDeadlineUtc;
+    const deadline =
+      state.deferredRoom?.turnDeadlineUtc ?? state.room?.turnDeadlineUtc;
     if (!deadline) {
       hideDeadlineAlert();
       return;
