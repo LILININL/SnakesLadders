@@ -573,6 +573,67 @@ public sealed partial class GameRoomService : IGameRoomService
         }
     }
 
+    public ServiceResult<RoomSnapshot> VoteFinalDuel(string connectionId, VoteFinalDuelRequest request)
+    {
+        lock (_sync)
+        {
+            if (!_connections.TryGetValue(connectionId, out var binding))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("คุณยังไม่ได้เข้าห้อง");
+            }
+
+            var roomCode = NormalizeRoomCode(request.RoomCode);
+            if (!binding.RoomCode.Equals(roomCode, StringComparison.OrdinalIgnoreCase))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("คุณไม่ได้อยู่ในห้องนี้");
+            }
+
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบห้องที่ระบุ");
+            }
+
+            if (!room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase) ||
+                room.Monopoly is null)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("โหวต Final Duel ได้เฉพาะเกมเศรษฐี");
+            }
+
+            if (room.Status != GameStatus.Started)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ต้องอยู่ระหว่างเกมเท่านั้น");
+            }
+
+            var player = room.FindPlayer(binding.PlayerId);
+            if (player is null)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบผู้เล่น");
+            }
+
+            if (player.IsBankrupt)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ผู้เล่นที่ล้มละลายแล้วโหวตไม่ได้");
+            }
+
+            if (!CanVoteFinalDuelUnsafe(room, room.Monopoly, player))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ตอนนี้ยังไม่เข้าเงื่อนไขโหวตเข้า Final Duel");
+            }
+
+            if (request.Support)
+            {
+                room.Monopoly.FinalDuelVotePlayerIds.Add(player.PlayerId);
+            }
+            else
+            {
+                room.Monopoly.FinalDuelVotePlayerIds.Remove(player.PlayerId);
+            }
+
+            RefreshFinalDuelVotePendingUnsafe(room, room.Monopoly);
+            return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
+        }
+    }
+
     public ServiceResult<RoomSnapshot> SetAvatar(string connectionId, SetAvatarRequest request)
     {
         lock (_sync)
@@ -617,5 +678,64 @@ public sealed partial class GameRoomService : IGameRoomService
             player.AvatarId = NormalizeAvatarId(request.AvatarId);
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
         }
+    }
+
+    private static bool CanVoteFinalDuelUnsafe(
+        GameRoom room,
+        MonopolyRoomState state,
+        PlayerState player)
+    {
+        return !player.IsBankrupt && IsFinalDuelVoteWindowOpenUnsafe(room, state);
+    }
+
+    private static bool IsFinalDuelVoteWindowOpenUnsafe(
+        GameRoom room,
+        MonopolyRoomState state)
+    {
+        if (state.FinalDuelActive ||
+            state.StartedPlayerCount < MonopolyDefinitions.FinalDuelMinimumStartingPlayers)
+        {
+            return false;
+        }
+
+        var aliveCount = room.Players.Count(entry => !entry.IsBankrupt);
+        if (aliveCount < 3)
+        {
+            return false;
+        }
+
+        var maxRounds = Math.Max(1, room.BoardOptions.RuleOptions.MaxRounds);
+        var thresholdRound = Math.Max(
+            1,
+            (int)Math.Ceiling(maxRounds * MonopolyDefinitions.FinalDuelVoteCapProgressThreshold));
+        if (room.CompletedRounds < thresholdRound)
+        {
+            return false;
+        }
+
+        return !state.LastBankruptcyCompletedRound.HasValue ||
+               room.CompletedRounds - state.LastBankruptcyCompletedRound.Value >=
+               MonopolyDefinitions.FinalDuelVoteRecentBankruptcyRounds;
+    }
+
+    private static void RefreshFinalDuelVotePendingUnsafe(GameRoom room, MonopolyRoomState state)
+    {
+        var aliveIds = room.Players
+            .Where(player => !player.IsBankrupt)
+            .Select(player => player.PlayerId)
+            .ToHashSet(StringComparer.Ordinal);
+        state.FinalDuelVotePlayerIds.RemoveWhere(playerId => !aliveIds.Contains(playerId));
+
+        if (!IsFinalDuelVoteWindowOpenUnsafe(room, state))
+        {
+            state.FinalDuelVotePendingStart = false;
+            state.FinalDuelVotePlayerIds.Clear();
+            return;
+        }
+
+        var aliveCount = aliveIds.Count;
+        var required = aliveCount >= 3 ? (aliveCount / 2) + 1 : 0;
+        var yesCount = state.FinalDuelVotePlayerIds.Count(aliveIds.Contains);
+        state.FinalDuelVotePendingStart = required > 0 && yesCount >= required;
     }
 }

@@ -101,6 +101,10 @@ public sealed class MonopolyRoomState
     public int StartedPlayerCount { get; set; }
     public bool FinalDuelActive { get; set; }
     public int FinalDuelStartCompletedRounds { get; set; }
+    public bool FinalDuelVotePendingStart { get; set; }
+    public int? LastBankruptcyCompletedRound { get; set; }
+    public HashSet<string> FinalDuelVotePlayerIds { get; } =
+        new(StringComparer.Ordinal);
     public bool UpgradeUsedThisTurn { get; set; }
     public List<int> UpgradeEligibleCellIds { get; } = new();
 

@@ -109,6 +109,12 @@ public sealed class SetFullAutoRequest
     public bool Enabled { get; set; }
 }
 
+public sealed class VoteFinalDuelRequest
+{
+    public string RoomCode { get; set; } = string.Empty;
+    public bool Support { get; set; } = true;
+}
+
 public sealed class SetAvatarRequest
 {
     public string RoomCode { get; set; } = string.Empty;
@@ -262,6 +268,11 @@ public sealed class MonopolyStateSnapshot
     public int FinalDuelRoundsRemaining { get; init; }
     public int FinalDuelGoReward { get; init; }
     public int FinalDuelRentBonusPercent { get; init; }
+    public bool IsFinalDuelVoteEligible { get; init; }
+    public bool IsFinalDuelVotePendingStart { get; init; }
+    public int FinalDuelVoteYesCount { get; init; }
+    public int FinalDuelVoteRequired { get; init; }
+    public IReadOnlyList<string> FinalDuelVotedPlayerIds { get; init; } = Array.Empty<string>();
     public bool UpgradeUsedThisTurn { get; init; }
     public IReadOnlyList<int> UpgradeEligibleCellIds { get; init; } = Array.Empty<int>();
     public MonopolyAuctionSnapshot? ActiveAuction { get; init; }

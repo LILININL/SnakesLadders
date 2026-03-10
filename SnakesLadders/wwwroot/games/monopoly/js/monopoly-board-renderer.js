@@ -60,6 +60,14 @@
       root.monopolyHelpers?.resolveFinalDuelGoReward?.(room) ?? 0;
     const finalDuelRentBonusPercent =
       root.monopolyHelpers?.resolveFinalDuelRentBonusPercent?.(room) ?? 0;
+    const finalDuelVoteEligible =
+      root.monopolyHelpers?.isFinalDuelVoteEligible?.(room) ?? false;
+    const finalDuelVotePending =
+      root.monopolyHelpers?.isFinalDuelVotePendingStart?.(room) ?? false;
+    const finalDuelVoteYesCount =
+      root.monopolyHelpers?.resolveFinalDuelVoteYesCount?.(room) ?? 0;
+    const finalDuelVoteRequired =
+      root.monopolyHelpers?.resolveFinalDuelVoteRequired?.(room) ?? 0;
     const nextEconomyFrame = buildEconomyFrame(
       roomKey,
       room,
@@ -86,6 +94,10 @@
       finalDuelRoundsRemaining,
       finalDuelGoReward,
       finalDuelRentBonusPercent,
+      finalDuelVoteEligible,
+      finalDuelVotePending,
+      finalDuelVoteYesCount,
+      finalDuelVoteRequired,
     );
     el.board.innerHTML = `${ringCells}${center}`;
     restoreCenterPlayerListScroll(el.board, roomKey, savedCenterScrollTop);
@@ -408,6 +420,10 @@
     finalDuelRoundsRemaining,
     finalDuelGoReward,
     finalDuelRentBonusPercent,
+    finalDuelVoteEligible,
+    finalDuelVotePending,
+    finalDuelVoteYesCount,
+    finalDuelVoteRequired,
   ) {
     const liveStandings = renderLiveStandings(standings);
     const summaryRows = renderCenterPlayerSummary(state, standings);
@@ -432,6 +448,17 @@
           <span class="m-economy-pill toll">ค่าผ่านทาง +${escapeHtml(String(tollBoostPercent))}%</span>
           <span class="m-economy-pill price">${isFinalDuel ? "ราคาเมืองคงที่" : `ราคาเมือง +${escapeHtml(String(cityPriceBoostPercent))}%`}</span>
         </div>
+        ${
+          !isFinalDuel && finalDuelVoteEligible
+            ? `
+              <div class="m-final-duel-vote-strip ${finalDuelVotePending ? "pending" : ""}">
+                <span class="m-final-duel-vote-copy">โหวตเข้า Final Duel</span>
+                <span class="m-final-duel-vote-count">${finalDuelVoteYesCount}/${finalDuelVoteRequired} เสียง</span>
+                <span class="m-final-duel-vote-status">${finalDuelVotePending ? "ครบเสียงแล้ว • รอเริ่มเทิร์นถัดไป" : "เสียงมากกว่าครึ่งของผู้เล่นที่ยังอยู่"}</span>
+              </div>
+            `
+            : ""
+        }
         <div class="m-skyline" aria-hidden="true">
           <span style="--h:36px"></span>
           <span style="--h:54px"></span>

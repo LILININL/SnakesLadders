@@ -69,6 +69,7 @@
       syncActionFxBaseline(room);
       root.session.syncProfileAvatarFromRoom(room, state.playerId);
       flushPendingTurnTrigger(room);
+      syncFinalDuelVotePrompt(room);
       root.boardFocus?.onRoomBound?.(false);
       root.feedback.renderAll();
     });
@@ -83,6 +84,7 @@
       }
 
       syncActionFxBaseline(room);
+      syncFinalDuelVotePrompt(room);
       root.feedback.renderAll();
     });
 
@@ -94,6 +96,8 @@
       root.boardFocus?.onRoomBound?.(true);
       root.feedback.logEvent("เกมเริ่มแล้ว ลุยได้เลย");
       root.feedback.renderAll();
+      state.lastFinalDuelVotePromptTurnCounter = resolveTurnCounter(room.turnCounter);
+      root.boardFx?.hideFinalDuelVotePrompt?.();
       root.boardFx?.showTurnStart?.(
         room,
         room.currentTurnPlayerId,
@@ -142,6 +146,7 @@
         root.viewState.acceptRoomSnapshot(payload.room);
         syncActionFxBaseline(payload.room, { force: true });
         seedTurnTriggerCounter(payload.room);
+        root.boardFx?.hideFinalDuelVotePrompt?.();
         root.feedback.renderAll();
       }
     });
@@ -207,6 +212,7 @@
     root.viewState.clearDeferredRoom();
     state.pendingTurnChangedPlayerId = "";
     state.lastAnnouncedTurnCounter = -1;
+    state.lastFinalDuelVotePromptTurnCounter = -1;
     state.pendingBeaconTargetPlayerId = "";
     state.pageTransitioning = false;
     state.pageTransitionDirection = 0;
@@ -254,6 +260,7 @@
     state.lastAnnouncedTurnCounter = turnCounter;
 
     if (!playerId) {
+      syncFinalDuelVotePrompt(room);
       return false;
     }
 
@@ -262,7 +269,12 @@
     root.feedback.logEvent(
       `ตอนนี้เป็นตาของ ${player ? player.displayName : playerId}`,
     );
-    root.boardFx?.showTurnStart?.(room, playerId, "ถึงเทิร์นของ");
+    const turnStartFx = root.boardFx?.showTurnStart?.(
+      room,
+      playerId,
+      "ถึงเทิร์นของ",
+    );
+    queueFinalDuelVotePrompt(room, turnStartFx);
     return true;
   }
 
@@ -270,16 +282,71 @@
     if (!room || room.status !== root.GAME_STATUS.STARTED) {
       state.lastAnnouncedTurnCounter = -1;
       state.pendingTurnChangedPlayerId = "";
+      state.lastFinalDuelVotePromptTurnCounter = -1;
       return;
     }
 
     state.lastAnnouncedTurnCounter = resolveTurnCounter(room.turnCounter);
     state.pendingTurnChangedPlayerId = "";
+    state.lastFinalDuelVotePromptTurnCounter = resolveTurnCounter(room.turnCounter);
   }
 
   function resolveTurnCounter(value) {
     const parsed = Number.parseInt(String(value ?? ""), 10);
     return Number.isFinite(parsed) ? parsed : -1;
+  }
+
+  function syncFinalDuelVotePrompt(room) {
+    const helpers = root.monopolyHelpers;
+    const me = room?.players?.find((player) => player.playerId === state.playerId);
+    const shouldShow = Boolean(
+      room?.status === root.GAME_STATUS.STARTED &&
+      helpers?.isMonopolyRoom?.(room) &&
+      !helpers?.isFinalDuel?.(room) &&
+      helpers?.isFinalDuelVoteEligible?.(room) &&
+      me &&
+      !me.isBot &&
+      !me.isBankrupt,
+    );
+
+    if (!shouldShow) {
+      root.boardFx?.hideFinalDuelVotePrompt?.();
+    }
+  }
+
+  function queueFinalDuelVotePrompt(room, afterPromise = null) {
+    const helpers = root.monopolyHelpers;
+    const me = room?.players?.find((player) => player.playerId === state.playerId);
+    const turnCounter = resolveTurnCounter(room?.turnCounter);
+    const shouldShow = Boolean(
+      room?.status === root.GAME_STATUS.STARTED &&
+      helpers?.isMonopolyRoom?.(room) &&
+      !helpers?.isFinalDuel?.(room) &&
+      helpers?.isFinalDuelVoteEligible?.(room) &&
+      me &&
+      !me.isBot &&
+      !me.isBankrupt &&
+      turnCounter > state.lastFinalDuelVotePromptTurnCounter,
+    );
+
+    if (!shouldShow) {
+      syncFinalDuelVotePrompt(room);
+      return false;
+    }
+
+    state.lastFinalDuelVotePromptTurnCounter = turnCounter;
+    const chain =
+      afterPromise && typeof afterPromise.then === "function"
+        ? afterPromise
+        : Promise.resolve();
+    chain
+      .then(() => {
+        if (!root.turnAnimation?.isBusy?.()) {
+          root.boardFx?.showFinalDuelVotePrompt?.(state.room ?? room);
+        }
+      })
+      .catch(() => {});
+    return true;
   }
 
   function formatDiceEvent(turn, room) {
@@ -317,6 +384,8 @@
     if (!payload?.turn || !payload?.room) {
       return;
     }
+
+    root.boardFx?.hideFinalDuelVotePrompt?.();
 
     const incomingRevision =
       root.viewState?.resolveRoomSnapshotRevision?.(payload.room) ?? 0;

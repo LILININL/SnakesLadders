@@ -191,6 +191,18 @@ public sealed class GameHub : Hub
         await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("RoomUpdated", result.Value);
     }
 
+    public async Task VoteFinalDuel(VoteFinalDuelRequest request)
+    {
+        var result = _roomService.VoteFinalDuel(Context.ConnectionId, request);
+        if (!result.Success || result.Value is null)
+        {
+            await SendError(result.Error ?? "โหวต Final Duel ไม่สำเร็จ");
+            return;
+        }
+
+        await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("RoomUpdated", result.Value);
+    }
+
     public async Task SetAvatar(SetAvatarRequest request)
     {
         var result = _roomService.SetAvatar(Context.ConnectionId, request);

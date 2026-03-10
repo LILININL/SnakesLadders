@@ -99,6 +99,9 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         monopoly.StartedPlayerCount = room.Players.Count;
         monopoly.FinalDuelActive = false;
         monopoly.FinalDuelStartCompletedRounds = 0;
+        monopoly.FinalDuelVotePendingStart = false;
+        monopoly.LastBankruptcyCompletedRound = null;
+        monopoly.FinalDuelVotePlayerIds.Clear();
         room.WinnerPlayerId = null;
         room.FinishReason = null;
         room.ActiveFrenzySnake = null;
@@ -1913,6 +1916,9 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         state.PendingDebtToPlayerId = null;
         state.PendingDebtAmount = 0;
         state.PendingDebtReason = null;
+        state.LastBankruptcyCompletedRound = room.CompletedRounds;
+        state.FinalDuelVotePendingStart = false;
+        state.FinalDuelVotePlayerIds.Clear();
 
         logs.Add($"{player.DisplayName} ล้มละลาย ({reason})");
     }
@@ -1944,6 +1950,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
     {
         ClearTransientActionState(state, keepDebt: false);
         ClearTurnUpgradeState(state);
+        var shouldStartVotedFinalDuel = state.FinalDuelVotePendingStart;
 
         if (room.Players.Count == 0)
         {
@@ -1996,6 +2003,21 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             : active.JailTurnsRemaining > 0
                 ? MonopolyTurnPhase.AwaitJailDecision
                 : MonopolyTurnPhase.AwaitRoll;
+
+        if (!state.FinalDuelActive && shouldStartVotedFinalDuel && CanStartFinalDuelFromVote(room, state))
+        {
+            ActivateFinalDuel(
+                room,
+                state,
+                logs,
+                "Final Duel: เสียงโหวตครบแล้ว เข้าสู่ศึกปิดเกมในต้นเทิร์นนี้");
+            return;
+        }
+
+        if (!state.FinalDuelActive)
+        {
+            ReconcileFinalDuelVotes(room, state);
+        }
     }
 
     private static void ClearTransientActionState(MonopolyRoomState state, bool keepDebt)
@@ -2092,11 +2114,197 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             return;
         }
 
+        ActivateFinalDuel(
+            room,
+            state,
+            logs,
+            "Final Duel: เหลือผู้เล่น 2 คนสุดท้ายแล้ว เข้าสู่ศึกปิดเกม");
+    }
+
+    private static void ActivateFinalDuel(
+        GameRoom room,
+        MonopolyRoomState state,
+        List<string>? logs,
+        string introLine)
+    {
         state.FinalDuelActive = true;
         state.FinalDuelStartCompletedRounds = room.CompletedRounds;
-        logs?.Add("Final Duel: เหลือผู้เล่น 2 คนสุดท้ายแล้ว เข้าสู่ศึกปิดเกม");
+        state.FinalDuelVotePendingStart = false;
+        state.FinalDuelVotePlayerIds.Clear();
+        logs?.Add(introLine);
         logs?.Add(
             $"Final Duel: รอบ 1/{MonopolyDefinitions.FinalDuelDurationRounds} • GO {ResolveFinalDuelGoReward(room, state):N0} • ค่าผ่านทางพิเศษ +{ResolveFinalDuelRentBonusPercent(room, state)}%");
+    }
+
+    private static void ReconcileFinalDuelVotes(GameRoom room, MonopolyRoomState state)
+    {
+        if (!CanOpenFinalDuelVote(room, state))
+        {
+            state.FinalDuelVotePendingStart = false;
+            state.FinalDuelVotePlayerIds.Clear();
+            return;
+        }
+
+        var alivePlayers = room.Players
+            .Where(player => !player.IsBankrupt)
+            .ToArray();
+        var aliveIds = alivePlayers
+            .Select(player => player.PlayerId)
+            .ToHashSet(StringComparer.Ordinal);
+        state.FinalDuelVotePlayerIds.RemoveWhere(playerId => !aliveIds.Contains(playerId));
+
+        foreach (var bot in alivePlayers.Where(player => player.IsBot))
+        {
+            if (ShouldBotSupportFinalDuelVote(room, state, bot, alivePlayers))
+            {
+                state.FinalDuelVotePlayerIds.Add(bot.PlayerId);
+            }
+            else
+            {
+                state.FinalDuelVotePlayerIds.Remove(bot.PlayerId);
+            }
+        }
+
+        state.FinalDuelVotePendingStart = CountFinalDuelVotes(room, state) >= ResolveFinalDuelVoteRequired(room, state);
+    }
+
+    private static bool CanOpenFinalDuelVote(GameRoom room, MonopolyRoomState state)
+    {
+        if (state.FinalDuelActive ||
+            state.StartedPlayerCount < MonopolyDefinitions.FinalDuelMinimumStartingPlayers)
+        {
+            return false;
+        }
+
+        var aliveCount = room.Players.Count(player => !player.IsBankrupt);
+        if (aliveCount < 3)
+        {
+            return false;
+        }
+
+        var maxRounds = Math.Max(1, room.BoardOptions.RuleOptions.MaxRounds);
+        var thresholdRound = Math.Max(
+            1,
+            (int)Math.Ceiling(maxRounds * MonopolyDefinitions.FinalDuelVoteCapProgressThreshold));
+        if (room.CompletedRounds < thresholdRound)
+        {
+            return false;
+        }
+
+        return !state.LastBankruptcyCompletedRound.HasValue ||
+               room.CompletedRounds - state.LastBankruptcyCompletedRound.Value >=
+               MonopolyDefinitions.FinalDuelVoteRecentBankruptcyRounds;
+    }
+
+    private static bool CanStartFinalDuelFromVote(GameRoom room, MonopolyRoomState state) =>
+        CanOpenFinalDuelVote(room, state) &&
+        CountFinalDuelVotes(room, state) >= ResolveFinalDuelVoteRequired(room, state);
+
+    private static int CountFinalDuelVotes(GameRoom room, MonopolyRoomState state)
+    {
+        var aliveIds = room.Players
+            .Where(player => !player.IsBankrupt)
+            .Select(player => player.PlayerId)
+            .ToHashSet(StringComparer.Ordinal);
+        return state.FinalDuelVotePlayerIds.Count(aliveIds.Contains);
+    }
+
+    private static int ResolveFinalDuelVoteRequired(GameRoom room, MonopolyRoomState state)
+    {
+        var aliveCount = room.Players.Count(player => !player.IsBankrupt);
+        return aliveCount >= 3 ? (aliveCount / 2) + 1 : 0;
+    }
+
+    private static bool ShouldBotSupportFinalDuelVote(
+        GameRoom room,
+        MonopolyRoomState state,
+        PlayerState bot,
+        IReadOnlyList<PlayerState> alivePlayers)
+    {
+        if (!bot.IsBot)
+        {
+            return false;
+        }
+
+        var standings = alivePlayers
+            .Select(player => new
+            {
+                Player = player,
+                NetWorth = CalculateNetWorth(state, player.PlayerId, player.Cash, state.CityPriceGrowthRounds)
+            })
+            .OrderByDescending(entry => entry.NetWorth)
+            .ThenByDescending(entry => entry.Player.Cash)
+            .ThenBy(entry => room.Players.IndexOf(entry.Player))
+            .ToArray();
+
+        var myIndex = Array.FindIndex(standings, entry => entry.Player.PlayerId == bot.PlayerId);
+        if (myIndex < 0)
+        {
+            return false;
+        }
+
+        var myRank = myIndex + 1;
+        var leaderWorth = standings[0].NetWorth;
+        var myWorth = standings[myIndex].NetWorth;
+        var myGap = Math.Max(0, leaderWorth - myWorth);
+        var effectiveCap = Math.Max(1, room.BoardOptions.RuleOptions.MaxRounds);
+        var progress = Math.Clamp(room.CompletedRounds / (double)effectiveCap, 0d, 1.4d);
+        var personality = ResolveFinalDuelVotePersonality(room, state, bot, myRank, myGap);
+
+        var score = 0d;
+        score += progress >= 0.90d ? 1.10d : progress >= 0.80d ? 0.70d : 0.35d;
+        score += myRank > 1 ? 0.65d : -0.30d;
+        score += myGap >= 550 ? 0.90d : myGap >= 280 ? 0.50d : myGap <= 120 ? -0.15d : 0d;
+        score += personality switch
+        {
+            BotPersonality.Builder => 0.35d,
+            BotPersonality.Collector => 0.18d,
+            BotPersonality.Banker => -0.60d,
+            _ => 0d
+        };
+        score += bot.BotDifficulty == BotDifficulty.Aggressive ? 0.22d : -0.04d;
+
+        if (myRank == 1 && myGap >= 260)
+        {
+            score -= 0.95d;
+        }
+
+        return score >= 0.75d;
+    }
+
+    private static BotPersonality ResolveFinalDuelVotePersonality(
+        GameRoom room,
+        MonopolyRoomState state,
+        PlayerState bot,
+        int myRank,
+        int myGap)
+    {
+        var configured = Enum.IsDefined(typeof(BotPersonality), bot.BotPersonality)
+            ? bot.BotPersonality
+            : BotPersonality.Adaptive;
+        if (configured != BotPersonality.Adaptive)
+        {
+            return configured;
+        }
+
+        var ownedCount = state.Cells.Count(cell =>
+            string.Equals(cell.OwnerPlayerId, bot.PlayerId, StringComparison.Ordinal));
+
+        if (myRank == 1 && bot.Cash >= 520)
+        {
+            return BotPersonality.Banker;
+        }
+
+        if (ownedCount >= 6 || myGap <= 160)
+        {
+            return BotPersonality.Builder;
+        }
+
+        return myGap >= 260
+            ? BotPersonality.Collector
+            : bot.BotDifficulty == BotDifficulty.Aggressive
+                ? BotPersonality.Builder
+                : BotPersonality.Collector;
     }
 
     private static int ResolveFinalDuelRound(GameRoom room, MonopolyRoomState state)

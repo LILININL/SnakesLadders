@@ -87,6 +87,45 @@
     ] ?? 0;
   }
 
+  function isFinalDuelVoteEligible(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    return Boolean(
+      monopoly?.isFinalDuelVoteEligible ?? monopoly?.IsFinalDuelVoteEligible,
+    );
+  }
+
+  function isFinalDuelVotePendingStart(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    return Boolean(
+      monopoly?.isFinalDuelVotePendingStart ??
+        monopoly?.IsFinalDuelVotePendingStart,
+    );
+  }
+
+  function resolveFinalDuelVoteYesCount(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    return resolveNumber(
+      monopoly?.finalDuelVoteYesCount ?? monopoly?.FinalDuelVoteYesCount,
+    );
+  }
+
+  function resolveFinalDuelVoteRequired(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    return resolveNumber(
+      monopoly?.finalDuelVoteRequired ?? monopoly?.FinalDuelVoteRequired,
+    );
+  }
+
+  function hasPlayerVotedFinalDuel(playerId, room = state.room) {
+    const monopoly = getMonopolyState(room);
+    const votedIds = monopoly?.finalDuelVotedPlayerIds ?? monopoly?.FinalDuelVotedPlayerIds;
+    if (!Array.isArray(votedIds) || !playerId) {
+      return false;
+    }
+
+    return votedIds.includes(playerId);
+  }
+
   function resolveCells(room = state.room) {
     const board = room?.board;
     if (!board) {
@@ -589,6 +628,11 @@
     resolveFinalDuelRoundsRemaining,
     resolveFinalDuelGoReward,
     resolveFinalDuelRentBonusPercent,
+    isFinalDuelVoteEligible,
+    isFinalDuelVotePendingStart,
+    resolveFinalDuelVoteYesCount,
+    resolveFinalDuelVoteRequired,
+    hasPlayerVotedFinalDuel,
     tollGrowthMultiplier,
     tollGrowthPercent,
     cityPriceGrowthMultiplier,

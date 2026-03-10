@@ -30,4 +30,6 @@ public static class MonopolyDefinitions
     public const int FinalDuelDurationRounds = 6;
     public const int FinalDuelOpeningGoReward = 60;
     public const int FinalDuelOpeningGoRounds = 2;
+    public const double FinalDuelVoteCapProgressThreshold = 0.70d;
+    public const int FinalDuelVoteRecentBankruptcyRounds = 2;
 }

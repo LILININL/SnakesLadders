@@ -143,6 +143,7 @@
     if (el.boardEventCard) {
       el.boardEventCard.innerHTML = "";
     }
+    hideFinalDuelVotePrompt();
     if (el.moneyFlowOverlay) {
       el.moneyFlowOverlay.className = "money-flow-overlay hidden";
     }
@@ -557,6 +558,74 @@
     el.boardEventCard.innerHTML = "";
   }
 
+  function showFinalDuelVotePrompt(room) {
+    if (!el.finalDuelVoteOverlay || !el.finalDuelVoteCard) {
+      return false;
+    }
+
+    const monopoly = room?.monopolyState ?? room?.MonopolyState ?? null;
+    const eligible = Boolean(
+      monopoly?.isFinalDuelVoteEligible ?? monopoly?.IsFinalDuelVoteEligible,
+    );
+    const isFinalDuel = Boolean(
+      monopoly?.isFinalDuel ?? monopoly?.IsFinalDuel,
+    );
+    const me = room?.players?.find((player) => player.playerId === state.playerId);
+    if (!eligible || isFinalDuel || !me || me.isBot || me.isBankrupt) {
+      hideFinalDuelVotePrompt();
+      return false;
+    }
+
+    const yesCount =
+      Number.parseInt(
+        String(monopoly?.finalDuelVoteYesCount ?? monopoly?.FinalDuelVoteYesCount ?? 0),
+        10,
+      ) || 0;
+    const required =
+      Number.parseInt(
+        String(monopoly?.finalDuelVoteRequired ?? monopoly?.FinalDuelVoteRequired ?? 0),
+        10,
+      ) || 0;
+    const pendingStart = Boolean(
+      monopoly?.isFinalDuelVotePendingStart ?? monopoly?.IsFinalDuelVotePendingStart,
+    );
+    const votedIds = Array.isArray(
+      monopoly?.finalDuelVotedPlayerIds ?? monopoly?.FinalDuelVotedPlayerIds,
+    )
+      ? monopoly.finalDuelVotedPlayerIds ?? monopoly.FinalDuelVotedPlayerIds
+      : [];
+    const hasVoted = votedIds.includes(state.playerId);
+
+    el.finalDuelVoteCard.innerHTML = `
+      <div class="final-duel-vote-kicker">Late-Game Vote</div>
+      <div class="final-duel-vote-title">โหวตเข้า Final Duel</div>
+      <div class="final-duel-vote-copy">${
+        pendingStart
+          ? "ครบเสียงแล้ว ระบบจะเข้าสู่ Final Duel ตอนต้นเทิร์นถัดไป"
+          : "เกมเริ่มยื้อแล้ว ถ้าต้องการเร่งปิดเกม สามารถโหวตเข้า Final Duel ได้"
+      }</div>
+      <div class="final-duel-vote-meta">
+        <span class="final-duel-vote-pill">เสียงตอนนี้ ${yesCount}/${required}</span>
+        <span class="final-duel-vote-pill">${pendingStart ? "รอเริ่มโหมด" : "ต้องการเสียงมากกว่าครึ่ง"}</span>
+      </div>
+      <div class="final-duel-vote-actions">
+        <button class="btn btn-primary" type="button" data-final-duel-vote-action="${hasVoted ? "withdraw" : "vote"}">${hasVoted ? "ถอนโหวต" : "โหวตเข้า Final Duel"}</button>
+        <button class="btn" type="button" data-final-duel-vote-action="dismiss">ยังไม่โหวตตอนนี้</button>
+      </div>
+    `;
+    el.finalDuelVoteOverlay.className = "final-duel-vote-overlay show";
+    return true;
+  }
+
+  function hideFinalDuelVotePrompt() {
+    if (!el.finalDuelVoteOverlay || !el.finalDuelVoteCard) {
+      return;
+    }
+
+    el.finalDuelVoteOverlay.className = "final-duel-vote-overlay hidden";
+    el.finalDuelVoteCard.innerHTML = "";
+  }
+
   async function showMoneyFlow(moneyEvent) {
     if (!moneyEvent?.playerName) {
       return;
@@ -815,6 +884,8 @@
     showTurnStart,
     showJumpHint,
     showEventOverlay,
+    showFinalDuelVotePrompt,
+    hideFinalDuelVotePrompt,
     showMoneyFlow,
     showItemActivation,
     showItemPickup,

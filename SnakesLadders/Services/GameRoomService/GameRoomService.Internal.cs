@@ -448,6 +448,13 @@ public sealed partial class GameRoomService
             FinalDuelRoundsRemaining = ResolveFinalDuelRoundsRemaining(room, monopoly),
             FinalDuelGoReward = ResolveFinalDuelGoReward(room, monopoly),
             FinalDuelRentBonusPercent = ResolveFinalDuelRentBonusPercent(room, monopoly),
+            IsFinalDuelVoteEligible = ResolveFinalDuelVoteEligible(room, monopoly),
+            IsFinalDuelVotePendingStart = monopoly.FinalDuelVotePendingStart,
+            FinalDuelVoteYesCount = ResolveFinalDuelVoteYesCount(room, monopoly),
+            FinalDuelVoteRequired = ResolveFinalDuelVoteRequired(room, monopoly),
+            FinalDuelVotedPlayerIds = monopoly.FinalDuelVotePlayerIds
+                .OrderBy(x => x, StringComparer.Ordinal)
+                .ToArray(),
             UpgradeUsedThisTurn = monopoly.UpgradeUsedThisTurn,
             UpgradeEligibleCellIds = monopoly.UpgradeEligibleCellIds
                 .Distinct()
@@ -579,6 +586,48 @@ public sealed partial class GameRoomService
             0,
             MonopolyDefinitions.FinalDuelRentBonusPercents.Length - 1);
         return MonopolyDefinitions.FinalDuelRentBonusPercents[roundIndex];
+    }
+
+    private static bool ResolveFinalDuelVoteEligible(GameRoom room, MonopolyRoomState monopoly)
+    {
+        if (monopoly.FinalDuelActive ||
+            monopoly.StartedPlayerCount < MonopolyDefinitions.FinalDuelMinimumStartingPlayers)
+        {
+            return false;
+        }
+
+        var aliveCount = room.Players.Count(player => !player.IsBankrupt);
+        if (aliveCount < 3)
+        {
+            return false;
+        }
+
+        var effectiveRoundCap = Math.Max(1, room.BoardOptions.RuleOptions.MaxRounds);
+        var voteRoundThreshold = (int)Math.Ceiling(
+            effectiveRoundCap * MonopolyDefinitions.FinalDuelVoteCapProgressThreshold);
+        if (room.CompletedRounds < Math.Max(1, voteRoundThreshold))
+        {
+            return false;
+        }
+
+        return !monopoly.LastBankruptcyCompletedRound.HasValue ||
+               room.CompletedRounds - monopoly.LastBankruptcyCompletedRound.Value >=
+               MonopolyDefinitions.FinalDuelVoteRecentBankruptcyRounds;
+    }
+
+    private static int ResolveFinalDuelVoteYesCount(GameRoom room, MonopolyRoomState monopoly)
+    {
+        var aliveIds = room.Players
+            .Where(player => !player.IsBankrupt)
+            .Select(player => player.PlayerId)
+            .ToHashSet(StringComparer.Ordinal);
+        return monopoly.FinalDuelVotePlayerIds.Count(aliveIds.Contains);
+    }
+
+    private static int ResolveFinalDuelVoteRequired(GameRoom room, MonopolyRoomState monopoly)
+    {
+        var aliveCount = room.Players.Count(player => !player.IsBankrupt);
+        return aliveCount >= 3 ? (aliveCount / 2) + 1 : 0;
     }
 
     private static GameResultSnapshot? BuildGameResultSnapshot(GameRoom room)

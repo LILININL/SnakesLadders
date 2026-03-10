@@ -92,6 +92,7 @@
     el.readyAvatarPicker?.addEventListener("click", onPickWaitingAvatar);
     el.readyList?.addEventListener("click", onReadyListClick);
     el.toggleFullAutoBtn?.addEventListener("click", onToggleFullAuto);
+    el.finalDuelVoteCard?.addEventListener("click", onFinalDuelVoteCardClick);
 
     el.leaveRoomBtn.addEventListener("click", onLeaveRoom);
 
@@ -733,6 +734,29 @@
     await root.realtime.invokeHub("SetFullAuto", {
       roomCode: state.roomCode,
       enabled: !me.fullAutoEnabled,
+    });
+  }
+
+  async function onFinalDuelVoteCardClick(event) {
+    const action = event.target.closest("[data-final-duel-vote-action]")?.dataset
+      ?.finalDuelVoteAction;
+    if (!action || !state.roomCode) {
+      return;
+    }
+
+    if (action === "dismiss") {
+      root.boardFx?.hideFinalDuelVotePrompt?.();
+      return;
+    }
+
+    if (action !== "vote" && action !== "withdraw") {
+      return;
+    }
+
+    root.boardFx?.hideFinalDuelVotePrompt?.();
+    await root.realtime.invokeHub("VoteFinalDuel", {
+      roomCode: state.roomCode,
+      support: action === "vote",
     });
   }
 

@@ -84,6 +84,7 @@
     pageTransitionDirection: 0,
     rollFxPowerHint: 0,
     rollFxPowerHintAt: 0,
+    lastFinalDuelVotePromptTurnCounter: -1,
   };
 
   root.el = {
@@ -199,6 +200,8 @@
     diceResultFx: document.getElementById("diceResultFx"),
     boardEventOverlay: document.getElementById("boardEventOverlay"),
     boardEventCard: document.getElementById("boardEventCard"),
+    finalDuelVoteOverlay: document.getElementById("finalDuelVoteOverlay"),
+    finalDuelVoteCard: document.getElementById("finalDuelVoteCard"),
     moneyFlowOverlay: document.getElementById("moneyFlowOverlay"),
     moneyFlowCard: document.getElementById("moneyFlowCard"),
     toggleFullAutoBtn: document.getElementById("toggleFullAutoBtn"),
