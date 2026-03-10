@@ -37,6 +37,9 @@ public interface IGameRoomService
         SubmitGameActionRequest request,
         bool isAutoAction = false);
     ServiceResult<RoomSnapshot> SetReady(string connectionId, SetReadyRequest request);
+    ServiceResult<RoomSnapshot> AddBotPlayer(string connectionId, AddBotPlayerRequest request);
+    ServiceResult<RoomSnapshot> RemoveBotPlayer(string connectionId, RemoveBotPlayerRequest request);
+    ServiceResult<RoomSnapshot> SetFullAuto(string connectionId, SetFullAutoRequest request);
     ServiceResult<RoomSnapshot> SetAvatar(string connectionId, SetAvatarRequest request);
     ServiceResult<RoomSnapshot> ResetFinishedGame(string roomCode);
     ServiceResult<ChatMessage> SendChat(string connectionId, SendChatRequest request);

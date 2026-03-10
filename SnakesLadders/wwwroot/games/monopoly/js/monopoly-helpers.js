@@ -19,6 +19,12 @@
   const NEIGHBORHOOD_RADIUS = 2;
   const NEIGHBORHOOD_PRIMARY_BONUS = 0.55;
   const NEIGHBORHOOD_SECONDARY_BONUS = 0.32;
+  const economyTracker = {
+    roomCode: "",
+    turnCounter: 0,
+    completedRounds: 0,
+    cityPriceGrowthRounds: 0,
+  };
 
   function isMonopolyRoom(room = state.room) {
     const gameKey = String(room?.gameKey ?? "")
@@ -98,14 +104,66 @@
   }
 
   function resolveCompletedRounds(room = state.room) {
-    return resolveNumber(room?.completedRounds ?? room?.CompletedRounds);
+    return resolveEconomyState(room).completedRounds;
   }
 
   function resolveCityPriceGrowthRounds(room = state.room) {
+    return resolveEconomyState(room).cityPriceGrowthRounds;
+  }
+
+  function resolveEconomyState(room = state.room) {
+    const roomCode = String(room?.roomCode ?? room?.RoomCode ?? "").trim().toUpperCase();
+    const turnCounter = resolveNumber(room?.turnCounter ?? room?.TurnCounter);
+    const rawCompletedRounds = resolveNumber(
+      room?.completedRounds ?? room?.CompletedRounds,
+    );
     const monopoly = getMonopolyState(room);
-    return resolveNumber(
+    const rawCityPriceGrowthRounds = resolveNumber(
       monopoly?.cityPriceGrowthRounds ?? monopoly?.CityPriceGrowthRounds,
     );
+    const started =
+      resolveNumber(room?.status ?? room?.Status) === root.GAME_STATUS.STARTED;
+
+    if (!roomCode) {
+      economyTracker.roomCode = "";
+      economyTracker.turnCounter = 0;
+      economyTracker.completedRounds = 0;
+      economyTracker.cityPriceGrowthRounds = 0;
+      return {
+        completedRounds: rawCompletedRounds,
+        cityPriceGrowthRounds: rawCityPriceGrowthRounds,
+      };
+    }
+
+    const shouldReset =
+      economyTracker.roomCode !== roomCode ||
+      !started ||
+      turnCounter === 0 ||
+      (turnCounter <= 1 &&
+        rawCompletedRounds === 0 &&
+        rawCityPriceGrowthRounds === 0);
+
+    if (shouldReset) {
+      economyTracker.roomCode = roomCode;
+      economyTracker.turnCounter = turnCounter;
+      economyTracker.completedRounds = rawCompletedRounds;
+      economyTracker.cityPriceGrowthRounds = rawCityPriceGrowthRounds;
+    } else {
+      economyTracker.turnCounter = Math.max(economyTracker.turnCounter, turnCounter);
+      economyTracker.completedRounds = Math.max(
+        economyTracker.completedRounds,
+        rawCompletedRounds,
+      );
+      economyTracker.cityPriceGrowthRounds = Math.max(
+        economyTracker.cityPriceGrowthRounds,
+        rawCityPriceGrowthRounds,
+      );
+    }
+
+    return {
+      completedRounds: economyTracker.completedRounds,
+      cityPriceGrowthRounds: economyTracker.cityPriceGrowthRounds,
+    };
   }
 
   function tollGrowthMultiplier(room = state.room) {

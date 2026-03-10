@@ -3,6 +3,16 @@
   const MIN_AVATAR_ID = 1;
   const MAX_AVATAR_ID = 11;
   const DEFAULT_GAME_KEY = "snakes-ladders";
+  const BOT_DIFFICULTY = {
+    BALANCED: 0,
+    AGGRESSIVE: 1,
+  };
+  const BOT_PERSONALITY = {
+    ADAPTIVE: 0,
+    COLLECTOR: 1,
+    BUILDER: 2,
+    BANKER: 3,
+  };
   const GAME_LABELS = {
     "snakes-ladders": "Snakes & Ladders",
     monopoly: "เกมเศรษฐี",
@@ -469,6 +479,56 @@
     );
   }
 
+  function normalizeBotDifficulty(value, fallback = BOT_DIFFICULTY.AGGRESSIVE) {
+    const parsed = Number.parseInt(String(value ?? fallback), 10);
+    return parsed === BOT_DIFFICULTY.BALANCED || parsed === BOT_DIFFICULTY.AGGRESSIVE
+      ? parsed
+      : fallback;
+  }
+
+  function normalizeBotPersonality(value, fallback = BOT_PERSONALITY.ADAPTIVE) {
+    const parsed = Number.parseInt(String(value ?? fallback), 10);
+    return Object.values(BOT_PERSONALITY).includes(parsed) ? parsed : fallback;
+  }
+
+  function botDifficultyLabel(value) {
+    const difficulty = normalizeBotDifficulty(value);
+    return difficulty === BOT_DIFFICULTY.BALANCED ? "สมดุล" : "ดุ";
+  }
+
+  function botDifficultyClass(value) {
+    const difficulty = normalizeBotDifficulty(value);
+    return difficulty === BOT_DIFFICULTY.BALANCED ? "balanced" : "aggressive";
+  }
+
+  function botPersonalityLabel(value) {
+    const personality = normalizeBotPersonality(value);
+    switch (personality) {
+      case BOT_PERSONALITY.COLLECTOR:
+        return "เก็บเมือง";
+      case BOT_PERSONALITY.BUILDER:
+        return "อัปเกรด";
+      case BOT_PERSONALITY.BANKER:
+        return "ถือเงิน";
+      default:
+        return "ปรับตัว";
+    }
+  }
+
+  function botPersonalityClass(value) {
+    const personality = normalizeBotPersonality(value);
+    switch (personality) {
+      case BOT_PERSONALITY.COLLECTOR:
+        return "collector";
+      case BOT_PERSONALITY.BUILDER:
+        return "builder";
+      case BOT_PERSONALITY.BANKER:
+        return "banker";
+      default:
+        return "adaptive";
+    }
+  }
+
   root.utils = {
     normalizeName,
     escapeHtml,
@@ -491,5 +551,13 @@
     gameLabel,
     gameSupportsBoardOptions,
     boardItemMeta,
+    BOT_DIFFICULTY,
+    BOT_PERSONALITY,
+    normalizeBotDifficulty,
+    normalizeBotPersonality,
+    botDifficultyLabel,
+    botDifficultyClass,
+    botPersonalityLabel,
+    botPersonalityClass,
   };
 })();

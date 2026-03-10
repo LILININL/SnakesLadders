@@ -154,6 +154,43 @@ public sealed class GameHub : Hub
         await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("RoomUpdated", result.Value);
     }
 
+    public async Task AddBotPlayer(AddBotPlayerRequest request)
+    {
+        var result = _roomService.AddBotPlayer(Context.ConnectionId, request);
+        if (!result.Success || result.Value is null)
+        {
+            await SendError(result.Error ?? "เพิ่ม AI ไม่สำเร็จ");
+            return;
+        }
+
+        await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("RoomUpdated", result.Value);
+    }
+
+    public async Task RemoveBotPlayer(RemoveBotPlayerRequest request)
+    {
+        var result = _roomService.RemoveBotPlayer(Context.ConnectionId, request);
+        if (!result.Success || result.Value is null)
+        {
+            await SendError(result.Error ?? "นำ AI ออกจากห้องไม่สำเร็จ");
+            return;
+        }
+
+        await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("RoomUpdated", result.Value);
+    }
+
+    public async Task SetFullAuto(SetFullAutoRequest request)
+    {
+        var result = _roomService.SetFullAuto(Context.ConnectionId, request);
+        if (!result.Success || result.Value is null)
+        {
+            await SendError(result.Error ?? "เปลี่ยนสถานะ Full Auto ไม่สำเร็จ");
+            return;
+        }
+
+        await Clients.Caller.SendAsync("FullAutoUpdated", result.Value);
+        await Clients.Group(request.RoomCode.ToUpperInvariant()).SendAsync("RoomUpdated", result.Value);
+    }
+
     public async Task SetAvatar(SetAvatarRequest request)
     {
         var result = _roomService.SetAvatar(Context.ConnectionId, request);

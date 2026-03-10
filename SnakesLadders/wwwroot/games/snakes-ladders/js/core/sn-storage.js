@@ -8,6 +8,7 @@
     roomSessions: "snl_room_sessions",
     lastRoomCode: "snl_last_room_code",
     focusMode: "snl_focus_mode",
+    monopolyZoomIndex: "snl_monopoly_zoom_index",
   };
 
   function loadProfileName() {
@@ -131,6 +132,32 @@
     localStorage.setItem(keys.focusMode, value);
   }
 
+  function loadMonopolyZoomIndex() {
+    const parsed = Number.parseInt(
+      String(localStorage.getItem(keys.monopolyZoomIndex) ?? ""),
+      10,
+    );
+    if (!Number.isFinite(parsed)) {
+      return 3;
+    }
+    if (parsed <= 0) {
+      return 0;
+    }
+    if (parsed >= 6) {
+      return 6;
+    }
+    return parsed;
+  }
+
+  function saveMonopolyZoomIndex(zoomIndex) {
+    const parsed = Number.parseInt(String(zoomIndex ?? ""), 10);
+    if (!Number.isFinite(parsed)) {
+      return;
+    }
+    const normalized = Math.max(0, Math.min(6, parsed));
+    localStorage.setItem(keys.monopolyZoomIndex, String(normalized));
+  }
+
   root.storage = {
     loadProfileName,
     saveProfileName,
@@ -142,5 +169,7 @@
     clearRoomSession,
     loadFocusMode,
     saveFocusMode,
+    loadMonopolyZoomIndex,
+    saveMonopolyZoomIndex,
   };
 })();

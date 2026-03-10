@@ -3,6 +3,8 @@
   const GAME_KEY = root.GAME_KEYS?.MONOPOLY ?? "monopoly";
   const { escapeHtml } = root.utils;
   let lastEconomyFrame = null;
+  const centerListScrollByRoom = new Map();
+  const lastStandingsByRoom = new Map();
 
   root.boardRenderers ??= {};
   root.boardRenderers[GAME_KEY] = {
@@ -55,17 +57,22 @@
       cells,
       completedRounds,
     );
+    const standings = resolveStandings(state, room, roomKey);
+    const savedCenterScrollTop = captureCenterPlayerListScroll(el.board, roomKey);
     const ringCells = cells
       .map((cell) => renderCell(state, room, cell, turnPosition))
       .join("");
     const center = renderCenter(
       state,
       room,
+      standings,
       freeParkingPot,
       tollBoostPercent,
       cityPriceBoostPercent,
     );
     el.board.innerHTML = `${ringCells}${center}`;
+    restoreCenterPlayerListScroll(el.board, roomKey, savedCenterScrollTop);
+    rememberStandings(roomKey, standings);
 
     clearBoardClasses(el);
     hideBoardItemTooltip(el);
@@ -99,6 +106,8 @@
     root.boardOverlay?.clear();
     root.boardTokens?.clear();
     root.boardBeacon?.hide?.();
+    centerListScrollByRoom.clear();
+    lastStandingsByRoom.clear();
   }
 
   function renderCell(state, room, cell, turnPosition) {
@@ -371,11 +380,13 @@
   function renderCenter(
     state,
     room,
+    standings,
     freeParkingPot,
     tollBoostPercent,
     cityPriceBoostPercent,
   ) {
-    const summaryRows = renderCenterPlayerSummary(state, room);
+    const liveStandings = renderLiveStandings(standings);
+    const summaryRows = renderCenterPlayerSummary(state, standings);
     return `
       <div class="m-center" style="grid-column:3 / span 7;grid-row:3 / span 7;">
         <div class="m-center-badge">CITY ESTATE</div>
@@ -395,53 +406,55 @@
           <span style="--h:60px"></span>
         </div>
         <div class="m-parking">เงินกองกลาง: <strong>${money(freeParkingPot)}</strong></div>
+        <div class="m-live-standings">${liveStandings}</div>
         <div class="m-center-player-list">${summaryRows}</div>
       </div>
     `;
   }
 
-  function renderCenterPlayerSummary(state, room) {
-    const economyRows = Array.isArray(room?.monopolyState?.playerEconomy)
-      ? room.monopolyState.playerEconomy
-      : [];
-    const economyById = new Map(
-      economyRows.map((row) => [String(row.playerId), row]),
-    );
-    const players = Array.isArray(room?.players) ? room.players.slice() : [];
-    const activePlayerId = String(
-      room?.monopolyState?.activePlayerId ?? "",
-    ).trim();
-    const pendingPlayerId = String(
-      room?.monopolyState?.pendingDecisionPlayerId ?? "",
-    ).trim();
+  function renderLiveStandings(standings) {
+    const topThree = Array.isArray(standings) ? standings.slice(0, 3) : [];
+    if (topThree.length === 0) {
+      return "";
+    }
 
-    return players
-      .sort((left, right) => {
-        const leftActive = left.playerId === activePlayerId ? 1 : 0;
-        const rightActive = right.playerId === activePlayerId ? 1 : 0;
-        if (leftActive !== rightActive) {
-          return rightActive - leftActive;
-        }
-
-        const leftEconomy = economyById.get(String(left.playerId)) ?? {};
-        const rightEconomy = economyById.get(String(right.playerId)) ?? {};
-        const leftNetWorth = resolveNumber(
-          leftEconomy?.netWorth ?? leftEconomy?.NetWorth,
-        );
-        const rightNetWorth = resolveNumber(
-          rightEconomy?.netWorth ?? rightEconomy?.NetWorth,
-        );
-        return rightNetWorth - leftNetWorth;
+    return topThree
+      .map((entry) => {
+        const accent = entry.accent;
+        const shift = renderRankShift(entry.rankDelta, "live");
+        const shiftClass =
+          entry.rankDelta > 0
+            ? "moved-up"
+            : entry.rankDelta < 0
+              ? "moved-down"
+              : "";
+        return `
+          <div class="m-live-rank rank-${entry.rank} ${shiftClass}" style="--player-accent:${accent.base};--player-edge:${accent.edge};--player-soft:${accent.soft};">
+            <span class="m-live-rank-no">#${entry.rank}</span>
+            <span class="m-live-rank-name">${escapeHtml(shortName(entry.player.displayName, 12))}</span>
+            ${shift}
+            <span class="m-live-rank-worth">${money(entry.netWorth)}</span>
+          </div>
+        `;
       })
-      .map((player) => {
+      .join("");
+  }
+
+  function renderCenterPlayerSummary(state, standings) {
+    return standings
+      .map((entry) => {
+        const { player, economy, accent, rank, active, pending, rankDelta } = entry;
         const playerId = String(player.playerId ?? "");
-        const economy = economyById.get(playerId) ?? {};
-        const accent = resolveOwnerAccent(state, playerId);
         const classes = ["m-center-player"];
-        if (playerId === activePlayerId) {
+        if (rankDelta > 0) {
+          classes.push("moved-up");
+        } else if (rankDelta < 0) {
+          classes.push("moved-down");
+        }
+        if (active) {
           classes.push("active");
         }
-        if (playerId === pendingPlayerId) {
+        if (pending) {
           classes.push("pending");
         }
         if (playerId === String(state?.playerId ?? "")) {
@@ -464,10 +477,10 @@
         );
         const inJail = Boolean(economy?.inJail ?? economy?.InJail);
         const badges = [];
-        if (playerId === activePlayerId) {
+        if (active) {
           badges.push('<span class="m-center-player-badge turn">ตาเล่น</span>');
         }
-        if (playerId === pendingPlayerId && playerId !== activePlayerId) {
+        if (pending && !active) {
           badges.push(
             '<span class="m-center-player-badge wait">รอตัดสินใจ</span>',
           );
@@ -480,11 +493,14 @@
             '<span class="m-center-player-badge out">ล้มละลาย</span>',
           );
         }
+        const shift = renderRankShift(rankDelta, "card");
 
         return `
           <div class="${classes.join(" ")}" style="--player-accent:${accent.base};--player-soft:${accent.soft};--player-edge:${accent.edge};">
             <div class="m-center-player-head">
+              <span class="m-center-player-rank">#${rank}</span>
               <span class="m-center-player-name">${escapeHtml(shortName(player.displayName, 12))}</span>
+              ${shift}
               <span class="m-center-player-cash">${money(cash)}</span>
             </div>
             <div class="m-center-player-meta">
@@ -496,6 +512,128 @@
         `;
       })
       .join("");
+  }
+
+  function resolveStandings(state, room, roomKey) {
+    const economyRows = Array.isArray(room?.monopolyState?.playerEconomy)
+      ? room.monopolyState.playerEconomy
+      : [];
+    const economyById = new Map(
+      economyRows.map((row) => [String(row.playerId), row]),
+    );
+    const players = Array.isArray(room?.players) ? room.players.slice() : [];
+    const activePlayerId = String(
+      room?.monopolyState?.activePlayerId ?? "",
+    ).trim();
+    const pendingPlayerId = String(
+      room?.monopolyState?.pendingDecisionPlayerId ?? "",
+    ).trim();
+    const previousRanks = lastStandingsByRoom.get(roomKey) ?? new Map();
+
+    return players
+      .map((player) => {
+        const playerId = String(player.playerId ?? "");
+        const economy = economyById.get(playerId) ?? {};
+        return {
+          player,
+          playerId,
+          economy,
+          accent: resolveOwnerAccent(state, playerId),
+          active: playerId === activePlayerId,
+          pending: playerId === pendingPlayerId,
+          netWorth: resolveNumber(economy?.netWorth ?? economy?.NetWorth),
+          cash: resolveNumber(economy?.cash ?? economy?.Cash ?? player.cash),
+          propertyCount: resolveNumber(
+            economy?.propertyCount ?? economy?.PropertyCount,
+          ),
+          bankrupt: Boolean(
+            economy?.isBankrupt ?? economy?.IsBankrupt ?? player.isBankrupt,
+          ),
+        };
+      })
+      .sort((left, right) => {
+        if (left.bankrupt !== right.bankrupt) {
+          return left.bankrupt ? 1 : -1;
+        }
+        if (left.netWorth !== right.netWorth) {
+          return right.netWorth - left.netWorth;
+        }
+        if (left.cash !== right.cash) {
+          return right.cash - left.cash;
+        }
+        if (left.propertyCount !== right.propertyCount) {
+          return right.propertyCount - left.propertyCount;
+        }
+        return left.playerId.localeCompare(right.playerId);
+      })
+      .map((entry, index) => ({
+        ...entry,
+        rank: index + 1,
+        rankDelta: previousRanks.has(entry.playerId)
+          ? previousRanks.get(entry.playerId) - (index + 1)
+          : 0,
+      }));
+  }
+
+  function renderRankShift(rankDelta, variant) {
+    const delta = resolveNumber(rankDelta);
+    if (delta === 0) {
+      return "";
+    }
+
+    const movingUp = delta > 0;
+    const text = `${movingUp ? "▲" : "▼"}${Math.abs(delta)}`;
+    const tone = movingUp ? "up" : "down";
+    const className =
+      variant === "live" ? "m-live-rank-shift" : "m-center-player-shift";
+    return `<span class="${className} ${tone}" title="${movingUp ? "อันดับขึ้น" : "อันดับลด"} ${Math.abs(delta)}">${escapeHtml(text)}</span>`;
+  }
+
+  function captureCenterPlayerListScroll(boardEl, roomKey) {
+    if (!boardEl || !roomKey) {
+      return 0;
+    }
+
+    const listEl = boardEl.querySelector(".m-center-player-list");
+    const scrollTop = listEl ? listEl.scrollTop : centerListScrollByRoom.get(roomKey) ?? 0;
+    centerListScrollByRoom.set(roomKey, scrollTop);
+    return scrollTop;
+  }
+
+  function restoreCenterPlayerListScroll(boardEl, roomKey, scrollTop) {
+    if (!boardEl || !roomKey) {
+      return;
+    }
+
+    const listEl = boardEl.querySelector(".m-center-player-list");
+    if (!listEl) {
+      return;
+    }
+
+    const saved = Math.max(
+      0,
+      resolveNumber(scrollTop ?? centerListScrollByRoom.get(roomKey) ?? 0),
+    );
+    const applyScrollTop = () => {
+      listEl.scrollTop = saved;
+    };
+    applyScrollTop();
+    requestAnimationFrame(applyScrollTop);
+    centerListScrollByRoom.set(roomKey, saved);
+    listEl.onscroll = () => {
+      centerListScrollByRoom.set(roomKey, listEl.scrollTop);
+    };
+  }
+
+  function rememberStandings(roomKey, standings) {
+    if (!roomKey || !Array.isArray(standings)) {
+      return;
+    }
+
+    lastStandingsByRoom.set(
+      roomKey,
+      new Map(standings.map((entry) => [entry.playerId, entry.rank])),
+    );
   }
 
   function resolveEstateTier(

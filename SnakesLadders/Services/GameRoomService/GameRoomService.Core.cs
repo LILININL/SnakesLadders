@@ -6,6 +6,8 @@ namespace SnakesLadders.Services;
 public sealed partial class GameRoomService : IGameRoomService
 {
     private const int OfflineAutoRollDelayMs = 700;
+    private const int AutoPlayerDecisionDelayMs = 1400;
+    private const int AutoPlayerManageDelayMs = 1800;
     private const int TurnAnimationBufferSeconds = 14;
     private const int MonopolyTurnAnimationBufferSeconds = 5;
     private const int MinAvatarId = 1;
@@ -205,7 +207,9 @@ public sealed partial class GameRoomService : IGameRoomService
                 return ServiceResult<RoomSnapshot>.Fail("ต้องมีผู้เล่นอย่างน้อย 2 คน");
             }
 
-            var waitingPlayers = room.Players.Where(x => x.PlayerId != room.HostPlayerId).ToArray();
+            var waitingPlayers = room.Players
+                .Where(x => x.PlayerId != room.HostPlayerId && !x.IsBot)
+                .ToArray();
             if (waitingPlayers.Any(x => !x.Connected || !x.IsReady))
             {
                 return ServiceResult<RoomSnapshot>.Fail("ผู้เล่นที่ไม่ใช่หัวห้องต้องออนไลน์และกดพร้อมครบ");
@@ -413,7 +417,158 @@ public sealed partial class GameRoomService : IGameRoomService
                 return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
             }
 
+            if (player.IsBot)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("AI ไม่ต้องกดพร้อมเอง");
+            }
+
             player.IsReady = request.IsReady;
+            return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
+        }
+    }
+
+    public ServiceResult<RoomSnapshot> AddBotPlayer(string connectionId, AddBotPlayerRequest request)
+    {
+        lock (_sync)
+        {
+            if (!_connections.TryGetValue(connectionId, out var binding))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("คุณยังไม่ได้เข้าห้อง");
+            }
+
+            var roomCode = NormalizeRoomCode(request.RoomCode);
+            if (!binding.RoomCode.Equals(roomCode, StringComparison.OrdinalIgnoreCase))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("คุณไม่ได้อยู่ในห้องนี้");
+            }
+
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบห้องที่ระบุ");
+            }
+
+            if (room.Status != GameStatus.Waiting)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("เพิ่ม AI ได้เฉพาะก่อนเริ่มเกม");
+            }
+
+            if (!string.Equals(binding.PlayerId, room.HostPlayerId, StringComparison.Ordinal))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("เฉพาะหัวห้องเท่านั้นที่เพิ่ม AI ได้");
+            }
+
+            var bot = NewBotPlayerState(
+                room,
+                NewPlayerId(),
+                NewSessionId(),
+                NormalizeBotDifficulty(request.Difficulty),
+                NormalizeBotPersonality(request.Personality));
+            room.Players.Add(bot);
+
+            return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
+        }
+    }
+
+    public ServiceResult<RoomSnapshot> RemoveBotPlayer(string connectionId, RemoveBotPlayerRequest request)
+    {
+        lock (_sync)
+        {
+            if (!_connections.TryGetValue(connectionId, out var binding))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("คุณยังไม่ได้เข้าห้อง");
+            }
+
+            var roomCode = NormalizeRoomCode(request.RoomCode);
+            if (!binding.RoomCode.Equals(roomCode, StringComparison.OrdinalIgnoreCase))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("คุณไม่ได้อยู่ในห้องนี้");
+            }
+
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบห้องที่ระบุ");
+            }
+
+            if (room.Status != GameStatus.Waiting)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("นำ AI ออกได้เฉพาะก่อนเริ่มเกม");
+            }
+
+            if (!string.Equals(binding.PlayerId, room.HostPlayerId, StringComparison.Ordinal))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("เฉพาะหัวห้องเท่านั้นที่จัดการ AI ได้");
+            }
+
+            var targetPlayerId = request.PlayerId?.Trim();
+            if (string.IsNullOrWhiteSpace(targetPlayerId))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ต้องระบุ AI ที่ต้องการนำออก");
+            }
+
+            var bot = room.FindPlayer(targetPlayerId);
+            if (bot is null || !bot.IsBot)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบ AI ที่ต้องการนำออก");
+            }
+
+            room.Players.Remove(bot);
+
+            if (room.Players.Count > 0 && !room.Players.Any(x => x.PlayerId == room.HostPlayerId))
+            {
+                var promotedHost = ResolvePromotedHostPlayerUnsafe(room);
+                room.HostPlayerId = promotedHost.PlayerId;
+                promotedHost.IsReady = true;
+            }
+
+            return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
+        }
+    }
+
+    public ServiceResult<RoomSnapshot> SetFullAuto(string connectionId, SetFullAutoRequest request)
+    {
+        lock (_sync)
+        {
+            if (!_connections.TryGetValue(connectionId, out var binding))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("คุณยังไม่ได้เข้าห้อง");
+            }
+
+            var roomCode = NormalizeRoomCode(request.RoomCode);
+            if (!binding.RoomCode.Equals(roomCode, StringComparison.OrdinalIgnoreCase))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("คุณไม่ได้อยู่ในห้องนี้");
+            }
+
+            if (!_rooms.TryGetValue(roomCode, out var room))
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบห้องที่ระบุ");
+            }
+
+            if (room.Status == GameStatus.Finished)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("เกมจบแล้ว");
+            }
+
+            var player = room.FindPlayer(binding.PlayerId);
+            if (player is null)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("ไม่พบผู้เล่น");
+            }
+
+            if (player.IsBot)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("AI เปิด Full Auto ตลอดอยู่แล้ว");
+            }
+
+            player.FullAutoEnabled = request.Enabled;
+
+            if (room.Status == GameStatus.Started &&
+                (string.Equals(room.CurrentTurnPlayer?.PlayerId, player.PlayerId, StringComparison.Ordinal) ||
+                 string.Equals(room.Monopoly?.PendingDecisionPlayerId, player.PlayerId, StringComparison.Ordinal)))
+            {
+                room.TurnDeadlineUtc = ResolveNextActionDeadlineUnsafe(room);
+            }
+
             return ServiceResult<RoomSnapshot>.Ok(ToSnapshot(room));
         }
     }
@@ -447,6 +602,11 @@ public sealed partial class GameRoomService : IGameRoomService
             if (player is null)
             {
                 return ServiceResult<RoomSnapshot>.Fail("ไม่พบผู้เล่น");
+            }
+
+            if (player.IsBot)
+            {
+                return ServiceResult<RoomSnapshot>.Fail("AI เปลี่ยน Avatar เองไม่ได้");
             }
 
             if (player.IsReady && player.PlayerId != room.HostPlayerId)

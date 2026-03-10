@@ -1,7 +1,15 @@
 (() => {
   const root = window.SNL;
   const { state, el, GAME_STATUS } = root;
-  const { escapeHtml, normalizeAvatarId, syncAvatarHost } = root.utils;
+  const {
+    botDifficultyClass,
+    botDifficultyLabel,
+    botPersonalityClass,
+    botPersonalityLabel,
+    escapeHtml,
+    normalizeAvatarId,
+    syncAvatarHost,
+  } = root.utils;
   const viewCache = {
     readyAvatarHintText: "",
     readyAvatarPickerKey: "",
@@ -15,6 +23,9 @@
       viewCache.readyAvatarHintText = "";
       viewCache.readyAvatarPickerKey = "";
       viewCache.readyListRows.clear();
+      if (el.readyBotControls) {
+        el.readyBotControls.classList.add("hidden");
+      }
       if (el.readyList) {
         el.readyList.innerHTML = "";
       }
@@ -30,6 +41,9 @@
       x.playerId === hostId ? true : x.connected && x.isReady,
     ).length;
     el.readySummary.textContent = `พร้อม ${readyCount}/${players.length} คน`;
+    if (el.readyBotControls) {
+      el.readyBotControls.classList.toggle("hidden", !amHost());
+    }
 
     renderReadyList(players, hostId);
 
@@ -171,15 +185,28 @@
     const name = document.createElement("span");
     name.className = "name";
 
+    const metaWrap = document.createElement("span");
+    metaWrap.className = "ready-item-meta";
+
+    const badgeList = document.createElement("span");
+    badgeList.className = "ready-badge-list";
+
     const pill = document.createElement("span");
     pill.className = "ready-pill";
 
+    const removeBtn = document.createElement("button");
+    removeBtn.className = "btn ready-remove-bot-btn hidden";
+    removeBtn.type = "button";
+    removeBtn.textContent = "ลบ AI";
+
     nameWrap.append(avatarHost, name);
-    row.append(nameWrap, pill);
+    metaWrap.append(badgeList, pill, removeBtn);
+    row.append(nameWrap, metaWrap);
     return row;
   }
 
   function syncReadyRow(row, player, hostId) {
+    const viewerIsHost = state.playerId === hostId;
     const host = player.playerId === hostId;
     const tone = host
       ? "host"
@@ -198,10 +225,29 @@
     const safeAvatarId = normalizeAvatarId(player.avatarId, 1);
     const avatarHost = row.querySelector(".ready-avatar-host");
     const name = row.querySelector(".name");
+    const badgeList = row.querySelector(".ready-badge-list");
     const pill = row.querySelector(".ready-pill");
+    const removeBtn = row.querySelector(".ready-remove-bot-btn");
 
-    row.className = `ready-item ${tone}`;
+    row.className = `ready-item ${tone}${player.isBot ? " bot-player" : ""}`;
     name.textContent = String(player.displayName ?? "");
+    badgeList.innerHTML = [
+      player.isBot ? '<span class="inline-pill bot">AI</span>' : "",
+      player.isBot
+        ? `<span class="inline-pill bot-difficulty ${escapeHtml(botDifficultyClass(player.botDifficulty))}">${escapeHtml(botDifficultyLabel(player.botDifficulty))}</span>`
+        : "",
+      player.isBot
+        ? `<span class="inline-pill personality ${escapeHtml(botPersonalityClass(player.botPersonality))}">${escapeHtml(botPersonalityLabel(player.botPersonality))}</span>`
+        : "",
+      player.isBot &&
+      player.activeBotPersonality != null &&
+      player.activeBotPersonality !== player.botPersonality
+        ? `<span class="inline-pill personality-active ${escapeHtml(botPersonalityClass(player.activeBotPersonality))}">ตอนนี้ ${escapeHtml(botPersonalityLabel(player.activeBotPersonality))}</span>`
+        : "",
+      !player.isBot && player.fullAutoEnabled
+        ? '<span class="inline-pill auto">Full Auto</span>'
+        : "",
+    ].join("");
     pill.className = `ready-pill ${tone}`;
     pill.textContent = label;
     syncAvatarHost(avatarHost, safeAvatarId, {
@@ -209,6 +255,16 @@
       alt: `Avatar ${safeAvatarId}`,
       variant: "inline",
     });
+
+    if (removeBtn) {
+      const canRemove = Boolean(viewerIsHost && player.isBot);
+      removeBtn.classList.toggle("hidden", !canRemove);
+      if (canRemove) {
+        removeBtn.dataset.removeBotPlayerId = String(player.playerId ?? "");
+      } else {
+        delete removeBtn.dataset.removeBotPlayerId;
+      }
+    }
   }
 
   function amHost() {

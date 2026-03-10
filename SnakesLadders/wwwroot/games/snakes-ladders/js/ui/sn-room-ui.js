@@ -4,8 +4,11 @@
   const { escapeHtml } = root.utils;
   let resizeTimer = 0;
   let monopolyCameraRaf = 0;
+  let monopolyViewportScrollAt = 0;
   let monopolyViewportDismissed = false;
   let monopolyViewportStatus = "";
+  const MONOPOLY_CAMERA_ZOOM_MULTIPLIERS = [0.45, 0.58, 0.72, 0.86, 1, 1.12, 1.24, 1.38];
+  const MONOPOLY_CAMERA_DEFAULT_ZOOM_INDEX = 4;
   const monopolyCamera = {
     dragging: false,
     pointerId: -1,
@@ -16,6 +19,9 @@
     tx: 0,
     ty: 0,
     scale: 1,
+    zoomIndex: MONOPOLY_CAMERA_DEFAULT_ZOOM_INDEX,
+    overviewMode: false,
+    preferencesLoaded: false,
   };
 
   function renderAll() {
@@ -23,9 +29,11 @@
     updateChatSidebarLayout();
     renderRoomRules();
     renderTurnBanner();
+    renderFullAutoButton();
     updateDeadlineAlert();
     updateFloatingRollButton();
     updateMonopolyViewportMode();
+    renderMonopolyCameraControls();
     requestMonopolyCameraRefresh();
     renderChatBadge();
   }
@@ -78,6 +86,7 @@
     if (!root.monopolyHelpers?.isMonopolyRoom?.(state.room) || !started) {
       monopolyViewportDismissed = false;
       monopolyViewportStatus = "";
+      monopolyCamera.overviewMode = false;
       resetMonopolyCamera();
     }
   }
@@ -115,21 +124,27 @@
       el.turnBanner.className = "turn-banner waiting";
       return;
     }
+    hideTurnBanner();
+  }
 
-    const displayTurnPlayerId = root.viewState.getDisplayTurnPlayerId();
-    const current = state.room.players.find(
-      (x) => x.playerId === displayTurnPlayerId,
-    );
-    if (!current) {
-      hideTurnBanner();
+  function renderFullAutoButton() {
+    if (!el.toggleFullAutoBtn) {
       return;
     }
 
-    const mine = current.playerId === state.playerId;
-    el.turnBanner.textContent = mine
-      ? "ถึงตาคุณแล้ว"
-      : `ตาของ ${current.displayName}`;
-    el.turnBanner.className = `turn-banner ${mine ? "mine" : "other"}`;
+    const me = state.room?.players?.find((player) => player.playerId === state.playerId);
+    const show = Boolean(isStarted() && me && !me.isBot);
+    el.toggleFullAutoBtn.classList.toggle("hidden", !show);
+    if (!show) {
+      syncMonopolyBoardToolbar();
+      return;
+    }
+
+    const enabled = Boolean(me.fullAutoEnabled);
+    el.toggleFullAutoBtn.textContent = enabled ? "Full Auto: เปิด" : "Full Auto: ปิด";
+    el.toggleFullAutoBtn.classList.toggle("active", enabled);
+    el.toggleFullAutoBtn.setAttribute("aria-pressed", enabled ? "true" : "false");
+    syncMonopolyBoardToolbar();
   }
 
   function hideTurnBanner() {
@@ -198,8 +213,7 @@
       return;
     }
 
-    const deadline =
-      state.deferredRoom?.turnDeadlineUtc ?? state.room?.turnDeadlineUtc;
+    const deadline = root.viewState?.getEffectiveDeadlineUtc?.();
     if (!deadline) {
       hideDeadlineAlert();
       return;
@@ -388,6 +402,16 @@
     );
   }
 
+  function ensureMonopolyCameraPreferencesLoaded() {
+    if (monopolyCamera.preferencesLoaded) {
+      return;
+    }
+
+    monopolyCamera.zoomIndex =
+      root.storage?.loadMonopolyZoomIndex?.() ?? MONOPOLY_CAMERA_DEFAULT_ZOOM_INDEX;
+    monopolyCamera.preferencesLoaded = true;
+  }
+
   function requestMonopolyCameraRefresh(options = {}) {
     cancelAnimationFrame(monopolyCameraRaf);
     monopolyCameraRaf = requestAnimationFrame(() => {
@@ -401,7 +425,9 @@
       return;
     }
 
-    const focusPoint = resolveMyMonopolyFocusPoint();
+    ensureMonopolyCameraPreferencesLoaded();
+
+    const focusPoint = resolveMonopolyFocusPoint();
     const bounds = resolveMonopolyCameraBounds();
     if (!focusPoint || !bounds) {
       resetMonopolyCamera();
@@ -432,6 +458,7 @@
       animate: options.animate !== false,
       dragging: false,
     });
+    ensureMonopolyBoardVisibleInViewport(options);
   }
 
   function resolveMonopolyCameraScale(bounds = resolveMonopolyCameraBounds()) {
@@ -439,30 +466,45 @@
       return 1;
     }
 
+    if (monopolyCamera.overviewMode) {
+      const overviewWidthScale =
+        bounds.stageWidth / Math.max((bounds.boardWidth + bounds.boardOffsetX * 2) * 1.02, 1);
+      const overviewHeightScale =
+        bounds.stageHeight / Math.max((bounds.boardHeight + bounds.boardOffsetY * 2) * 1.02, 1);
+      return Math.max(0.48, Math.min(1, Math.min(overviewWidthScale, overviewHeightScale)));
+    }
+
     const narrowViewport = window.matchMedia("(max-width: 900px)").matches;
     const portraitViewport = window.matchMedia("(orientation: portrait)").matches;
     const visibleWidthFraction = portraitViewport
-      ? 0.84
+      ? 0.9
       : narrowViewport
-        ? 0.74
-        : 0.64;
+        ? 0.86
+        : 0.82;
     const visibleHeightFraction = portraitViewport
-      ? 0.84
+      ? 0.9
       : narrowViewport
-        ? 0.76
-        : 0.68;
+        ? 0.86
+        : 0.82;
     const scaleFromWidth =
       bounds.stageWidth / Math.max(bounds.boardWidth * visibleWidthFraction, 1);
     const scaleFromHeight =
       bounds.stageHeight / Math.max(bounds.boardHeight * visibleHeightFraction, 1);
-    const floor = portraitViewport ? 1.12 : narrowViewport ? 1.25 : 1.7;
-    const ceiling = portraitViewport ? 1.75 : narrowViewport ? 2.2 : 2.9;
-    const scale = Math.max(floor, scaleFromWidth, scaleFromHeight);
+    const floor = portraitViewport ? 1.06 : narrowViewport ? 1.1 : 1.16;
+    const ceiling = portraitViewport ? 1.4 : narrowViewport ? 1.52 : 1.7;
+    const baseScale = Math.max(floor, scaleFromWidth, scaleFromHeight);
+    const zoomMultiplier =
+      MONOPOLY_CAMERA_ZOOM_MULTIPLIERS[monopolyCamera.zoomIndex] ?? 1;
+    const scale = baseScale * zoomMultiplier;
 
     return Math.min(scale, ceiling);
   }
 
-  function resolveMyMonopolyFocusPoint() {
+  function resolveMonopolyFocusPoint() {
+    if (monopolyCamera.overviewMode) {
+      return resolveMonopolyOverviewPoint();
+    }
+
     const myToken = el.boardTokenLayer?.querySelector(
       `.board-token[data-player-id="${String(state.playerId)}"]`,
     );
@@ -489,6 +531,19 @@
     return {
       x: boardOffsetX + cellEl.offsetLeft + cellEl.offsetWidth / 2,
       y: boardOffsetY + cellEl.offsetTop + cellEl.offsetHeight / 2,
+    };
+  }
+
+  function resolveMonopolyOverviewPoint() {
+    if (!el.board) {
+      return null;
+    }
+
+    const boardOffsetX = el.board.offsetLeft || 0;
+    const boardOffsetY = el.board.offsetTop || 0;
+    return {
+      x: boardOffsetX + el.board.offsetWidth / 2,
+      y: boardOffsetY + el.board.offsetHeight / 2,
     };
   }
 
@@ -557,6 +612,116 @@
 
     monopolyCamera.tx = tx;
     monopolyCamera.ty = ty;
+  }
+
+  function ensureMonopolyBoardVisibleInViewport(options = {}) {
+    if (!el.boardStage || monopolyCamera.dragging) {
+      return;
+    }
+
+    const now = Date.now();
+    if (!options.force && now - monopolyViewportScrollAt < 1200) {
+      return;
+    }
+
+    const rect = el.boardStage.getBoundingClientRect();
+    const topBound = 72;
+    const bottomBound = window.innerHeight - 24;
+    const outsideViewport = rect.bottom < topBound || rect.top > bottomBound;
+
+    if (!outsideViewport) {
+      return;
+    }
+
+    monopolyViewportScrollAt = now;
+    el.boardStage.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+      behavior: options.animate === false ? "auto" : "smooth",
+    });
+  }
+
+  function renderMonopolyCameraControls() {
+    const active = shouldEnableMonopolyCamera();
+    if (!el.monopolyCameraControls || !el.monopolyZoomResetBtn) {
+      return;
+    }
+
+    el.monopolyCameraControls.classList.toggle("hidden", !active);
+    if (!active) {
+      syncMonopolyBoardToolbar();
+      return;
+    }
+
+    const zoomMultiplier =
+      MONOPOLY_CAMERA_ZOOM_MULTIPLIERS[monopolyCamera.zoomIndex] ?? 1;
+    el.monopolyZoomResetBtn.textContent = `${Math.round(zoomMultiplier * 100)}%`;
+    if (el.monopolyOverviewBtn) {
+      el.monopolyOverviewBtn.classList.toggle("active", monopolyCamera.overviewMode);
+      el.monopolyOverviewBtn.setAttribute(
+        "aria-pressed",
+        monopolyCamera.overviewMode ? "true" : "false",
+      );
+    }
+    if (el.monopolyZoomOutBtn) {
+      el.monopolyZoomOutBtn.disabled = monopolyCamera.zoomIndex <= 0;
+    }
+    if (el.monopolyZoomInBtn) {
+      el.monopolyZoomInBtn.disabled =
+        monopolyCamera.zoomIndex >= MONOPOLY_CAMERA_ZOOM_MULTIPLIERS.length - 1;
+    }
+    syncMonopolyBoardToolbar();
+  }
+
+  function syncMonopolyBoardToolbar() {
+    if (!el.monopolyBoardToolbar) {
+      return;
+    }
+
+    const showFullAuto = el.toggleFullAutoBtn && !el.toggleFullAutoBtn.classList.contains("hidden");
+    const showCamera = el.monopolyCameraControls && !el.monopolyCameraControls.classList.contains("hidden");
+    el.monopolyBoardToolbar.classList.toggle("hidden", !showFullAuto && !showCamera);
+  }
+
+  function adjustMonopolyZoom(delta) {
+    if (!shouldEnableMonopolyCamera()) {
+      return;
+    }
+
+    const nextIndex = clamp(
+      monopolyCamera.zoomIndex + delta,
+      0,
+      MONOPOLY_CAMERA_ZOOM_MULTIPLIERS.length - 1,
+    );
+    if (nextIndex === monopolyCamera.zoomIndex) {
+      return;
+    }
+
+    monopolyCamera.zoomIndex = nextIndex;
+    monopolyCamera.overviewMode = false;
+    root.storage?.saveMonopolyZoomIndex?.(nextIndex);
+    renderMonopolyCameraControls();
+    requestMonopolyCameraRefresh({ animate: true, force: true });
+  }
+
+  function resetMonopolyZoom() {
+    monopolyCamera.zoomIndex = MONOPOLY_CAMERA_DEFAULT_ZOOM_INDEX;
+    monopolyCamera.overviewMode = false;
+    root.storage?.saveMonopolyZoomIndex?.(monopolyCamera.zoomIndex);
+    renderMonopolyCameraControls();
+    requestMonopolyCameraRefresh({ animate: true, force: true });
+  }
+
+  function toggleMonopolyOverview(forceState = null) {
+    if (!shouldEnableMonopolyCamera()) {
+      return;
+    }
+
+    const nextState =
+      typeof forceState === "boolean" ? forceState : !monopolyCamera.overviewMode;
+    monopolyCamera.overviewMode = nextState;
+    renderMonopolyCameraControls();
+    requestMonopolyCameraRefresh({ animate: true, force: true });
   }
 
   function resetMonopolyCamera() {
@@ -802,6 +967,18 @@
   el.monopolyViewportDismissBtn?.addEventListener("click", dismissMonopolyViewportAssist);
   el.monopolyViewportFab?.addEventListener("click", () => {
     toggleMonopolyViewportMode();
+  });
+  el.monopolyZoomOutBtn?.addEventListener("click", () => {
+    adjustMonopolyZoom(-1);
+  });
+  el.monopolyOverviewBtn?.addEventListener("click", () => {
+    toggleMonopolyOverview();
+  });
+  el.monopolyZoomResetBtn?.addEventListener("click", () => {
+    resetMonopolyZoom();
+  });
+  el.monopolyZoomInBtn?.addEventListener("click", () => {
+    adjustMonopolyZoom(1);
   });
   el.boardStage?.addEventListener("pointerdown", onMonopolyCameraPointerDown);
   el.boardStage?.addEventListener("pointermove", onMonopolyCameraPointerMove);

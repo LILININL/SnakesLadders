@@ -40,8 +40,10 @@ public sealed partial class GameRoomService
         {
             _rooms.Remove(room.RoomCode);
             _chatByRoom.Remove(room.RoomCode);
+            room.SnapshotRevision++;
             return ServiceResult<RoomSnapshot>.Ok(new RoomSnapshot
             {
+                SnapshotRevision = room.SnapshotRevision,
                 RoomCode = room.RoomCode,
                 GameKey = room.GameKey,
                 HostPlayerId = room.HostPlayerId,
@@ -61,8 +63,9 @@ public sealed partial class GameRoomService
 
         if (!room.Players.Any(x => x.PlayerId == room.HostPlayerId))
         {
-            room.HostPlayerId = room.Players[0].PlayerId;
-            room.Players[0].IsReady = true;
+            var promotedHost = ResolvePromotedHostPlayerUnsafe(room);
+            room.HostPlayerId = promotedHost.PlayerId;
+            promotedHost.IsReady = true;
         }
 
         if (room.Status == GameStatus.Started)
@@ -186,6 +189,63 @@ public sealed partial class GameRoomService
         };
     }
 
+    private static PlayerState NewBotPlayerState(
+        GameRoom room,
+        string playerId,
+        string sessionId,
+        BotDifficulty difficulty,
+        BotPersonality personality)
+    {
+        var botIndex = ResolveNextBotSequenceUnsafe(room);
+        var avatarId = ((botIndex - 1) % MaxAvatarId) + 1;
+        var player = NewPlayerState(
+            playerId,
+            sessionId,
+            string.Empty,
+            $"AI {botIndex}",
+            avatarId,
+            room.BoardOptions);
+
+        player.Connected = true;
+        player.IsReady = true;
+        player.IsBot = true;
+        player.FullAutoEnabled = true;
+        player.BotDifficulty = difficulty;
+        player.BotPersonality = personality;
+        player.ActiveBotPersonality = personality;
+        return player;
+    }
+
+    private static int ResolveNextBotSequenceUnsafe(GameRoom room)
+    {
+        var maxIndex = 0;
+        foreach (var player in room.Players.Where(player => player.IsBot))
+        {
+            var label = player.DisplayName?.Trim() ?? string.Empty;
+            if (!label.StartsWith("AI ", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var suffix = label[3..].Trim();
+            if (int.TryParse(suffix, out var parsed) && parsed > maxIndex)
+            {
+                maxIndex = parsed;
+            }
+        }
+
+        return maxIndex + 1;
+    }
+
+    private static PlayerState ResolvePromotedHostPlayerUnsafe(GameRoom room)
+    {
+        return room.Players
+            .OrderBy(player => player.IsBot)
+            .ThenByDescending(player => player.Connected)
+            .ThenBy(player => room.Players.IndexOf(player))
+            .First();
+    }
+
     private string GenerateRoomCodeUnsafe()
     {
         const string alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -223,11 +283,27 @@ public sealed partial class GameRoomService
         return avatarId;
     }
 
+    private static BotDifficulty NormalizeBotDifficulty(BotDifficulty difficulty)
+    {
+        return Enum.IsDefined(typeof(BotDifficulty), difficulty)
+            ? difficulty
+            : BotDifficulty.Aggressive;
+    }
+
+    private static BotPersonality NormalizeBotPersonality(BotPersonality personality)
+    {
+        return Enum.IsDefined(typeof(BotPersonality), personality)
+            ? personality
+            : BotPersonality.Adaptive;
+    }
+
     private static RoomSnapshot ToSnapshot(GameRoom room)
     {
         var board = room.Board;
+        room.SnapshotRevision++;
         return new RoomSnapshot
         {
+            SnapshotRevision = room.SnapshotRevision,
             RoomCode = room.RoomCode,
             GameKey = room.GameKey,
             HostPlayerId = room.HostPlayerId,
@@ -241,6 +317,13 @@ public sealed partial class GameRoomService
                 Position = x.Position,
                 Connected = x.Connected,
                 IsReady = x.IsReady,
+                IsBot = x.IsBot,
+                FullAutoEnabled = x.FullAutoEnabled || x.IsBot,
+                BotDifficulty = x.IsBot ? NormalizeBotDifficulty(x.BotDifficulty) : null,
+                BotPersonality = x.IsBot ? NormalizeBotPersonality(x.BotPersonality) : null,
+                ActiveBotPersonality = x.IsBot
+                    ? ResolveDisplayedBotPersonality(room, x)
+                    : null,
                 Shields = x.Shields,
                 LuckyRerollsLeft = x.LuckyRerollsLeft,
                 SnakeRepellentCharges = x.SnakeRepellentCharges,
@@ -621,6 +704,16 @@ public sealed partial class GameRoomService
         if (!actionPlayer.Connected)
         {
             return DateTimeOffset.UtcNow.AddMilliseconds(OfflineAutoRollDelayMs);
+        }
+
+        if (actionPlayer.IsBot || actionPlayer.FullAutoEnabled)
+        {
+            var autoDelay = room.GameKey.Equals(GameCatalog.Monopoly, StringComparison.OrdinalIgnoreCase) &&
+                            room.Monopoly is not null &&
+                            room.Monopoly.Phase is MonopolyTurnPhase.AwaitManage or MonopolyTurnPhase.AwaitEndTurn
+                ? AutoPlayerManageDelayMs
+                : AutoPlayerDecisionDelayMs;
+            return DateTimeOffset.UtcNow.AddMilliseconds(autoDelay);
         }
 
         var rules = room.BoardOptions.RuleOptions;

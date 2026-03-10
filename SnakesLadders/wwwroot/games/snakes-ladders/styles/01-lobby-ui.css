@@ -158,6 +158,12 @@
   margin-top: 8px;
 }
 
+.player-label-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .mono-player-inline {
   display: flex;
   flex-wrap: wrap;
@@ -237,6 +243,55 @@
   border-color: #ef8f9d;
   color: #ffd0d7;
   background: rgba(108, 42, 57, 0.72);
+}
+
+.inline-pill.bot {
+  border-color: #8fd9ff;
+  color: #d7f2ff;
+  background: rgba(34, 94, 129, 0.76);
+}
+
+.inline-pill.auto {
+  border-color: #7fdfb2;
+  color: #ddfff0;
+  background: rgba(24, 111, 74, 0.74);
+}
+
+.inline-pill.bot-difficulty.aggressive {
+  border-color: #ffad92;
+  color: #ffe0d6;
+  background: rgba(130, 50, 32, 0.74);
+}
+
+.inline-pill.bot-difficulty.balanced {
+  border-color: #9bd7ff;
+  color: #dff4ff;
+  background: rgba(36, 91, 128, 0.74);
+}
+
+.inline-pill.personality.collector {
+  border-color: #8fe3b8;
+  color: #e1ffef;
+  background: rgba(30, 101, 63, 0.72);
+}
+
+.inline-pill.personality.builder {
+  border-color: #ffd88a;
+  color: #fff2cf;
+  background: rgba(129, 95, 28, 0.74);
+}
+
+.inline-pill.personality.banker {
+  border-color: #d0b5ff;
+  color: #f1e8ff;
+  background: rgba(86, 59, 138, 0.72);
+}
+
+.inline-pill.personality.adaptive,
+.inline-pill.personality-active {
+  border-color: #88e5ef;
+  color: #defcff;
+  background: rgba(18, 103, 118, 0.72);
 }
 
 .inline-pill.offline {
@@ -320,6 +375,48 @@
   gap: 6px;
 }
 
+.ready-bot-controls {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(113, 164, 201, 0.45);
+}
+
+.ready-bot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ready-bot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.ready-bot-field {
+  display: grid;
+  gap: 4px;
+  min-width: 136px;
+  font-size: 0.78rem;
+  color: #dcecff;
+}
+
+.ready-bot-field span {
+  font-weight: 700;
+}
+
+.ready-bot-field select {
+  min-height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(111, 174, 214, 0.54);
+  background: rgba(8, 28, 45, 0.72);
+  color: #eef8ff;
+  padding: 0 10px;
+}
+
 .ready-item {
   display: flex;
   justify-content: space-between;
@@ -346,6 +443,11 @@
   background: rgba(39, 51, 64, 0.34);
 }
 
+.ready-item.bot-player {
+  border-color: #5ea2cf;
+  background: rgba(25, 72, 102, 0.36);
+}
+
 .ready-item .name {
   font-weight: 600;
 }
@@ -355,6 +457,28 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+.ready-item-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ready-badge-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ready-remove-bot-btn {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .mono-owner-badge {

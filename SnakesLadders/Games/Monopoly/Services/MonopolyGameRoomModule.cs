@@ -44,7 +44,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
                 TurnTimerEnabled = true,
                 TurnSeconds = 20,
                 RoundLimitEnabled = true,
-                MaxRounds = 80,
+                MaxRounds = 42,
                 MarathonSpeedupEnabled = false
             }
         };
@@ -88,6 +88,10 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         }
 
         room.Status = GameStatus.Started;
+        room.BoardOptions.RuleOptions.MaxRounds =
+            ResolveEffectiveConfiguredRoundLimit(
+                room.BoardOptions.RuleOptions.MaxRounds,
+                room.Players.Count);
         room.CurrentTurnIndex = random.Next(0, room.Players.Count);
         room.TurnCounter = 0;
         room.CompletedRounds = 0;

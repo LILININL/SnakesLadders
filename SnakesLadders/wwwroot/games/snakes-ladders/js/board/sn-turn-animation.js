@@ -8,6 +8,9 @@
   const JUMP_HINT_MS = 600;
   const PAGE_TRANSITION_MS = 550;
   const MONOPOLY_RELOCATION_MIN_DISTANCE = 8;
+  const MONOPOLY_QUEUE_SOFT_FAST_FORWARD = 3;
+  const MONOPOLY_QUEUE_HARD_FAST_FORWARD = 6;
+  const FAST_FORWARD_SETTLE_MS = 80;
   const MONOPOLY_GAME_KEY = String(
     root.GAME_KEYS?.MONOPOLY ?? "monopoly",
   ).trim().toLowerCase();
@@ -55,10 +58,11 @@
     const turnKey = buildTurnKey(payload);
     const turn = payload.turn;
     const room = payload.room;
+    const playback = resolvePlaybackProfile(payload);
     const boardSize = room.board?.size ?? 0;
     if (!boardSize) {
       state.lastTurn = turn;
-      state.room = room;
+      root.viewState.acceptRoomSnapshot(room);
       root.feedback.renderAll();
       if (turnKey) {
         lastFinishedTurnKey = turnKey;
@@ -80,7 +84,7 @@
       turn,
     );
     try {
-      if (hasDiceRoll(turn)) {
+      if (hasDiceRoll(turn) && !playback.skipDiceFx) {
         const diceOne = Number.parseInt(String(turn.diceOne ?? 0), 10) || 0;
         const diceTwo = Number.parseInt(String(turn.diceTwo ?? 0), 10) || 0;
         const diceTotal =
@@ -94,6 +98,7 @@
               String(turn.actionType ?? root.GAME_ACTION_TYPES.ROLL_DICE),
               10,
             ) === root.GAME_ACTION_TYPES.TRY_JAIL_ROLL,
+          durationScale: playback.durationScale,
         });
       }
 
@@ -112,6 +117,7 @@
           room.board.size,
           followPlayer,
           pendingItemEffects,
+          playback,
         );
       }
 
@@ -119,6 +125,7 @@
         room.board.size,
         followPlayer,
         pendingItemEffects,
+        playback,
       );
       state.animPlayerPosition = clamp(
         Number.parseInt(
@@ -129,7 +136,7 @@
         room.board.size,
       );
       root.feedback.renderAll();
-      await playMoneyEvents(turn);
+      await playMoneyEvents(turn, playback);
 
       if (turn.isGameFinished) {
         await root.boardFx?.showWinner?.(turn, room);
@@ -159,7 +166,7 @@
     state.animPlayerPosition = startPosition;
     state.animTurnPlayerId = turnPlayerId;
     state.animFrenzySnake = turn?.frenzySnake ?? null;
-    state.deferredRoom = room;
+    root.viewState.stageDeferredRoom(room, { force: true });
     root.feedback.renderAll();
   }
 
@@ -171,8 +178,8 @@
     state.animFrenzySnake = null;
     state.animTransitActive = false;
     state.animTransitPlayerId = "";
-    state.room = state.deferredRoom ?? room;
-    state.deferredRoom = null;
+    root.viewState.acceptRoomSnapshot(room);
+    root.viewState.clearDeferredRoom();
     state.lastTurn = turn;
     root.boardFocus?.onRoomBound?.(false);
     root.feedback.renderAll();
@@ -183,9 +190,15 @@
     boardSize,
     followPlayer,
     pendingItemEffects,
+    playback,
   ) {
     if (segment.mode === "event") {
-      await root.boardFx?.showEventOverlay?.(segment.notice);
+      if (!playback.skipEventOverlay) {
+        await root.boardFx?.showEventOverlay?.({
+          ...segment.notice,
+          holdMs: scaleMs(segment.notice?.holdMs ?? 3400, playback.waitScale, 240),
+        });
+      }
       return;
     }
 
@@ -223,12 +236,24 @@
     if (!followPlayer) {
       state.animPlayerPosition = effectiveSegment.to;
       root.feedback.renderAll();
-      await wait(90);
+      await wait(scaleMs(90, playback.waitScale, 28));
       await consumeItemEffectsAtCell(
         effectiveSegment.to,
         boardSize,
         followPlayer,
         pendingItemEffects,
+        playback,
+      );
+      return;
+    }
+
+    if (playback.instantMovement) {
+      await fastForwardSegment(
+        effectiveSegment,
+        boardSize,
+        followPlayer,
+        pendingItemEffects,
+        playback,
       );
       return;
     }
@@ -243,6 +268,7 @@
           boardSize,
           followPlayer,
           pendingItemEffects,
+          playback,
         );
         return;
       }
@@ -255,12 +281,13 @@
           boardSize,
           followPlayer,
           pendingItemEffects,
+          playback,
         );
         if (movedTo !== effectiveSegment.to) {
           state.animPlayerPosition = movedTo;
           root.feedback.renderAll();
         }
-        await wait(SEGMENT_END_WAIT_MS);
+        await wait(scaleMs(SEGMENT_END_WAIT_MS, playback.waitScale, 36));
         return;
       }
     }
@@ -271,6 +298,7 @@
         boardSize,
         followPlayer,
         pendingItemEffects,
+        playback,
       );
       return;
     }
@@ -281,6 +309,7 @@
       boardSize,
       followPlayer,
       pendingItemEffects,
+      playback,
       Boolean(effectiveSegment.wrapForward),
     );
     if (Number.isFinite(finalPos)) {
@@ -294,11 +323,12 @@
     boardSize,
     followPlayer,
     pendingItemEffects,
+    playback,
   ) {
     const icon = segment.jumpType === "snake" ? "🐍" : "🪜";
     await root.boardFx?.showJumpHint?.(
       `${icon} ไปช่อง ${segment.to}`,
-      JUMP_HINT_MS,
+      scaleMs(JUMP_HINT_MS, playback.waitScale, 120),
     );
     await ensureVisiblePage(segment.to, true, boardSize);
     state.animPlayerPosition = segment.to;
@@ -308,12 +338,13 @@
       boardSize,
       followPlayer,
       pendingItemEffects,
+      playback,
     );
     if (movedTo !== segment.to) {
       state.animPlayerPosition = movedTo;
       root.feedback.renderAll();
     }
-    await wait(SEGMENT_END_WAIT_MS);
+    await wait(scaleMs(SEGMENT_END_WAIT_MS, playback.waitScale, 36));
   }
 
   async function runRelocationSegment(
@@ -321,6 +352,7 @@
     boardSize,
     followPlayer,
     pendingItemEffects,
+    playback,
   ) {
     if (!followPlayer) {
       state.animPlayerPosition = segment.to;
@@ -330,8 +362,9 @@
         boardSize,
         followPlayer,
         pendingItemEffects,
+        playback,
       );
-      await wait(STAY_WAIT_MS);
+      await wait(scaleMs(STAY_WAIT_MS, playback.waitScale, 36));
       return;
     }
 
@@ -354,12 +387,13 @@
       boardSize,
       followPlayer,
       pendingItemEffects,
+      playback,
     );
     if (movedTo !== segment.to) {
       state.animPlayerPosition = movedTo;
       root.feedback.renderAll();
     }
-    await wait(SEGMENT_END_WAIT_MS);
+    await wait(scaleMs(SEGMENT_END_WAIT_MS, playback.waitScale, 36));
   }
 
   async function runStepSegment(
@@ -368,6 +402,7 @@
     boardSize,
     followPlayer,
     pendingItemEffects,
+    playback,
     wrapForward = false,
   ) {
     if (from === to) {
@@ -376,15 +411,16 @@
         boardSize,
         followPlayer,
         pendingItemEffects,
+        playback,
       );
-      await wait(STAY_WAIT_MS);
+      await wait(scaleMs(STAY_WAIT_MS, playback.waitScale, 36));
       return to;
     }
 
     let current = from;
     let guard = 0;
     while (current !== to) {
-      const delay = stepDelay(Math.abs(to - current));
+      const delay = stepDelay(Math.abs(to - current), playback);
       let next;
       if (wrapForward) {
         next = current >= boardSize ? 1 : current + 1;
@@ -396,10 +432,10 @@
       if (nextPageStart !== state.visiblePageStart) {
         await root.boardPage.setVisiblePageStart(nextPageStart, {
           animate: true,
-          durationMs: PAGE_TRANSITION_MS,
+          durationMs: scaleMs(PAGE_TRANSITION_MS, playback.waitScale, 120),
           boardSize,
         });
-        await wait(CROSS_PAGE_PAUSE_MS);
+        await wait(scaleMs(CROSS_PAGE_PAUSE_MS, playback.waitScale, 28));
       }
 
       current = next;
@@ -412,6 +448,7 @@
         boardSize,
         followPlayer,
         pendingItemEffects,
+        playback,
       );
       if (movedByEffect !== current) {
         current = movedByEffect;
@@ -427,7 +464,7 @@
       }
     }
 
-    await wait(SEGMENT_END_WAIT_MS);
+    await wait(scaleMs(SEGMENT_END_WAIT_MS, playback.waitScale, 36));
     return current;
   }
 
@@ -488,6 +525,7 @@
     boardSize,
     followPlayer,
     pendingItemEffects,
+    playback,
   ) {
     if (!Array.isArray(pendingItemEffects) || pendingItemEffects.length === 0) {
       return cell;
@@ -517,6 +555,7 @@
           boardSize,
           followPlayer,
           pendingItemEffects,
+          playback,
         );
       }
 
@@ -530,6 +569,7 @@
     boardSize,
     followPlayer,
     pendingItemEffects,
+    playback,
   ) {
     if (!Array.isArray(pendingItemEffects) || pendingItemEffects.length === 0) {
       return;
@@ -563,6 +603,7 @@
           boardSize,
           followPlayer,
           pendingItemEffects,
+          playback,
         );
       }
 
@@ -715,12 +756,19 @@
     );
   }
 
-  async function playMoneyEvents(turn) {
+  async function playMoneyEvents(turn, playback) {
     const moneyEvents = Array.isArray(turn?.clientFx?.moneyEvents)
       ? turn.clientFx.moneyEvents
       : [];
+    if (playback.skipMoneyOverlay) {
+      return;
+    }
     for (const event of moneyEvents) {
-      await root.boardFx?.showMoneyFlow?.(event);
+      await root.boardFx?.showMoneyFlow?.({
+        ...event,
+        countDurationMs: scaleMs(1200, playback.waitScale, 180),
+        holdMs: scaleMs(3000, playback.waitScale, 420),
+      });
     }
   }
 
@@ -775,11 +823,107 @@
     });
   }
 
-  function stepDelay(distance) {
-    if (distance <= 6) return 560;
-    if (distance <= 20) return 440;
-    if (distance <= 60) return 320;
-    return 250;
+  function stepDelay(distance, playback = null) {
+    const base = distance <= 6 ? 560 : distance <= 20 ? 440 : distance <= 60 ? 320 : 250;
+    return scaleMs(base, playback?.stepScale ?? 1, 42);
+  }
+
+  async function fastForwardSegment(
+    segment,
+    boardSize,
+    followPlayer,
+    pendingItemEffects,
+    playback,
+  ) {
+    if (followPlayer) {
+      await ensureVisiblePage(segment.to, false, boardSize);
+    }
+
+    state.animPlayerPosition = segment.to;
+    root.feedback.renderAll();
+
+    const movedTo = await consumeItemEffectsAtCell(
+      segment.to,
+      boardSize,
+      followPlayer,
+      pendingItemEffects,
+      playback,
+    );
+    if (movedTo !== segment.to) {
+      state.animPlayerPosition = movedTo;
+      root.feedback.renderAll();
+    }
+
+    await wait(scaleMs(FAST_FORWARD_SETTLE_MS, playback.waitScale, 18));
+  }
+
+  function resolvePlaybackProfile(payload) {
+    const room = payload?.room;
+    const turn = payload?.turn;
+    if (!isMonopolyGameKey(room?.gameKey)) {
+      return {
+        durationScale: 1,
+        stepScale: 1,
+        waitScale: 1,
+        skipDiceFx: false,
+        skipEventOverlay: false,
+        skipMoneyOverlay: false,
+        instantMovement: false,
+      };
+    }
+
+    const queueDepth = Math.max(0, queuedTurns - 1);
+    const actor = Array.isArray(room?.players)
+      ? room.players.find((player) => player.playerId === turn?.playerId)
+      : null;
+    const isLocalPlayer = actor?.playerId === state.playerId;
+    const isAutomated = Boolean(
+      actor?.isBot || actor?.fullAutoEnabled || turn?.autoRollReason,
+    );
+
+    if (
+      queueDepth >= MONOPOLY_QUEUE_HARD_FAST_FORWARD &&
+      (isAutomated || !isLocalPlayer)
+    ) {
+      return {
+        durationScale: 0.28,
+        stepScale: 0.2,
+        waitScale: 0.16,
+        skipDiceFx: true,
+        skipEventOverlay: true,
+        skipMoneyOverlay: true,
+        instantMovement: true,
+      };
+    }
+
+    if (
+      queueDepth >= MONOPOLY_QUEUE_SOFT_FAST_FORWARD &&
+      (isAutomated || !isLocalPlayer)
+    ) {
+      return {
+        durationScale: 0.5,
+        stepScale: 0.34,
+        waitScale: 0.38,
+        skipDiceFx: false,
+        skipEventOverlay: false,
+        skipMoneyOverlay: false,
+        instantMovement: true,
+      };
+    }
+
+    return {
+      durationScale: 1,
+      stepScale: 1,
+      waitScale: 1,
+      skipDiceFx: false,
+      skipEventOverlay: false,
+      skipMoneyOverlay: false,
+      instantMovement: false,
+    };
+  }
+
+  function scaleMs(ms, scale = 1, min = 0) {
+    return Math.max(min, Math.round((Number(ms) || 0) * (Number(scale) || 1)));
   }
 
   function wait(ms) {
@@ -795,37 +939,32 @@
       return "";
     }
 
-    const turn = payload.turn;
-    const roomCode = payload.room.roomCode ?? "";
-    const jump = turn.triggeredJump
-      ? `${turn.triggeredJump.from}-${turn.triggeredJump.to}-${turn.triggeredJump.type}`
-      : "";
-    const frenzy = turn.frenzySnake
-      ? `${turn.frenzySnake.from}-${turn.frenzySnake.to}`
-      : "";
-    const itemPart = Array.isArray(turn.itemEffects)
-      ? turn.itemEffects
-          .map(
-            (effect) =>
-              `${effect?.itemType ?? ""}:${effect?.cell ?? ""}:${effect?.fromPosition ?? ""}:${effect?.toPosition ?? ""}`,
-          )
-          .join(",")
-      : "";
+    const revision =
+      root.viewState?.resolveRoomSnapshotRevision?.(payload.room) ??
+      Number.parseInt(
+        String(
+          payload.room?.snapshotRevision ?? payload.room?.SnapshotRevision ?? 0,
+        ),
+        10,
+      ) ||
+      0;
+    if (revision > 0) {
+      const roomCode = String(
+        payload.room?.roomCode ?? payload.room?.RoomCode ?? "",
+      )
+        .trim()
+        .toUpperCase();
+      return `${roomCode}|${revision}`;
+    }
 
+    const turn = payload.turn;
     return [
-      roomCode,
+      payload.room.roomCode ?? "",
       payload.room.turnCounter ?? "",
       turn.playerId ?? "",
       turn.actionType ?? "",
       turn.startPosition ?? "",
-      turn.diceOne ?? "",
-      turn.diceTwo ?? "",
-      turn.diceValue ?? "",
       turn.endPosition ?? "",
-      turn.actionSummary ?? "",
-      jump,
-      frenzy,
-      itemPart,
     ].join("|");
   }
 

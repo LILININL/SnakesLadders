@@ -197,7 +197,15 @@
       (hasTwoDice ? resolvedDiceOne + resolvedDiceTwo : resolvedDiceOne || resolvedDiceTwo || 1),
     );
     const rollPower = resolveRollPower(playerId);
-    const rollDurationMs = 1240 + Math.round(rollPower * 260);
+    const durationScale = clamp(
+      Number(meta?.durationScale ?? 1) || 1,
+      0.15,
+      1,
+    );
+    const rollDurationMs = Math.max(
+      220,
+      Math.round((1240 + Math.round(rollPower * 260)) * durationScale),
+    );
     if (hasTwoDice) {
       const startOne = randomDiceFace(resolvedDiceOne);
       const startTwo = randomDiceFace(resolvedDiceTwo);
@@ -223,7 +231,7 @@
       setFxCubeValue(cubeAEl, startOne);
       setFxCubeValue(cubeBEl, startTwo);
       el.diceResultFx.className = "dice-result-fx rolling pair-mode";
-      await wait(140 + rollDurationMs);
+      await wait(Math.max(80, Math.round(140 * durationScale)) + rollDurationMs);
       setFxCubeValue(cubeAEl, resolvedDiceOne);
       setFxCubeValue(cubeBEl, resolvedDiceTwo);
       if (totalEl) {
@@ -236,9 +244,9 @@
         statusEl.classList.add("revealed");
       }
       el.diceResultFx.className = "dice-result-fx reveal pair-mode";
-      await wait(120);
+      await wait(Math.max(60, Math.round(120 * durationScale)));
       el.diceResultFx.className = "dice-result-fx show pair-mode";
-      await wait(980);
+      await wait(Math.max(180, Math.round(980 * durationScale)));
       el.diceResultFx.className = "dice-result-fx hide pair-mode";
       await wait(220);
       el.diceResultFx.className = "dice-result-fx hidden";
@@ -261,7 +269,7 @@
     const captionEl = el.diceResultFx.querySelector(".dice-fx-value-caption");
     setFxCubeValue(cubeEl, startValue);
     el.diceResultFx.className = "dice-result-fx rolling";
-    await wait(140 + rollDurationMs);
+    await wait(Math.max(80, Math.round(140 * durationScale)) + rollDurationMs);
     setFxCubeValue(cubeEl, resolvedDiceValue);
     if (valueEl) {
       valueEl.textContent = String(resolvedDiceValue);
@@ -272,9 +280,9 @@
       captionEl.classList.remove("pending");
     }
     el.diceResultFx.className = "dice-result-fx reveal";
-    await wait(140);
+    await wait(Math.max(60, Math.round(140 * durationScale)));
     el.diceResultFx.className = "dice-result-fx show";
-    await wait(840);
+    await wait(Math.max(180, Math.round(840 * durationScale)));
     el.diceResultFx.className = "dice-result-fx hide";
     await wait(220);
     el.diceResultFx.className = "dice-result-fx hidden";
@@ -573,8 +581,16 @@
 
     el.moneyFlowOverlay.classList.remove("hidden");
     el.moneyFlowOverlay.classList.add("show");
-    animateNumber(balanceEl, beforeCash, afterCash, 1200, moneyText);
-    await wait(3000);
+    const countDurationMs = Math.max(
+      180,
+      Number.parseInt(String(moneyEvent?.countDurationMs ?? 1200), 10) || 1200,
+    );
+    const holdMs = Math.max(
+      countDurationMs + 220,
+      Number.parseInt(String(moneyEvent?.holdMs ?? 3000), 10) || 3000,
+    );
+    animateNumber(balanceEl, beforeCash, afterCash, countDurationMs, moneyText);
+    await wait(holdMs);
     el.moneyFlowOverlay.classList.remove("show");
     el.moneyFlowOverlay.classList.add("hide");
     await wait(220);
@@ -781,6 +797,10 @@
     const amount = Number.parseInt(String(value ?? 0), 10) || 0;
     const abs = Math.abs(amount).toLocaleString("th-TH");
     return amount < 0 ? `-฿${abs}` : `฿${abs}`;
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
   }
 
   root.boardFx = {

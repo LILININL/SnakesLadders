@@ -43,6 +43,20 @@ public sealed class BoardState
     public required IReadOnlyDictionary<int, ForkCell> ForksByCell { get; init; }
 }
 
+public enum BotDifficulty
+{
+    Balanced = 0,
+    Aggressive = 1
+}
+
+public enum BotPersonality
+{
+    Adaptive = 0,
+    Collector = 1,
+    Builder = 2,
+    Banker = 3
+}
+
 public sealed class PlayerState
 {
     public required string PlayerId { get; init; }
@@ -53,6 +67,11 @@ public sealed class PlayerState
     public int Position { get; set; } = 1;
     public bool Connected { get; set; } = true;
     public bool IsReady { get; set; }
+    public bool IsBot { get; set; }
+    public bool FullAutoEnabled { get; set; }
+    public BotDifficulty BotDifficulty { get; set; } = BotDifficulty.Aggressive;
+    public BotPersonality BotPersonality { get; set; } = BotPersonality.Adaptive;
+    public BotPersonality ActiveBotPersonality { get; set; } = BotPersonality.Adaptive;
 
     public int Shields { get; set; }
     public int NextCheckpoint { get; set; } = 50;
@@ -98,6 +117,7 @@ public sealed class GameRoom
     public List<BananaTrapState> BananaTraps { get; } = new();
     public MonopolyRoomState? Monopoly { get; set; }
     public DateTimeOffset? TurnDeadlineUtc { get; set; }
+    public long SnapshotRevision { get; set; }
 
     public PlayerState? CurrentTurnPlayer =>
         Players.Count == 0 ? null : Players[CurrentTurnIndex % Players.Count];

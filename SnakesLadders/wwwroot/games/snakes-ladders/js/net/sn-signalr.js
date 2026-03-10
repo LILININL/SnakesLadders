@@ -2,6 +2,8 @@
   const root = window.SNL;
   const { state, el } = root;
   const { normalizeName } = root.utils;
+  let lastActionFxRoom = null;
+  let lastActionFxRevision = 0;
 
   async function setupConnection() {
     state.connection = new signalR.HubConnectionBuilder()
@@ -54,22 +56,39 @@
 
     state.connection.on("RoomUpdated", (room) => {
       if (root.turnAnimation?.isBusy?.()) {
-        state.deferredRoom = room;
         if (room?.status === root.GAME_STATUS.STARTED) {
           state.pendingTurnChangedPlayerId = room.currentTurnPlayerId ?? "";
         }
         return;
       }
 
-      state.room = room;
+      if (!root.viewState.acceptRoomSnapshot(room)) {
+        return;
+      }
+
+      syncActionFxBaseline(room);
       root.session.syncProfileAvatarFromRoom(room, state.playerId);
       flushPendingTurnTrigger(room);
       root.boardFocus?.onRoomBound?.(false);
       root.feedback.renderAll();
     });
 
+    state.connection.on("FullAutoUpdated", (room) => {
+      if (!room) {
+        return;
+      }
+
+      if (!root.viewState.acceptRoomSnapshot(room)) {
+        return;
+      }
+
+      syncActionFxBaseline(room);
+      root.feedback.renderAll();
+    });
+
     state.connection.on("GameStarted", (room) => {
-      state.room = room;
+      root.viewState.acceptRoomSnapshot(room, { force: true });
+      syncActionFxBaseline(room, { force: true });
       root.session.syncProfileAvatarFromRoom(room, state.playerId);
       seedTurnTriggerCounter(room);
       root.boardFocus?.onRoomBound?.(true);
@@ -116,11 +135,12 @@
           ? `จบเกมแล้ว ผู้ชนะคือ ${winnerName || "-"} | ${topThree}`
           : `จบเกมแล้ว ผู้ชนะคือ ${winnerName || "-"}`,
       );
-      if (state.animating) {
-        state.deferredRoom = payload.room;
+      if (root.turnAnimation?.isBusy?.()) {
+        root.viewState.stageDeferredRoom(payload.room);
       } else {
         state.lastTurn = payload.turn;
-        state.room = payload.room;
+        root.viewState.acceptRoomSnapshot(payload.room);
+        syncActionFxBaseline(payload.room, { force: true });
         seedTurnTriggerCounter(payload.room);
         root.feedback.renderAll();
       }
@@ -170,7 +190,8 @@
     state.roomCode = payload.roomCode;
     state.playerId = payload.playerId;
     state.sessionId = payload.sessionId;
-    state.room = payload.room;
+    root.viewState.acceptRoomSnapshot(payload.room, { force: true });
+    syncActionFxBaseline(payload.room, { force: true });
     state.lastTurn = null;
     state.chatMessages = [];
     state.chatPanelOpen = true;
@@ -183,7 +204,7 @@
     state.animFrenzySnake = null;
     state.animTransitActive = false;
     state.animTransitPlayerId = "";
-    state.deferredRoom = null;
+    root.viewState.clearDeferredRoom();
     state.pendingTurnChangedPlayerId = "";
     state.lastAnnouncedTurnCounter = -1;
     state.pendingBeaconTargetPlayerId = "";
@@ -297,6 +318,17 @@
       return;
     }
 
+    const incomingRevision =
+      root.viewState?.resolveRoomSnapshotRevision?.(payload.room) ?? 0;
+    const latestRevision = Math.max(
+      Number.parseInt(String(state.roomSnapshotRevision ?? 0), 10) || 0,
+      Number.parseInt(String(state.deferredRoomSnapshotRevision ?? 0), 10) || 0,
+      Number.parseInt(String(state.latestRoomSnapshotRevision ?? 0), 10) || 0,
+    );
+    if (incomingRevision > 0 && incomingRevision < latestRevision) {
+      return;
+    }
+
     const room = payload.room;
     const actionType =
       Number.parseInt(
@@ -316,11 +348,13 @@
     }
 
     if (isMonopoly) {
+      const previousActionRoom = resolvePreviousActionFxRoom(room, incomingRevision);
       payload.turn.clientFx = buildMonopolyClientFx(
         payload.turn,
-        state.deferredRoom ?? state.room,
+        previousActionRoom,
         room,
       );
+      syncActionFxBaseline(room, { force: true, revision: incomingRevision });
     }
 
     root.feedback.logEvent(formatActionEvent(payload.turn, room));
@@ -496,6 +530,47 @@
         moneyEvents.find((entry) => entry.playerId === turn?.playerId) ?? null,
       gameResult: nextRoom?.gameResult ?? null,
     };
+  }
+
+  function resolvePreviousActionFxRoom(nextRoom, incomingRevision) {
+    const nextRoomCode = normalizeRoomCode(nextRoom);
+    const latestKnownRoomCode = normalizeRoomCode(lastActionFxRoom);
+    if (
+      lastActionFxRoom &&
+      nextRoomCode &&
+      latestKnownRoomCode === nextRoomCode &&
+      incomingRevision > 0 &&
+      lastActionFxRevision > 0 &&
+      lastActionFxRevision < incomingRevision
+    ) {
+      return lastActionFxRoom;
+    }
+
+    return state.deferredRoom ?? state.room;
+  }
+
+  function syncActionFxBaseline(room, options = {}) {
+    const revision =
+      Number.parseInt(
+        String(
+          options.revision ??
+            root.viewState?.resolveRoomSnapshotRevision?.(room) ??
+            0,
+        ),
+        10,
+      ) || 0;
+    if (!options.force && revision > 0 && revision < lastActionFxRevision) {
+      return;
+    }
+
+    lastActionFxRoom = room ?? null;
+    lastActionFxRevision = revision;
+  }
+
+  function normalizeRoomCode(room) {
+    return String(room?.roomCode ?? room?.RoomCode ?? "")
+      .trim()
+      .toUpperCase();
   }
 
   function resolveEventNotice(turn) {

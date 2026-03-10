@@ -88,7 +88,10 @@
       root.roomUi.toggleChatPanel(),
     );
     el.toggleReadyBtn.addEventListener("click", onToggleReady);
+    el.addBotPlayerBtn?.addEventListener("click", onAddBotPlayer);
     el.readyAvatarPicker?.addEventListener("click", onPickWaitingAvatar);
+    el.readyList?.addEventListener("click", onReadyListClick);
+    el.toggleFullAutoBtn?.addEventListener("click", onToggleFullAuto);
 
     el.leaveRoomBtn.addEventListener("click", onLeaveRoom);
 
@@ -574,7 +577,7 @@
     state.roomCode = "";
     state.playerId = "";
     state.sessionId = "";
-    state.room = null;
+    root.viewState.resetRoomSnapshots();
     state.lastTurn = null;
     state.rollButtonHidden = false;
     state.chatPanelOpen = false;
@@ -586,7 +589,6 @@
     state.animFrenzySnake = null;
     state.animTransitActive = false;
     state.animTransitPlayerId = "";
-    state.deferredRoom = null;
     state.pendingTurnChangedPlayerId = "";
     state.lastAnnouncedTurnCounter = -1;
     state.pendingBeaconTargetPlayerId = "";
@@ -669,6 +671,71 @@
     });
   }
 
+  async function onAddBotPlayer() {
+    if (
+      !state.roomCode ||
+      !state.room ||
+      state.room.status !== root.GAME_STATUS.WAITING ||
+      state.room.hostPlayerId !== state.playerId
+    ) {
+      return;
+    }
+
+    await root.realtime.invokeHub("AddBotPlayer", {
+      roomCode: state.roomCode,
+      difficulty: root.utils.normalizeBotDifficulty(
+        el.botDifficultySelect?.value,
+        root.utils.BOT_DIFFICULTY.AGGRESSIVE,
+      ),
+      personality: root.utils.normalizeBotPersonality(
+        el.botPersonalitySelect?.value,
+        root.utils.BOT_PERSONALITY.ADAPTIVE,
+      ),
+    });
+  }
+
+  async function onReadyListClick(event) {
+    const removeBtn = event.target.closest("[data-remove-bot-player-id]");
+    if (!removeBtn || removeBtn.disabled) {
+      return;
+    }
+
+    if (
+      !state.roomCode ||
+      !state.room ||
+      state.room.status !== root.GAME_STATUS.WAITING ||
+      state.room.hostPlayerId !== state.playerId
+    ) {
+      return;
+    }
+
+    const playerId = String(removeBtn.dataset.removeBotPlayerId ?? "").trim();
+    if (!playerId) {
+      return;
+    }
+
+    await root.realtime.invokeHub("RemoveBotPlayer", {
+      roomCode: state.roomCode,
+      playerId,
+    });
+  }
+
+  async function onToggleFullAuto() {
+    if (!state.roomCode || !state.room) {
+      return;
+    }
+
+    const me = state.room.players.find((x) => x.playerId === state.playerId);
+    if (!me || me.isBot) {
+      return;
+    }
+
+    await root.realtime.invokeHub("SetFullAuto", {
+      roomCode: state.roomCode,
+      enabled: !me.fullAutoEnabled,
+    });
+  }
+
   async function onPickWaitingAvatar(event) {
     const button = event.target.closest("[data-avatar-id]");
     if (!button || button.disabled) {
@@ -716,5 +783,6 @@
   root.actions = {
     wireForms,
     syncRollInteraction,
+    onToggleFullAuto,
   };
 })();

@@ -1200,7 +1200,7 @@
     }
 
     const sec = resolveDeadlineSec(
-      state.deferredRoom?.turnDeadlineUtc ?? state.room?.turnDeadlineUtc,
+      root.viewState?.getEffectiveDeadlineUtc?.() ?? state.room?.turnDeadlineUtc,
     );
     if (sec <= 0) {
       timerEl.textContent = "กำลังหมดเวลา...";

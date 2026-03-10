@@ -90,6 +90,25 @@ public sealed class SetReadyRequest
     public bool IsReady { get; set; }
 }
 
+public sealed class AddBotPlayerRequest
+{
+    public string RoomCode { get; set; } = string.Empty;
+    public BotDifficulty Difficulty { get; set; } = BotDifficulty.Aggressive;
+    public BotPersonality Personality { get; set; } = BotPersonality.Adaptive;
+}
+
+public sealed class RemoveBotPlayerRequest
+{
+    public string RoomCode { get; set; } = string.Empty;
+    public string PlayerId { get; set; } = string.Empty;
+}
+
+public sealed class SetFullAutoRequest
+{
+    public string RoomCode { get; set; } = string.Empty;
+    public bool Enabled { get; set; }
+}
+
 public sealed class SetAvatarRequest
 {
     public string RoomCode { get; set; } = string.Empty;
@@ -149,6 +168,7 @@ public sealed class ChatMessage
 
 public sealed class RoomSnapshot
 {
+    public required long SnapshotRevision { get; init; }
     public required string RoomCode { get; init; }
     public required string GameKey { get; init; }
     public required string HostPlayerId { get; init; }
@@ -187,6 +207,11 @@ public sealed class PlayerSnapshot
     public required int Position { get; init; }
     public required bool Connected { get; init; }
     public required bool IsReady { get; init; }
+    public required bool IsBot { get; init; }
+    public required bool FullAutoEnabled { get; init; }
+    public BotDifficulty? BotDifficulty { get; init; }
+    public BotPersonality? BotPersonality { get; init; }
+    public BotPersonality? ActiveBotPersonality { get; init; }
     public required int Shields { get; init; }
     public required int LuckyRerollsLeft { get; init; }
     public required int SnakeRepellentCharges { get; init; }

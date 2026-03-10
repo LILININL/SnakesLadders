@@ -40,7 +40,7 @@
       (x) => x.playerId === displayTurnPlayerId,
     );
     const effectiveDeadline =
-      state.deferredRoom?.turnDeadlineUtc ?? state.room.turnDeadlineUtc;
+      root.viewState?.getEffectiveDeadlineUtc?.() ?? state.room.turnDeadlineUtc;
     const deadline = effectiveDeadline
       ? ` | หมดเวลา: ${formatClock(effectiveDeadline)}`
       : "";
@@ -125,6 +125,9 @@
     const name = document.createElement("strong");
     name.className = "player-name-text";
 
+    const labelList = document.createElement("span");
+    labelList.className = "player-label-list";
+
     const statsBlock = document.createElement("div");
     statsBlock.className = "player-stats-block";
 
@@ -132,7 +135,7 @@
     offline.className = "player-offline-note hidden";
     offline.innerHTML = "<em>หลุดการเชื่อมต่อ</em>";
 
-    nameRow.append(badgeHost, avatarHost, name);
+    nameRow.append(badgeHost, avatarHost, name, labelList);
     row.append(nameRow, statsBlock, offline);
     return row;
   }
@@ -245,11 +248,29 @@
     const badgeHost = row.querySelector(".player-badge-host");
     const avatarHost = row.querySelector(".player-avatar-host");
     const name = row.querySelector(".player-name-text");
+    const labelList = row.querySelector(".player-label-list");
     const statsBlock = row.querySelector(".player-stats-block");
     const offline = row.querySelector(".player-offline-note");
 
     row.className = classes.join(" ");
     name.textContent = String(player.displayName ?? "");
+    labelList.innerHTML = [
+      player.isBot ? '<span class="inline-pill bot">AI</span>' : "",
+      player.isBot
+        ? `<span class="inline-pill bot-difficulty ${escapeHtml(root.utils.botDifficultyClass(player.botDifficulty))}">${escapeHtml(root.utils.botDifficultyLabel(player.botDifficulty))}</span>`
+        : "",
+      player.isBot
+        ? `<span class="inline-pill personality ${escapeHtml(root.utils.botPersonalityClass(player.botPersonality))}">${escapeHtml(root.utils.botPersonalityLabel(player.botPersonality))}</span>`
+        : "",
+      player.isBot &&
+      player.activeBotPersonality != null &&
+      player.activeBotPersonality !== player.botPersonality
+        ? `<span class="inline-pill personality-active ${escapeHtml(root.utils.botPersonalityClass(player.activeBotPersonality))}">ตอนนี้ ${escapeHtml(root.utils.botPersonalityLabel(player.activeBotPersonality))}</span>`
+        : "",
+      !player.isBot && player.fullAutoEnabled
+        ? '<span class="inline-pill auto">Full Auto</span>'
+        : "",
+    ].join("");
     statsBlock.innerHTML = stats;
     offline.classList.toggle("hidden", Boolean(player.connected));
 
