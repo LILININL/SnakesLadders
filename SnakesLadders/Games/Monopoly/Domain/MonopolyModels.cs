@@ -98,6 +98,9 @@ public sealed class MonopolyRoomState
     public int CityPriceGrowthRounds { get; set; }
     public int ChanceCursor { get; set; }
     public int CommunityCursor { get; set; }
+    public int StartedPlayerCount { get; set; }
+    public bool FinalDuelActive { get; set; }
+    public int FinalDuelStartCompletedRounds { get; set; }
     public bool UpgradeUsedThisTurn { get; set; }
     public List<int> UpgradeEligibleCellIds { get; } = new();
 

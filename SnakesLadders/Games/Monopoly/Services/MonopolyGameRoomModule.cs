@@ -44,7 +44,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
                 TurnTimerEnabled = true,
                 TurnSeconds = 20,
                 RoundLimitEnabled = true,
-                MaxRounds = 42,
+                MaxRounds = 36,
                 MarathonSpeedupEnabled = false
             }
         };
@@ -96,6 +96,9 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         room.TurnCounter = 0;
         room.CompletedRounds = 0;
         monopoly.CityPriceGrowthRounds = 0;
+        monopoly.StartedPlayerCount = room.Players.Count;
+        monopoly.FinalDuelActive = false;
+        monopoly.FinalDuelStartCompletedRounds = 0;
         room.WinnerPlayerId = null;
         room.FinishReason = null;
         room.ActiveFrenzySnake = null;
@@ -234,8 +237,9 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
 
         TryAutoSettleDebt(room, state, actor, execution.Logs);
         TryRestoreRollAfterJailFineDebt(state, actor, pendingDebtReasonBeforeSettle, execution.Logs);
+        TryActivateFinalDuel(room, state, execution.Logs);
 
-        if (TryResolveFinish(room, state, out var winnerPlayerId, out var finishReason, out var roundLimitTriggered))
+        if (TryResolveFinish(room, state, execution.Logs, out var winnerPlayerId, out var finishReason, out var roundLimitTriggered))
         {
             room.Status = GameStatus.Finished;
             room.WinnerPlayerId = winnerPlayerId;
@@ -812,31 +816,11 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
 
         if (creditor is not null && !creditor.IsBankrupt)
         {
-            if (cell.HasLandmark)
-            {
-                return "อสังหาที่มีแลนด์มาร์กยังขายโอนให้ผู้เล่นอื่นไม่ได้ ต้องรื้อแลนด์มาร์กก่อน";
-            }
-
-            var saleValue = CalculateTakeoverPrice(cell, state.CityPriceGrowthRounds);
-            var debtAmount = Math.Max(0, state.PendingDebtAmount);
-            var surplus = Math.Max(0, saleValue - debtAmount);
-            if (surplus > 0 && creditor.Cash < surplus)
-            {
-                return $"เจ้าหนี้มีเงินไม่พอรับซื้อทรัพย์นี้ (ต้องมีอย่างน้อย ฿{surplus})";
-            }
-
-            if (surplus > 0)
-            {
-                creditor.Cash -= surplus;
-            }
-
-            actor.Cash += saleValue;
-            cell.OwnerPlayerId = creditor.PlayerId;
-            execution.Logs.Add($"ขาย {cell.Name} ให้ {creditor.DisplayName} มูลค่า ฿{saleValue}");
+            return "หนี้จากผู้เล่นต้องแก้ด้วยการจำนองหรือขายสิ่งปลูกสร้างก่อน ถ้ายังปิดหนี้ไม่ได้ระบบจะตัดสินล้มละลาย";
         }
         else
         {
-            var saleValue = CalculateBankLiquidationValue(cell, state.CityPriceGrowthRounds);
+            var saleValue = CalculateBankLiquidationValue(cell, state.CityPriceGrowthRounds, state.FinalDuelActive);
             actor.Cash += saleValue;
             ResetCellToBank(cell);
             execution.Logs.Add($"ขาย {cell.Name} คืนธนาคาร มูลค่า ฿{saleValue}");
@@ -1157,7 +1141,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         var rawTarget = start + steps;
         var end = ((rawTarget - 1) % boardSize) + 1;
 
-        AwardPassGoCash(player, CountPassGoEvents(start, Math.Max(0, steps), boardSize), logs, "ผ่าน GO");
+        AwardPassGoCash(room, state, player, CountPassGoEvents(start, Math.Max(0, steps), boardSize), logs, "ผ่าน GO");
 
         player.Position = end;
         ResolveLanding(room, state, player, logs, depth: 0);
@@ -1361,7 +1345,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
                 logs.Add("โอกาส: รับโบนัสการลงทุน +฿120");
                 return;
             case 2:
-                ChargeBankDebt(state, player, 120, "โอกาส: โดนค่าปรับจราจร", logs);
+                ChargeBankDebt(state, player, 180, "โอกาส: โดนค่าปรับจราจร", logs);
                 return;
             case 3:
                 MovePlayerBack(room, state, player, 3, logs, depth, "โอกาส: ถอยหลัง 3 ช่อง");
@@ -1421,23 +1405,23 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
                 logs.Add("การ์ดชุมชน: กองทุนท่องเที่ยวคืนเงิน +฿140");
                 return;
             case 4:
-                ChargeBankDebt(state, player, 120, "การ์ดชุมชน: จ่ายค่าหมอ", logs);
+                ChargeBankDebt(state, player, 180, "การ์ดชุมชน: จ่ายค่าหมอ", logs);
                 return;
             case 5:
-                ChargeBankDebt(state, player, 180, "การ์ดชุมชน: จ่ายค่าเล่าเรียน", logs);
+                ChargeBankDebt(state, player, 260, "การ์ดชุมชน: จ่ายค่าเล่าเรียน", logs);
                 return;
             case 6:
                 player.Cash += 150;
                 logs.Add("การ์ดชุมชน: ได้เงินสนับสนุนจากรัฐ +฿150");
                 return;
             case 7:
-                ChargeOwnedPropertyFee(state, player, 50, logs, "การ์ดชุมชน: จ่ายค่าบำรุงเมือง");
+                ChargeOwnedPropertyFee(state, player, 70, logs, "การ์ดชุมชน: จ่ายค่าบำรุงเมือง");
                 return;
             case 8:
                 CreditByOwnedAssets(state, player, 30, logs, "การ์ดชุมชน: รายได้ค่าเช่าสะสม");
                 return;
             case 9:
-                ChargeByMortgagedAssets(state, player, 90, logs, "การ์ดชุมชน: เมืองของคุณโดนตรวจภาษี");
+                ChargeByMortgagedAssets(state, player, 130, logs, "การ์ดชุมชน: เมืองของคุณโดนตรวจภาษี");
                 return;
             case 10:
                 CollectFromAllPlayers(room, state, player, 50, logs, "การ์ดชุมชน: ทุกคนช่วยออกค่าจัดงานให้คุณ คนละ ฿50");
@@ -1462,7 +1446,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         var target = Math.Clamp(targetCell, 1, boardSize);
 
         logs.Add(reason);
-        AwardPassGoCash(player, target < current ? 1 : 0, logs, "ผ่าน GO");
+        AwardPassGoCash(room, state, player, target < current ? 1 : 0, logs, "ผ่าน GO");
 
         player.Position = target;
         ResolveLanding(room, state, player, logs, depth + 1);
@@ -1650,7 +1634,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             return 0;
         }
 
-        return ApplyRentScaling(baseAmount, room.CompletedRounds);
+        return ApplyRentScaling(baseAmount, room.CompletedRounds, ResolveFinalDuelRentBonusPercent(room, state));
     }
 
     private static int CalculatePropertyRent(
@@ -1977,10 +1961,27 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
             {
                 room.CompletedRounds++;
                 logs?.Add($"เศรษฐกิจเมือง: ค่าผ่านทางทุกแปลงเพิ่มเป็น +{Math.Round(room.CompletedRounds * MonopolyDefinitions.RentGrowthPerCompletedRound * 100)}%");
-                if (ShouldAdvanceCityPriceEconomy(state))
+                if (room.CompletedRounds == MonopolyDefinitions.SuddenDeathStartRound)
+                {
+                    logs?.Add("เศรษฐกิจเดือด: ตั้งแต่รอบนี้เป็นต้นไป ค่าผ่านทางจะโตแรงขึ้นอีกขั้น");
+                }
+                if (!state.FinalDuelActive && ShouldAdvanceCityPriceEconomy(state))
                 {
                     state.CityPriceGrowthRounds++;
                     logs?.Add($"ตลาดเมือง: ราคาเมืองทุกแปลงเพิ่มเป็น +{Math.Round(state.CityPriceGrowthRounds * MonopolyDefinitions.CityPriceGrowthPerCompletedRound * 100)}%");
+                }
+
+                if (state.FinalDuelActive)
+                {
+                    if (IsFinalDuelTimeoutReached(room, state))
+                    {
+                        logs?.Add("Final Duel: ครบ 6 รอบแล้ว เตรียมตัดสินด้วยมูลค่าสุทธิ");
+                    }
+                    else
+                    {
+                        logs?.Add(
+                            $"Final Duel: รอบ {ResolveFinalDuelRound(room, state)}/{MonopolyDefinitions.FinalDuelDurationRounds} • GO {ResolveFinalDuelGoReward(room, state):N0} • ค่าผ่านทางพิเศษ +{ResolveFinalDuelRentBonusPercent(room, state)}%");
+                    }
                 }
             }
 
@@ -2016,6 +2017,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
     private static bool TryResolveFinish(
         GameRoom room,
         MonopolyRoomState state,
+        List<string>? logs,
         out string? winnerPlayerId,
         out string? finishReason,
         out bool roundLimitTriggered)
@@ -2026,13 +2028,34 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         if (alive.Length <= 1)
         {
             winnerPlayerId = alive.FirstOrDefault()?.PlayerId;
-            finishReason = "MonopolyLastStanding";
+            finishReason = state.FinalDuelActive
+                ? "FinalDuelBankruptcy"
+                : "MonopolyLastStanding";
+            if (state.FinalDuelActive && winnerPlayerId is not null)
+            {
+                var winner = room.FindPlayer(winnerPlayerId);
+                logs?.Add($"Final Duel: {winner?.DisplayName ?? winnerPlayerId} ชนะทันทีเพราะอีกฝ่ายล้มละลาย");
+            }
+            return true;
+        }
+
+        if (state.FinalDuelActive && IsFinalDuelTimeoutReached(room, state))
+        {
+            var leader = alive
+                .OrderByDescending(player => CalculateNetWorth(state, player.PlayerId, player.Cash, state.CityPriceGrowthRounds))
+                .ThenByDescending(player => player.Cash)
+                .ThenBy(player => room.Players.IndexOf(player))
+                .First();
+
+            winnerPlayerId = leader.PlayerId;
+            finishReason = "FinalDuelTimeoutNetWorth";
+            logs?.Add($"Final Duel: ครบ 6 รอบ ตัดสินด้วยมูลค่าสุทธิ • ผู้ชนะ {leader.DisplayName}");
             return true;
         }
 
         var rules = room.BoardOptions.RuleOptions;
         var maxRounds = Math.Max(1, rules.MaxRounds);
-        if (rules.RoundLimitEnabled && room.CompletedRounds >= maxRounds)
+        if (!state.FinalDuelActive && rules.RoundLimitEnabled && room.CompletedRounds >= maxRounds)
         {
             var leader = alive
                 .OrderByDescending(player => CalculateNetWorth(state, player.PlayerId, player.Cash, state.CityPriceGrowthRounds))
@@ -2051,20 +2074,92 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         return false;
     }
 
+    private static void TryActivateFinalDuel(GameRoom room, MonopolyRoomState state, List<string>? logs)
+    {
+        if (state.FinalDuelActive)
+        {
+            return;
+        }
+
+        if (state.StartedPlayerCount < MonopolyDefinitions.FinalDuelMinimumStartingPlayers)
+        {
+            return;
+        }
+
+        var aliveCount = room.Players.Count(player => !player.IsBankrupt);
+        if (aliveCount != 2)
+        {
+            return;
+        }
+
+        state.FinalDuelActive = true;
+        state.FinalDuelStartCompletedRounds = room.CompletedRounds;
+        logs?.Add("Final Duel: เหลือผู้เล่น 2 คนสุดท้ายแล้ว เข้าสู่ศึกปิดเกม");
+        logs?.Add(
+            $"Final Duel: รอบ 1/{MonopolyDefinitions.FinalDuelDurationRounds} • GO {ResolveFinalDuelGoReward(room, state):N0} • ค่าผ่านทางพิเศษ +{ResolveFinalDuelRentBonusPercent(room, state)}%");
+    }
+
+    private static int ResolveFinalDuelRound(GameRoom room, MonopolyRoomState state)
+    {
+        if (!state.FinalDuelActive)
+        {
+            return 0;
+        }
+
+        var elapsedRounds = Math.Max(0, room.CompletedRounds - state.FinalDuelStartCompletedRounds);
+        return Math.Min(MonopolyDefinitions.FinalDuelDurationRounds, elapsedRounds + 1);
+    }
+
+    private static bool IsFinalDuelTimeoutReached(GameRoom room, MonopolyRoomState state)
+    {
+        if (!state.FinalDuelActive)
+        {
+            return false;
+        }
+
+        return room.CompletedRounds - state.FinalDuelStartCompletedRounds >= MonopolyDefinitions.FinalDuelDurationRounds;
+    }
+
+    private static int ResolveFinalDuelGoReward(GameRoom room, MonopolyRoomState state)
+    {
+        if (!state.FinalDuelActive)
+        {
+            return MonopolyDefinitions.PassGoCash;
+        }
+
+        return ResolveFinalDuelRound(room, state) <= MonopolyDefinitions.FinalDuelOpeningGoRounds
+            ? MonopolyDefinitions.FinalDuelOpeningGoReward
+            : 0;
+    }
+
+    private static int ResolveFinalDuelRentBonusPercent(GameRoom room, MonopolyRoomState state)
+    {
+        if (!state.FinalDuelActive)
+        {
+            return 0;
+        }
+
+        var roundIndex = Math.Clamp(
+            ResolveFinalDuelRound(room, state) - 1,
+            0,
+            MonopolyDefinitions.FinalDuelRentBonusPercents.Length - 1);
+        return MonopolyDefinitions.FinalDuelRentBonusPercents[roundIndex];
+    }
+
     private static int ResolveEffectiveConfiguredRoundLimit(int configuredMaxRounds, int playerCount)
     {
         var configured = Math.Max(1, configuredMaxRounds);
         var normalizedPlayerCount = Math.Max(2, playerCount);
         var recommendedCap = normalizedPlayerCount switch
         {
-            >= 10 => 20,
-            >= 8 => 24,
-            >= 6 => 28,
-            >= 4 => 34,
-            _ => 42
+            >= 10 => 16,
+            >= 8 => 18,
+            >= 6 => 22,
+            >= 4 => 28,
+            _ => 36
         };
 
-        return Math.Max(12, Math.Min(configured, recommendedCap));
+        return Math.Max(10, Math.Min(configured, recommendedCap));
     }
 
     private static int CalculateNetWorth(MonopolyRoomState state, string playerId, int cash, int cityPriceGrowthRounds)
@@ -2410,11 +2505,14 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         return Math.Max(1, baseValue + buildingValue);
     }
 
-    private static int CalculateBankLiquidationValue(MonopolyCellState cell, int completedRounds)
+    private static int CalculateBankLiquidationValue(MonopolyCellState cell, int completedRounds, bool isFinalDuel)
     {
+        var bankBaseRatio = isFinalDuel
+            ? MonopolyDefinitions.FinalDuelBankLiquidationBaseRatio
+            : MonopolyDefinitions.BankLiquidationBaseRatio;
         var baseValue = cell.IsMortgaged
             ? MortgageValue(cell, completedRounds)
-            : Math.Max(1, (int)Math.Floor(CalculateCityPrice(cell, completedRounds) * MonopolyDefinitions.BankLiquidationBaseRatio));
+            : Math.Max(1, (int)Math.Floor(CalculateCityPrice(cell, completedRounds) * bankBaseRatio));
         var buildingRefund = cell.HasLandmark
             ? cell.HouseCost * 4
             : cell.HasHotel
@@ -2484,7 +2582,7 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         return Math.Min(direct, normalizedBoard - direct);
     }
 
-    private static int ApplyRentScaling(int amount, int completedRounds)
+    private static int ApplyRentScaling(int amount, int completedRounds, int finalDuelBonusPercent = 0)
     {
         if (amount <= 0)
         {
@@ -2492,8 +2590,16 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         }
 
         var accelerated = amount * MonopolyDefinitions.RentAccelerationMultiplier;
-        var growthMultiplier = 1d + (Math.Max(0, completedRounds) * MonopolyDefinitions.RentGrowthPerCompletedRound);
-        return Math.Max(1, (int)Math.Ceiling(accelerated * growthMultiplier));
+        var normalizedRounds = Math.Max(0, completedRounds);
+        var growthMultiplier = 1d + (normalizedRounds * MonopolyDefinitions.RentGrowthPerCompletedRound);
+        if (normalizedRounds > MonopolyDefinitions.SuddenDeathStartRound)
+        {
+            growthMultiplier +=
+                (normalizedRounds - MonopolyDefinitions.SuddenDeathStartRound) *
+                MonopolyDefinitions.SuddenDeathExtraRentGrowthPerCompletedRound;
+        }
+        var duelMultiplier = 1d + (Math.Max(0, finalDuelBonusPercent) / 100d);
+        return Math.Max(1, (int)Math.Ceiling(accelerated * growthMultiplier * duelMultiplier));
     }
 
     private static int ApplyEconomyPriceScaling(int amount, int growthRounds)
@@ -2533,14 +2639,14 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         return Math.Max(0, (start - 1 + forwardSteps) / Math.Max(1, boardSize));
     }
 
-    private static void AwardPassGoCash(PlayerState player, int passCount, List<string> logs, string reason)
+    private static void AwardPassGoCash(GameRoom room, MonopolyRoomState state, PlayerState player, int passCount, List<string> logs, string reason)
     {
         if (passCount <= 0)
         {
             return;
         }
 
-        var total = MonopolyDefinitions.PassGoCash * passCount;
+        var total = ResolveFinalDuelGoReward(room, state) * passCount;
         player.Cash += total;
         logs.Add(passCount == 1
             ? $"{reason} รับเงิน ฿{total}"

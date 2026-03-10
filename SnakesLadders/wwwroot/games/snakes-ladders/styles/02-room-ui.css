@@ -1865,6 +1865,34 @@ body.monopoly-mobile-fullscreen .board-stage.monopoly-stage {
   color: #3d7396;
 }
 
+.board.monopoly-ring .m-final-duel-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.board.monopoly-ring .m-final-duel-pill {
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(241, 177, 86, 0.48);
+  background: linear-gradient(180deg, rgba(255, 250, 239, 0.96), rgba(255, 235, 186, 0.94));
+  color: #7c4b07;
+  box-shadow: 0 10px 24px rgba(181, 116, 21, 0.12);
+}
+
+.board.monopoly-ring .m-final-duel-pill.rent {
+  color: #8a2c12;
+}
+
+.board.monopoly-ring .m-final-duel-pill.go {
+  color: #916000;
+}
+
 .board.monopoly-ring .m-economy-strip {
   display: inline-flex;
   flex-wrap: wrap;

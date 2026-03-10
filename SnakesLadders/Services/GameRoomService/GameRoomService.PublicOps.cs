@@ -472,55 +472,18 @@ public sealed partial class GameRoomService
         var creditor = !string.IsNullOrWhiteSpace(state.PendingDebtToPlayerId)
             ? room.FindPlayer(state.PendingDebtToPlayerId!)
             : null;
-        var propertySaleCandidate = state.Cells
-            .Where(cell =>
-                string.Equals(cell.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal) &&
-                (!cell.HasLandmark || creditor is null))
-            .Select(cell => new
-            {
-                Cell = cell,
-                Value = creditor is null
-                    ? ResolveAutoBankLiquidationValue(cell, state.CityPriceGrowthRounds)
-                    : ResolveAutoTakeoverPrice(cell, state.CityPriceGrowthRounds),
-                Score = ResolveAutoStrategicExitScore(room, state, player, cell)
-            })
-            .Where(entry =>
-            {
-                if (entry.Value <= 0)
-                {
-                    return false;
-                }
-
-                if (creditor is null || creditor.IsBankrupt)
-                {
-                    return true;
-                }
-
-                var surplus = Math.Max(0, entry.Value - requiredCash);
-                return creditor.Cash >= surplus;
-            })
-            .OrderBy(entry => entry.Score)
-            .ThenBy(entry => entry.Value >= requiredCash ? 0 : 1)
-            .ThenBy(entry => entry.Value)
-            .FirstOrDefault();
-
-        if (propertySaleCandidate is not null)
-        {
-            return BuildAutoRequest(room, GameActionType.SellProperty, propertySaleCandidate.Cell.Cell);
-        }
-
         var buildLiquidationCandidate = state.Cells
-            .Where(cell =>
-                string.Equals(cell.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal) &&
-                (cell.HouseCount > 0 || cell.HasHotel || cell.HasLandmark) &&
-                CanAutoSellEvenly(state, player.PlayerId, cell))
             .Select(cell => new
             {
                 Cell = cell,
                 Value = ResolveAutoBuildingLiquidationValue(cell),
                 Score = ResolveAutoStrategicExitScore(room, state, player, cell)
             })
-            .Where(entry => entry.Value > 0)
+            .Where(entry =>
+                string.Equals(entry.Cell.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal) &&
+                (entry.Cell.HouseCount > 0 || entry.Cell.HasHotel || entry.Cell.HasLandmark) &&
+                CanAutoSellEvenly(state, player.PlayerId, entry.Cell) &&
+                entry.Value > 0)
             .OrderBy(entry => entry.Score)
             .ThenBy(entry => entry.Value >= requiredCash ? 0 : 1)
             .ThenBy(entry => entry.Value)
@@ -529,6 +492,31 @@ public sealed partial class GameRoomService
         if (buildLiquidationCandidate is not null)
         {
             return BuildAutoRequest(room, GameActionType.SellHouse, buildLiquidationCandidate.Cell.Cell);
+        }
+
+        if (creditor is not null && !creditor.IsBankrupt)
+        {
+            return null;
+        }
+
+        var propertySaleCandidate = state.Cells
+            .Where(cell =>
+                string.Equals(cell.OwnerPlayerId, player.PlayerId, StringComparison.Ordinal))
+            .Select(cell => new
+            {
+                Cell = cell,
+                Value = ResolveAutoBankLiquidationValue(room, state, cell, state.CityPriceGrowthRounds),
+                Score = ResolveAutoStrategicExitScore(room, state, player, cell)
+            })
+            .Where(entry => entry.Value > 0)
+            .OrderBy(entry => entry.Score)
+            .ThenBy(entry => entry.Value >= requiredCash ? 0 : 1)
+            .ThenBy(entry => entry.Value)
+            .FirstOrDefault();
+
+        if (propertySaleCandidate is not null)
+        {
+            return BuildAutoRequest(room, GameActionType.SellProperty, propertySaleCandidate.Cell.Cell);
         }
 
         return null;
@@ -975,11 +963,18 @@ public sealed partial class GameRoomService
         return Math.Max(1, baseValue + buildingValue);
     }
 
-    private static int ResolveAutoBankLiquidationValue(MonopolyCellState cell, int growthRounds)
+    private static int ResolveAutoBankLiquidationValue(
+        GameRoom room,
+        MonopolyRoomState state,
+        MonopolyCellState cell,
+        int growthRounds)
     {
+        var bankBaseRatio = state.FinalDuelActive
+            ? MonopolyDefinitions.FinalDuelBankLiquidationBaseRatio
+            : MonopolyDefinitions.BankLiquidationBaseRatio;
         var baseValue = cell.IsMortgaged
             ? ResolveAutoMortgageValue(cell, growthRounds)
-            : Math.Max(1, (int)Math.Floor(ResolveAutoCityPrice(cell, growthRounds) * MonopolyDefinitions.BankLiquidationBaseRatio));
+            : Math.Max(1, (int)Math.Floor(ResolveAutoCityPrice(cell, growthRounds) * bankBaseRatio));
         var buildingRefund = cell.HasLandmark
             ? cell.HouseCost * 4
             : cell.HasHotel
@@ -1040,7 +1035,7 @@ public sealed partial class GameRoomService
             _ => Math.Max(0, cell.Rent)
         };
 
-        return ApplyAutoRentScaling(baseRent, room.CompletedRounds);
+        return ApplyAutoRentScaling(baseRent, room, state);
     }
 
     private static int ResolveAutoNextScaledRent(
@@ -1057,17 +1052,17 @@ public sealed partial class GameRoomService
         if (cell.HasHotel)
         {
             var baseRent = ResolveAutoPropertyRent(state, ownerPlayerId, cell, 0, true, true);
-            return ApplyAutoRentScaling(baseRent, room.CompletedRounds);
+            return ApplyAutoRentScaling(baseRent, room, state);
         }
 
         if (cell.HouseCount < 4)
         {
             var baseRent = ResolveAutoPropertyRent(state, ownerPlayerId, cell, cell.HouseCount + 1, false, false);
-            return ApplyAutoRentScaling(baseRent, room.CompletedRounds);
+            return ApplyAutoRentScaling(baseRent, room, state);
         }
 
         var hotelRent = ResolveAutoPropertyRent(state, ownerPlayerId, cell, 0, true, false);
-        return ApplyAutoRentScaling(hotelRent, room.CompletedRounds);
+        return ApplyAutoRentScaling(hotelRent, room, state);
     }
 
     private static int ResolveAutoPropertyRent(
@@ -1134,7 +1129,7 @@ public sealed partial class GameRoomService
         return (count >= 2 ? 14 : 6) * diceTotal;
     }
 
-    private static int ApplyAutoRentScaling(int amount, int completedRounds)
+    private static int ApplyAutoRentScaling(int amount, GameRoom room, MonopolyRoomState state)
     {
         if (amount <= 0)
         {
@@ -1142,8 +1137,35 @@ public sealed partial class GameRoomService
         }
 
         var accelerated = amount * MonopolyDefinitions.RentAccelerationMultiplier;
-        var growthMultiplier = 1d + (Math.Max(0, completedRounds) * MonopolyDefinitions.RentGrowthPerCompletedRound);
-        return Math.Max(1, (int)Math.Ceiling(accelerated * growthMultiplier));
+        var completedRounds = Math.Max(0, room.CompletedRounds);
+        var growthMultiplier = 1d + (completedRounds * MonopolyDefinitions.RentGrowthPerCompletedRound);
+        if (completedRounds > MonopolyDefinitions.SuddenDeathStartRound)
+        {
+            growthMultiplier +=
+                (completedRounds - MonopolyDefinitions.SuddenDeathStartRound) *
+                MonopolyDefinitions.SuddenDeathExtraRentGrowthPerCompletedRound;
+        }
+
+        var duelBonusPercent = ResolveAutoFinalDuelRentBonusPercent(room, state);
+        var duelMultiplier = 1d + (duelBonusPercent / 100d);
+        return Math.Max(1, (int)Math.Ceiling(accelerated * growthMultiplier * duelMultiplier));
+    }
+
+    private static int ResolveAutoFinalDuelRentBonusPercent(GameRoom room, MonopolyRoomState state)
+    {
+        if (!state.FinalDuelActive)
+        {
+            return 0;
+        }
+
+        var duelRound = Math.Min(
+            MonopolyDefinitions.FinalDuelDurationRounds,
+            Math.Max(0, room.CompletedRounds - state.FinalDuelStartCompletedRounds) + 1);
+        var roundIndex = Math.Clamp(
+            duelRound - 1,
+            0,
+            MonopolyDefinitions.FinalDuelRentBonusPercents.Length - 1);
+        return MonopolyDefinitions.FinalDuelRentBonusPercents[roundIndex];
     }
 
     private static bool CanAutoSellEvenly(

@@ -441,6 +441,12 @@
     if (finishReason === "RoundLimit" || finishReason === "RoundLimitNetWorth") {
       return "ชนะด้วยกติกาจำกัดรอบ";
     }
+    if (finishReason === "FinalDuelTimeoutNetWorth") {
+      return "ชนะ Final Duel ด้วยมูลค่าสุทธิสูงสุด";
+    }
+    if (finishReason === "FinalDuelBankruptcy") {
+      return "ชนะ Final Duel เพราะอีกฝ่ายล้มละลาย";
+    }
     if (finishReason === "LastPlayerStanding" || finishReason === "MonopolyLastStanding") {
       return "ยืนหยัดเป็นคนสุดท้าย";
     }

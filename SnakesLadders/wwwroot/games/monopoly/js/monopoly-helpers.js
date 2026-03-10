@@ -15,7 +15,10 @@
   const LANDMARK_RENT_MULTIPLIER = 170;
   const RENT_ACCELERATION_MULTIPLIER = 1.6;
   const RENT_GROWTH_PER_COMPLETED_ROUND = 0.1;
+  const SUDDEN_DEATH_START_ROUND = 10;
+  const SUDDEN_DEATH_EXTRA_RENT_GROWTH_PER_COMPLETED_ROUND = 0.08;
   const CITY_PRICE_GROWTH_PER_COMPLETED_ROUND = 0.07;
+  const FINAL_DUEL_RENT_BONUS_PERCENTS = [40, 60, 85, 110, 140, 200];
   const NEIGHBORHOOD_RADIUS = 2;
   const NEIGHBORHOOD_PRIMARY_BONUS = 0.55;
   const NEIGHBORHOOD_SECONDARY_BONUS = 0.32;
@@ -39,6 +42,49 @@
     }
 
     return room?.monopolyState ?? null;
+  }
+
+  function isFinalDuel(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    return Boolean(monopoly?.isFinalDuel ?? monopoly?.IsFinalDuel);
+  }
+
+  function resolveFinalDuelRound(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    return resolveNumber(monopoly?.finalDuelRound ?? monopoly?.FinalDuelRound);
+  }
+
+  function resolveFinalDuelRoundsRemaining(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    return resolveNumber(
+      monopoly?.finalDuelRoundsRemaining ?? monopoly?.FinalDuelRoundsRemaining,
+    );
+  }
+
+  function resolveFinalDuelGoReward(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    return resolveNumber(
+      monopoly?.finalDuelGoReward ?? monopoly?.FinalDuelGoReward,
+    );
+  }
+
+  function resolveFinalDuelRentBonusPercent(room = state.room) {
+    const monopoly = getMonopolyState(room);
+    const explicit = resolveNumber(
+      monopoly?.finalDuelRentBonusPercent ?? monopoly?.FinalDuelRentBonusPercent,
+    );
+    if (explicit > 0) {
+      return explicit;
+    }
+
+    if (!isFinalDuel(room)) {
+      return 0;
+    }
+
+    const roundIndex = Math.max(0, resolveFinalDuelRound(room) - 1);
+    return FINAL_DUEL_RENT_BONUS_PERCENTS[
+      Math.min(roundIndex, FINAL_DUEL_RENT_BONUS_PERCENTS.length - 1)
+    ] ?? 0;
   }
 
   function resolveCells(room = state.room) {
@@ -223,10 +269,20 @@
       return 0;
     }
 
+    const completedRounds = resolveCompletedRounds(room);
+    let growthMultiplier = tollGrowthMultiplier(room);
+    if (completedRounds > SUDDEN_DEATH_START_ROUND) {
+      growthMultiplier +=
+        (completedRounds - SUDDEN_DEATH_START_ROUND) *
+        SUDDEN_DEATH_EXTRA_RENT_GROWTH_PER_COMPLETED_ROUND;
+    }
+
+    const duelMultiplier =
+      1 + resolveFinalDuelRentBonusPercent(room) / 100;
     return Math.max(
       1,
       Math.ceil(
-        base * RENT_ACCELERATION_MULTIPLIER * tollGrowthMultiplier(room),
+        base * RENT_ACCELERATION_MULTIPLIER * growthMultiplier * duelMultiplier,
       ),
     );
   }
@@ -528,6 +584,11 @@
     resolveCellNo,
     resolveCompletedRounds,
     resolveCityPriceGrowthRounds,
+    isFinalDuel,
+    resolveFinalDuelRound,
+    resolveFinalDuelRoundsRemaining,
+    resolveFinalDuelGoReward,
+    resolveFinalDuelRentBonusPercent,
     tollGrowthMultiplier,
     tollGrowthPercent,
     cityPriceGrowthMultiplier,

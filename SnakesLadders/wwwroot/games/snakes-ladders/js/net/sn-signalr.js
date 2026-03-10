@@ -407,12 +407,11 @@
     }
 
     if (actionType === root.GAME_ACTION_TYPES.ROLL_DICE) {
-      const eventLine = lines.find(
-        (line) =>
-          line.startsWith("โอกาส:") ||
-          line.startsWith("การ์ดชุมชน:") ||
-          line.startsWith("เศรษฐกิจเมือง:"),
-      );
+      const eventLine =
+        lines.find((line) => line.startsWith("Final Duel:")) ??
+        lines.find((line) => line.startsWith("โอกาส:")) ??
+        lines.find((line) => line.startsWith("การ์ดชุมชน:")) ??
+        lines.find((line) => line.startsWith("เศรษฐกิจเมือง:"));
       if (eventLine) {
         return eventLine;
       }
@@ -575,25 +574,27 @@
 
   function resolveEventNotice(turn) {
     const actionLogs = Array.isArray(turn?.actionLogs) ? turn.actionLogs : [];
-    const line = actionLogs
-      .map((entry) => String(entry ?? "").trim())
-      .find(
-        (entry) =>
-          entry.startsWith("โอกาส:") ||
-          entry.startsWith("การ์ดชุมชน:") ||
-          entry.startsWith("เศรษฐกิจเมือง:"),
-      );
+    const lines = actionLogs.map((entry) => String(entry ?? "").trim());
+    const line =
+      lines.find((entry) => entry.startsWith("Final Duel:")) ??
+      lines.find((entry) => entry.startsWith("โอกาส:")) ??
+      lines.find((entry) => entry.startsWith("การ์ดชุมชน:")) ??
+      lines.find((entry) => entry.startsWith("เศรษฐกิจเมือง:"));
     if (!line) {
       return null;
     }
 
-    const tone = line.startsWith("โอกาส:")
-      ? "chance"
-      : line.startsWith("การ์ดชุมชน:")
-        ? "community"
-        : "economy";
+    const tone = line.startsWith("Final Duel:")
+      ? "final-duel"
+      : line.startsWith("โอกาส:")
+        ? "chance"
+        : line.startsWith("การ์ดชุมชน:")
+          ? "community"
+          : "economy";
     const title =
-      tone === "chance"
+      tone === "final-duel"
+        ? "Final Duel"
+        : tone === "chance"
         ? "โอกาส"
         : tone === "community"
           ? "การ์ดชุมชน"
@@ -602,7 +603,7 @@
       tone,
       title,
       text: line,
-      holdMs: tone === "economy" ? 3000 : 3400,
+      holdMs: tone === "final-duel" ? 4600 : tone === "economy" ? 3000 : 3400,
     };
   }
 

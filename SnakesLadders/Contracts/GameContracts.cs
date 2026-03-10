@@ -257,6 +257,11 @@ public sealed class MonopolyStateSnapshot
     public int LastDiceOne { get; init; }
     public int LastDiceTwo { get; init; }
     public int CityPriceGrowthRounds { get; init; }
+    public bool IsFinalDuel { get; init; }
+    public int FinalDuelRound { get; init; }
+    public int FinalDuelRoundsRemaining { get; init; }
+    public int FinalDuelGoReward { get; init; }
+    public int FinalDuelRentBonusPercent { get; init; }
     public bool UpgradeUsedThisTurn { get; init; }
     public IReadOnlyList<int> UpgradeEligibleCellIds { get; init; } = Array.Empty<int>();
     public MonopolyAuctionSnapshot? ActiveAuction { get; init; }

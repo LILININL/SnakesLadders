@@ -51,6 +51,15 @@
       Math.max(0, completedRounds * 10);
     const cityPriceBoostPercent =
       root.monopolyHelpers?.cityPriceGrowthPercent?.(room) ?? 0;
+    const isFinalDuel = root.monopolyHelpers?.isFinalDuel?.(room) ?? false;
+    const finalDuelRound =
+      root.monopolyHelpers?.resolveFinalDuelRound?.(room) ?? 0;
+    const finalDuelRoundsRemaining =
+      root.monopolyHelpers?.resolveFinalDuelRoundsRemaining?.(room) ?? 0;
+    const finalDuelGoReward =
+      root.monopolyHelpers?.resolveFinalDuelGoReward?.(room) ?? 0;
+    const finalDuelRentBonusPercent =
+      root.monopolyHelpers?.resolveFinalDuelRentBonusPercent?.(room) ?? 0;
     const nextEconomyFrame = buildEconomyFrame(
       roomKey,
       room,
@@ -58,7 +67,10 @@
       completedRounds,
     );
     const standings = resolveStandings(state, room, roomKey);
-    const savedCenterScrollTop = captureCenterPlayerListScroll(el.board, roomKey);
+    const savedCenterScrollTop = captureCenterPlayerListScroll(
+      el.board,
+      roomKey,
+    );
     const ringCells = cells
       .map((cell) => renderCell(state, room, cell, turnPosition))
       .join("");
@@ -69,6 +81,11 @@
       freeParkingPot,
       tollBoostPercent,
       cityPriceBoostPercent,
+      isFinalDuel,
+      finalDuelRound,
+      finalDuelRoundsRemaining,
+      finalDuelGoReward,
+      finalDuelRentBonusPercent,
     );
     el.board.innerHTML = `${ringCells}${center}`;
     restoreCenterPlayerListScroll(el.board, roomKey, savedCenterScrollTop);
@@ -89,7 +106,9 @@
     lastEconomyFrame = nextEconomyFrame;
 
     const ownedAssets = cells.filter((x) => Boolean(resolveOwnerId(x))).length;
-    el.boardLegend.textContent = `กระดานเกมเศรษฐี 40 ช่อง | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | เงินกองกลาง ${money(freeParkingPot)} | ค่าผ่านทาง +${tollBoostPercent}% | ราคาเมือง +${cityPriceBoostPercent}%`;
+    el.boardLegend.textContent = isFinalDuel
+      ? `กระดานเกมเศรษฐี 40 ช่อง | FINAL DUEL รอบ ${finalDuelRound}/6 | เหลืออีก ${finalDuelRoundsRemaining} รอบ | GO ${money(finalDuelGoReward)} | ค่าผ่านทางพิเศษ +${finalDuelRentBonusPercent}% | ราคาเมืองคงที่ | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | เงินกองกลาง ${money(freeParkingPot)}`
+      : `กระดานเกมเศรษฐี 40 ช่อง | ทรัพย์สินที่มีเจ้าของ ${ownedAssets} | เงินกองกลาง ${money(freeParkingPot)} | ค่าผ่านทาง +${tollBoostPercent}% | ราคาเมือง +${cityPriceBoostPercent}%`;
     root.roomUi?.updateFloatingRollButton();
   }
 
@@ -384,17 +403,34 @@
     freeParkingPot,
     tollBoostPercent,
     cityPriceBoostPercent,
+    isFinalDuel,
+    finalDuelRound,
+    finalDuelRoundsRemaining,
+    finalDuelGoReward,
+    finalDuelRentBonusPercent,
   ) {
     const liveStandings = renderLiveStandings(standings);
     const summaryRows = renderCenterPlayerSummary(state, standings);
     return `
       <div class="m-center" style="grid-column:3 / span 7;grid-row:3 / span 7;">
-        <div class="m-center-badge">CITY ESTATE</div>
-        <h4 class="m-center-title">เกมเศรษฐีคลาสสิก</h4>
-        <div class="m-center-sub">จ่ายทาง • ซื้อสิทธิ์ • ครองเมือง</div>
+        <div class="m-center-badge">${isFinalDuel ? "FINAL DUEL" : "CITY ESTATE"}</div>
+        <h4 class="m-center-title">${isFinalDuel ? "ศึกสองคนสุดท้าย" : "เกมเศรษฐีคลาสสิก"}</h4>
+        <div class="m-center-sub">${isFinalDuel ? "โหมดปิดเกม • ฆ่ากันด้วยค่าเช่า • ไม่มีที่ให้ยื้อ" : "จ่ายทาง • ซื้อสิทธิ์ • ครองเมือง"}</div>
+        ${
+          isFinalDuel
+            ? `
+              <div class="m-final-duel-strip">
+                <span class="m-final-duel-pill round">รอบ ${finalDuelRound}/6</span>
+                <span class="m-final-duel-pill left">เหลือ ${finalDuelRoundsRemaining} รอบ</span>
+                <span class="m-final-duel-pill go">GO ${money(finalDuelGoReward)}</span>
+                <span class="m-final-duel-pill rent">ทางพิเศษ +${escapeHtml(String(finalDuelRentBonusPercent))}%</span>
+              </div>
+            `
+            : ""
+        }
         <div class="m-economy-strip">
           <span class="m-economy-pill toll">ค่าผ่านทาง +${escapeHtml(String(tollBoostPercent))}%</span>
-          <span class="m-economy-pill price">ราคาเมือง +${escapeHtml(String(cityPriceBoostPercent))}%</span>
+          <span class="m-economy-pill price">${isFinalDuel ? "ราคาเมืองคงที่" : `ราคาเมือง +${escapeHtml(String(cityPriceBoostPercent))}%`}</span>
         </div>
         <div class="m-skyline" aria-hidden="true">
           <span style="--h:36px"></span>
@@ -443,7 +479,8 @@
   function renderCenterPlayerSummary(state, standings) {
     return standings
       .map((entry) => {
-        const { player, economy, accent, rank, active, pending, rankDelta } = entry;
+        const { player, economy, accent, rank, active, pending, rankDelta } =
+          entry;
         const playerId = String(player.playerId ?? "");
         const classes = ["m-center-player"];
         if (rankDelta > 0) {
@@ -595,7 +632,9 @@
     }
 
     const listEl = boardEl.querySelector(".m-center-player-list");
-    const scrollTop = listEl ? listEl.scrollTop : centerListScrollByRoom.get(roomKey) ?? 0;
+    const scrollTop = listEl
+      ? listEl.scrollTop
+      : (centerListScrollByRoom.get(roomKey) ?? 0);
     centerListScrollByRoom.set(roomKey, scrollTop);
     return scrollTop;
   }

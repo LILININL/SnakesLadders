@@ -382,10 +382,13 @@
     const creditorId = String(monopoly?.pendingDebtToPlayerId ?? "").trim();
     const debtReason = String(monopoly?.pendingDebtReason ?? "").trim();
     const buildingCandidates = getSellCandidates(state.playerId);
+    const mortgageCandidates = getMortgageCandidates(state.playerId);
     const assetCandidates = getDebtSaleCandidates(state.playerId, monopoly);
-    const buyerLabel = creditorId
-      ? `ขายให้ ${helpers.playerName(creditorId)}`
-      : "ขายคืนธนาคาร";
+    const playerDebtRestricted = Boolean(creditorId);
+    const hasAnyResolutionOptions =
+      buildingCandidates.length > 0 ||
+      mortgageCandidates.length > 0 ||
+      assetCandidates.length > 0;
 
     return `
       <div class="mono-step-badge">เคลียร์หนี้ก่อนเล่นต่อ</div>
@@ -411,9 +414,25 @@
           : ""
       }
       ${
+        mortgageCandidates.length > 0
+          ? `
+            <div class="mono-list-title">จำนองทรัพย์สิน</div>
+            ${renderDebtActionList(
+              mortgageCandidates.map((cell) => ({
+                cellId: resolveCellNo(cell),
+                title: cellName(cell),
+                meta: describeMortgageCandidate(cell),
+                amountLabel: helpers.money(mortgageValue(cell)),
+                action: "mortgage-property",
+              })),
+            )}
+          `
+          : ""
+      }
+      ${
         assetCandidates.length > 0
           ? `
-            <div class="mono-list-title">${escapeHtml(buyerLabel)}</div>
+            <div class="mono-list-title">ขายคืนธนาคาร</div>
             ${renderDebtActionList(
               assetCandidates.map((cell) => ({
                 cellId: resolveCellNo(cell),
@@ -424,7 +443,11 @@
               })),
             )}
           `
-          : `<div class="mono-muted">ตอนนี้ไม่มีอสังหาที่ขายโอนได้แล้ว</div>`
+          : playerDebtRestricted
+            ? `<div class="mono-tip mono-tip-warn">หนี้จากผู้เล่นรอบนี้ ห้ามขายเมืองหนีตรง ๆ ต้องใช้จำนองหรือรื้อสิ่งปลูกสร้างก่อน</div>`
+            : hasAnyResolutionOptions
+              ? ""
+              : `<div class="mono-muted">ตอนนี้ไม่มีทรัพย์ที่ขายหรือจำนองได้แล้ว</div>`
       }
       <div class="mono-tip mono-tip-warn">ถ้าปิดหนี้ไม่ได้ก่อนหมดเวลา ระบบจะบังคับล้มละลายให้อัตโนมัติ</div>
       ${renderActionButtons([{ label: "ประกาศล้มละลาย", action: "declare-bankruptcy", tone: "danger" }])}
@@ -562,7 +585,7 @@
         if (pendingDebt > 0) {
           tips.push(`ตอนนี้มีหนี้คงค้าง ${root.monopolyHelpers.money(pendingDebt)} ต้องรื้อสิ่งปลูกสร้างหรือขายอสังหาก่อนเล่นต่อ`);
           if (String(monopoly?.pendingDebtToPlayerId ?? "").trim()) {
-            tips.push("หนี้รอบนี้ผูกกับเจ้าหนี้โดยตรง ระบบจะโชว์เฉพาะอสังหาที่โอนให้เขาได้");
+            tips.push("ถ้าเป็นหนี้จากผู้เล่น ระบบจะให้แก้ด้วยจำนองหรือรื้อสิ่งปลูกสร้างก่อน ไม่เปิดขายเมืองโอนเต็มราคา");
           }
         }
         tips.push("แสดงเฉพาะปุ่มที่ทำได้จริงในเทิร์นนี้ เพื่อลดความสับสน");
@@ -860,10 +883,9 @@
 
   function getDebtSaleCandidates(playerId, monopoly) {
     const creditorId = String(monopoly?.pendingDebtToPlayerId ?? "").trim();
-    const debtAmount = parseIntVal(monopoly?.pendingDebtAmount);
-    const creditorCash = parseIntVal(
-      (state.room?.players ?? []).find((player) => player.playerId === creditorId)?.cash,
-    );
+    if (creditorId) {
+      return [];
+    }
 
     return ownedCellsOf(playerId).filter((cell) => {
       const type = resolveType(cell);
@@ -871,17 +893,7 @@
         return false;
       }
 
-      if (!creditorId) {
-        return true;
-      }
-
-      if (hasLandmark(cell)) {
-        return false;
-      }
-
-      const saleValue = estimateDebtSaleValue(cell, monopoly);
-      const surplus = Math.max(0, saleValue - debtAmount);
-      return surplus <= creditorCash;
+      return true;
     });
   }
 
@@ -1069,30 +1081,20 @@
   }
 
   function estimateDebtSaleValue(cell, monopoly) {
-    const creditorId = String(monopoly?.pendingDebtToPlayerId ?? "").trim();
     const price = currentCityPrice(cell);
     const houses = parseIntVal(cell?.houseCount ?? cell?.HouseCount);
     const mortgaged = Boolean(cell?.isMortgaged ?? cell?.IsMortgaged);
-
-    if (!creditorId) {
-      const baseValue = mortgaged
-        ? Math.floor(price / 2)
-        : Math.max(1, Math.floor(price * 0.5));
-      const buildingRefund = hasLandmark(cell)
-        ? houseCostForCell(cell) * 4
-        : Boolean(cell?.hasHotel ?? cell?.HasHotel)
-          ? Math.ceil(houseCostForCell(cell) * 2.5)
-          : Math.ceil(houses * houseCostForCell(cell) * 0.5);
-      return Math.max(1, baseValue + buildingRefund);
-    }
-
-    const baseValue = mortgaged ? Math.floor(price / 2) : price;
-    const buildingValue = hasLandmark(cell)
-      ? houseCostForCell(cell) * 7
+    const liquidationBaseRatio =
+      Boolean(monopoly?.isFinalDuel ?? monopoly?.IsFinalDuel) ? 0.15 : 0.3;
+    const baseValue = mortgaged
+      ? Math.floor(price / 2)
+      : Math.max(1, Math.floor(price * liquidationBaseRatio));
+    const buildingRefund = hasLandmark(cell)
+      ? houseCostForCell(cell) * 4
       : Boolean(cell?.hasHotel ?? cell?.HasHotel)
-        ? houseCostForCell(cell) * 5
-        : houses * houseCostForCell(cell);
-    return Math.max(1, baseValue + buildingValue);
+        ? Math.ceil(houseCostForCell(cell) * 2.5)
+        : Math.ceil(houses * houseCostForCell(cell) * 0.5);
+    return Math.max(1, baseValue + buildingRefund);
   }
 
   function describeStructureSell(cell) {
@@ -1111,7 +1113,6 @@
   }
 
   function describeDebtSale(cell, monopoly) {
-    const creditorId = String(monopoly?.pendingDebtToPlayerId ?? "").trim();
     const level = hasLandmark(cell)
       ? "มีแลนด์มาร์ก"
       : Boolean(cell?.hasHotel ?? cell?.HasHotel)
@@ -1119,9 +1120,7 @@
         : parseIntVal(cell?.houseCount ?? cell?.HouseCount) > 0
           ? `บ้าน ${parseIntVal(cell?.houseCount ?? cell?.HouseCount)}`
           : "ไม่มีสิ่งปลูกสร้าง";
-    return creditorId
-      ? `${level} | โอนให้ ${root.monopolyHelpers.playerName(creditorId)}`
-      : `${level} | ปล่อยกลับธนาคาร`;
+    return `${level} | ปล่อยกลับธนาคาร`;
   }
 
   function describeBuildCandidate(cell) {
@@ -1170,7 +1169,11 @@
     const helpers = root.monopolyHelpers;
     const active = helpers.playerName(monopoly.activePlayerId);
     const pending = helpers.playerName(monopoly.pendingDecisionPlayerId);
-    return `ตาปัจจุบัน: ${active} | สิทธิ์ตัดสินใจ: ${pending}`;
+    const duelMeta =
+      helpers.isFinalDuel?.() && monopoly
+        ? ` | Final Duel รอบ ${helpers.resolveFinalDuelRound?.()}/${6} • GO ${helpers.money(helpers.resolveFinalDuelGoReward?.())} • ทาง +${helpers.resolveFinalDuelRentBonusPercent?.()}%`
+        : "";
+    return `ตาปัจจุบัน: ${active} | สิทธิ์ตัดสินใจ: ${pending}${duelMeta}`;
   }
 
   function phaseTitle(phase) {

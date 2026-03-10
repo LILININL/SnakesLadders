@@ -443,6 +443,11 @@ public sealed partial class GameRoomService
             LastDiceOne = monopoly.LastDiceOne,
             LastDiceTwo = monopoly.LastDiceTwo,
             CityPriceGrowthRounds = monopoly.CityPriceGrowthRounds,
+            IsFinalDuel = monopoly.FinalDuelActive,
+            FinalDuelRound = ResolveFinalDuelRound(room, monopoly),
+            FinalDuelRoundsRemaining = ResolveFinalDuelRoundsRemaining(room, monopoly),
+            FinalDuelGoReward = ResolveFinalDuelGoReward(room, monopoly),
+            FinalDuelRentBonusPercent = ResolveFinalDuelRentBonusPercent(room, monopoly),
             UpgradeUsedThisTurn = monopoly.UpgradeUsedThisTurn,
             UpgradeEligibleCellIds = monopoly.UpgradeEligibleCellIds
                 .Distinct()
@@ -524,6 +529,56 @@ public sealed partial class GameRoomService
         return monopoly.JailFineByPlayer.TryGetValue(playerId, out var fine) && fine > 0
             ? fine
             : MonopolyDefinitions.JailFine;
+    }
+
+    private static int ResolveFinalDuelRound(GameRoom room, MonopolyRoomState monopoly)
+    {
+        if (!monopoly.FinalDuelActive)
+        {
+            return 0;
+        }
+
+        var elapsedRounds = Math.Max(0, room.CompletedRounds - monopoly.FinalDuelStartCompletedRounds);
+        return Math.Min(
+            MonopolyDefinitions.FinalDuelDurationRounds,
+            elapsedRounds + 1);
+    }
+
+    private static int ResolveFinalDuelRoundsRemaining(GameRoom room, MonopolyRoomState monopoly)
+    {
+        if (!monopoly.FinalDuelActive)
+        {
+            return 0;
+        }
+
+        var currentRound = ResolveFinalDuelRound(room, monopoly);
+        return Math.Max(0, MonopolyDefinitions.FinalDuelDurationRounds - currentRound + 1);
+    }
+
+    private static int ResolveFinalDuelGoReward(GameRoom room, MonopolyRoomState monopoly)
+    {
+        if (!monopoly.FinalDuelActive)
+        {
+            return MonopolyDefinitions.PassGoCash;
+        }
+
+        return ResolveFinalDuelRound(room, monopoly) <= MonopolyDefinitions.FinalDuelOpeningGoRounds
+            ? MonopolyDefinitions.FinalDuelOpeningGoReward
+            : 0;
+    }
+
+    private static int ResolveFinalDuelRentBonusPercent(GameRoom room, MonopolyRoomState monopoly)
+    {
+        if (!monopoly.FinalDuelActive)
+        {
+            return 0;
+        }
+
+        var roundIndex = Math.Clamp(
+            ResolveFinalDuelRound(room, monopoly) - 1,
+            0,
+            MonopolyDefinitions.FinalDuelRentBonusPercents.Length - 1);
+        return MonopolyDefinitions.FinalDuelRentBonusPercents[roundIndex];
     }
 
     private static GameResultSnapshot? BuildGameResultSnapshot(GameRoom room)
@@ -610,6 +665,8 @@ public sealed partial class GameRoomService
             {
                 "RoundLimitNetWorth" => "ชนะด้วยมูลค่าสุทธิสูงสุดเมื่อครบจำนวนรอบ",
                 "MonopolyLastStanding" => "ชนะเพราะยืนเป็นคนสุดท้ายหลังคนอื่นล้มละลาย",
+                "FinalDuelBankruptcy" => "ชนะ Final Duel เพราะอีกฝ่ายล้มละลาย",
+                "FinalDuelTimeoutNetWorth" => "ชนะ Final Duel ด้วยมูลค่าสุทธิสูงสุดเมื่อครบ 6 รอบ",
                 _ => "ชนะเกมนี้"
             };
         }
@@ -624,6 +681,7 @@ public sealed partial class GameRoomService
         return room.FinishReason switch
         {
             "RoundLimitNetWorth" => "แพ้เพราะมูลค่าสุทธิน้อยกว่าเมื่อครบจำนวนรอบ",
+            "FinalDuelTimeoutNetWorth" => "แพ้ Final Duel เพราะมูลค่าสุทธิน้อยกว่าเมื่อครบ 6 รอบ",
             _ => $"แพ้เพราะมูลค่าสุทธิเป็นรอง (สุทธิ {CalculateNetWorth(monopoly, player.PlayerId, player.Cash):N0})"
         };
     }
