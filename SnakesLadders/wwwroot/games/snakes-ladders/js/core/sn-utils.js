@@ -64,6 +64,7 @@
       desc: "เพิ่มงูชั่วคราวทั้งกระดาน 1 รอบ",
     },
   };
+  const STATIC_IMAGE_CACHE = new Map();
   const PLAYER_ACCENT_PALETTE = [
     {
       base: "#f26445",
@@ -293,6 +294,84 @@
     return `<img${classAttr} src="${avatarSrc(safeId)}" alt="${altText}">`;
   }
 
+  function preloadImage(src) {
+    const safeSrc = String(src ?? "").trim();
+    if (!safeSrc) {
+      return Promise.resolve("");
+    }
+
+    const cached = STATIC_IMAGE_CACHE.get(safeSrc);
+    if (cached) {
+      return cached;
+    }
+
+    const loadPromise = new Promise((resolve) => {
+      const image = new Image();
+      let settled = false;
+
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve(safeSrc);
+      };
+
+      image.decoding = "async";
+      image.onload = finish;
+      image.onerror = finish;
+      image.src = safeSrc;
+
+      if (image.complete) {
+        queueMicrotask(finish);
+      }
+    });
+
+    STATIC_IMAGE_CACHE.set(safeSrc, loadPromise);
+    return loadPromise;
+  }
+
+  function preloadAvatarAsset(avatarId) {
+    const safeId = normalizeAvatarId(avatarId);
+    if (isModelAvatar(safeId)) {
+      return (
+        window.SNL?.experimentalToken3d?.primeAvatarId?.(safeId) ??
+        Promise.resolve(null)
+      );
+    }
+    return preloadImage(avatarSrc(safeId));
+  }
+
+  function preloadUiAssets() {
+    for (let avatarId = MIN_AVATAR_ID; avatarId <= MAX_AVATAR_ID; avatarId += 1) {
+      void preloadAvatarAsset(avatarId);
+    }
+
+    for (const meta of Object.values(ITEM_META)) {
+      if (meta?.imageSrc) {
+        void preloadImage(meta.imageSrc);
+      }
+    }
+  }
+
+  function ensureAvatarImageElement(host, className) {
+    let image = host.querySelector("img");
+    if (!image) {
+      image = document.createElement("img");
+    }
+
+    if (host.firstElementChild !== image || host.childElementCount !== 1) {
+      host.replaceChildren(image);
+    }
+
+    if (image.className !== className) {
+      image.className = className;
+    }
+
+    image.decoding = "async";
+    return image;
+  }
+
   function syncAvatarHost(host, avatarId, options = {}) {
     if (!host) {
       return;
@@ -302,26 +381,62 @@
     const className = String(options.className ?? "").trim();
     const variant = String(options.variant ?? "inline").trim() || "inline";
     const alt = String(options.alt ?? `Avatar ${safeId}`);
+    const renderedMode = host.dataset.renderedAvatarMode ?? "";
 
     if (
       host.dataset.renderedAvatarId === String(safeId) &&
       host.dataset.renderedAvatarClass === className &&
       host.dataset.renderedAvatarVariant === variant &&
-      host.dataset.renderedAvatarAlt === alt
+      host.dataset.renderedAvatarAlt === alt &&
+      renderedMode === (isModelAvatar(safeId) ? "model" : "image")
     ) {
+      if (isModelAvatar(safeId)) {
+        window.SNL?.experimentalToken3d?.mountAvatarHost?.(
+          host,
+          { avatarId: safeId },
+          { variant },
+        );
+      }
       return;
     }
 
-    host.innerHTML = avatarMarkup(safeId, {
-      className,
-      variant,
-      alt,
-    });
+    if (isModelAvatar(safeId)) {
+      void preloadAvatarAsset(safeId);
+      const mounted = window.SNL?.experimentalToken3d?.mountAvatarHost?.(
+        host,
+        { avatarId: safeId },
+        { variant },
+      );
+      if (!mounted) {
+        const image = ensureAvatarImageElement(host, className);
+        const src = avatarSrc(safeId);
+        void preloadImage(src);
+        if (image.getAttribute("src") !== src) {
+          image.src = src;
+        }
+        if (image.alt !== alt) {
+          image.alt = alt;
+        }
+      }
+      host.dataset.renderedAvatarMode = mounted ? "model" : "image";
+    } else {
+      window.SNL?.experimentalToken3d?.unmountAvatarHost?.(host);
+      const image = ensureAvatarImageElement(host, className);
+      const src = avatarSrc(safeId);
+      void preloadImage(src);
+      if (image.getAttribute("src") !== src) {
+        image.src = src;
+      }
+      if (image.alt !== alt) {
+        image.alt = alt;
+      }
+      host.dataset.renderedAvatarMode = "image";
+    }
+
     host.dataset.renderedAvatarId = String(safeId);
     host.dataset.renderedAvatarClass = className;
     host.dataset.renderedAvatarVariant = variant;
     host.dataset.renderedAvatarAlt = alt;
-    window.SNL?.experimentalToken3d?.hydrateAvatarHosts?.(host);
   }
 
   function normalizeGameKey(gameKey, fallback = DEFAULT_GAME_KEY) {
@@ -368,6 +483,9 @@
     avatarSrc,
     isModelAvatar,
     avatarMarkup,
+    preloadImage,
+    preloadAvatarAsset,
+    preloadUiAssets,
     syncAvatarHost,
     normalizeGameKey,
     gameLabel,

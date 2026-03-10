@@ -15,6 +15,7 @@
     root.boardFocus?.init?.();
     root.boardBeacon?.init?.();
     root.session.seedProfileFromStorage();
+    root.utils?.preloadUiAssets?.();
     root.feedback.renderAll();
 
     await root.realtime.setupConnection();

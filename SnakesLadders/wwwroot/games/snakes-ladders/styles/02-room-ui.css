@@ -78,6 +78,8 @@
 .board-wrap.monopoly-layout {
   display: grid;
   gap: 10px;
+  justify-items: center;
+  width: 100%;
 }
 
 .legend {
@@ -124,7 +126,9 @@
   display: grid;
   justify-items: center;
   align-items: start;
-  min-height: min(94vh, 1180px);
+  width: 100%;
+  --monopoly-board-size: min(calc(100dvh - 186px), calc(100vw - 108px), 1280px);
+  min-height: max(620px, var(--monopoly-board-size));
 }
 
 .board-token-layer {
@@ -718,18 +722,17 @@
 
 .board.monopoly-ring {
   --rows: 11;
-  grid-template-columns: repeat(11, minmax(82px, 1fr));
-  grid-template-rows: repeat(11, minmax(82px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  grid-template-rows: repeat(11, minmax(0, 1fr));
+  gap: clamp(3px, 0.42vw, 6px);
   padding: 14px;
-  width: min(100%, 1220px);
-  min-height: min(90vh, 1120px);
-  max-height: min(92vh, 1180px);
-  overflow: auto;
+  width: min(100%, var(--monopoly-board-size));
+  aspect-ratio: 1 / 1;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  overflow: hidden;
   margin: 0 auto;
-  scrollbar-gutter: stable both-edges;
-  overscroll-behavior: contain;
-  scroll-behavior: smooth;
   background:
     radial-gradient(circle at 22% 18%, rgba(204, 237, 255, 0.32), transparent 42%),
     radial-gradient(circle at 78% 74%, rgba(146, 210, 255, 0.24), transparent 46%),
@@ -746,7 +749,7 @@
   border: 1px solid #8bbce0;
   border-radius: 12px;
   padding: 8px 8px 9px;
-  min-height: 82px;
+  min-height: 0;
   background: linear-gradient(165deg, #ffffff, #e7f4ff);
   display: flex;
   flex-direction: column;

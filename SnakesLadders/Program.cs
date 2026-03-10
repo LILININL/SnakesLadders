@@ -75,9 +75,26 @@ app.UseStaticFiles(new StaticFileOptions
             extension.Equals(".css", StringComparison.OrdinalIgnoreCase) ||
             extension.Equals(".js", StringComparison.OrdinalIgnoreCase))
         {
-            context.Context.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
-            context.Context.Response.Headers.Pragma = "no-cache";
-            context.Context.Response.Headers.Expires = "0";
+            context.Context.Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+            context.Context.Response.Headers["Pragma"] = "no-cache";
+            context.Context.Response.Headers["Expires"] = "0";
+            return;
+        }
+
+        if (extension.Equals(".png", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".gif", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".webp", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".svg", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".ico", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".glb", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".gltf", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".bin", StringComparison.OrdinalIgnoreCase) ||
+            extension.Equals(".usdz", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Context.Response.Headers["Cache-Control"] = "public, max-age=604800";
+            return;
         }
     }
 });

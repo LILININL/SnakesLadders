@@ -1,11 +1,11 @@
 @import url("/games/snakes-ladders/styles/00-base.css");
 @import url("/games/snakes-ladders/styles/01-lobby-ui.css?v=20260309r4");
-@import url("/games/snakes-ladders/styles/02-room-ui.css?v=20260309r10");
+@import url("/games/snakes-ladders/styles/02-room-ui.css?v=20260309r11");
 @import url("/games/snakes-ladders/styles/03-board-core.css?v=20260309r2");
 @import url("/games/snakes-ladders/styles/04-overlays-chat-base.css?v=20260309r8");
-@import url("/games/snakes-ladders/styles/05-responsive-theme-start.css?v=20260309r7");
+@import url("/games/snakes-ladders/styles/05-responsive-theme-start.css?v=20260309r8");
 @import url("/games/snakes-ladders/styles/06-theme-board.css");
-@import url("/games/snakes-ladders/styles/07-board-paging-beacons.css");
+@import url("/games/snakes-ladders/styles/07-board-paging-beacons.css?v=20260309r1");
 @import url("/games/snakes-ladders/styles/08-item-fx.css");
 @import url("/games/snakes-ladders/styles/09-board-tooltip.css");
 @import url("/games/snakes-ladders/styles/10-chat-sidebar.css");

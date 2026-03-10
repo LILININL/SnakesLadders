@@ -311,6 +311,7 @@
 
   el.board.addEventListener("scroll", () => {
     updateFloatingRollButton();
+    root.boardTokens?.updateFromState?.();
   });
 
   window.addEventListener("resize", () => {

@@ -161,17 +161,20 @@ hr {
   }
 
   .layout.in-room .board.monopoly-ring {
-    grid-template-columns: repeat(11, minmax(56px, 1fr));
-    grid-template-rows: repeat(11, minmax(56px, 1fr));
-    max-height: calc(100vh - 160px);
-    min-height: min(78vw, 700px);
+    --monopoly-board-size: min(calc(100dvh - 154px), calc(100vw - 30px), 860px);
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+    grid-template-rows: repeat(11, minmax(0, 1fr));
+    width: min(100%, var(--monopoly-board-size));
+    max-height: none;
+    min-height: 0;
     height: auto;
+    overflow: hidden;
     padding: 8px;
     gap: 3px;
   }
 
   .layout.in-room .board.monopoly-ring .m-cell {
-    min-height: 56px;
+    min-height: 0;
     padding: 5px 5px 6px;
     border-radius: 8px;
   }
@@ -451,21 +454,23 @@ hr {
   }
 
   .layout.in-room .board-stage.monopoly-stage {
-    min-height: calc(100vh - 220px);
+    --monopoly-board-size: min(calc(100dvh - 232px), calc(100vw - 14px), 760px);
+    min-height: max(320px, var(--monopoly-board-size));
   }
 
   .layout.in-room .board.monopoly-ring {
-    grid-template-columns: repeat(11, minmax(60px, 1fr));
-    grid-template-rows: repeat(11, minmax(60px, 1fr));
-    min-height: min(92vw, 760px);
-    max-height: calc(100vh - 214px);
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+    grid-template-rows: repeat(11, minmax(0, 1fr));
+    width: min(100%, var(--monopoly-board-size));
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
     padding: 10px;
     gap: 4px;
-    -webkit-overflow-scrolling: touch;
   }
 
   .layout.in-room .board.monopoly-ring .m-cell {
-    min-height: 60px;
+    min-height: 0;
     padding: 5px 5px 6px;
   }
 

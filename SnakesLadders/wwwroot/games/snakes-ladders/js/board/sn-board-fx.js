@@ -1,7 +1,7 @@
 (() => {
   const root = window.SNL;
   const { state, el } = root;
-  const { escapeHtml, avatarMarkup, normalizeAvatarId, boardItemMeta } =
+  const { escapeHtml, normalizeAvatarId, boardItemMeta, syncAvatarHost, preloadImage } =
     root.utils;
   let diceChain = Promise.resolve();
   let turnStartChain = Promise.resolve();
@@ -489,12 +489,11 @@
       return;
     }
 
-    host.innerHTML = avatarMarkup(avatarId, {
+    syncAvatarHost(host, avatarId, {
       className: `${variant}-avatar-media`,
       alt: `Avatar ${normalizeAvatarId(avatarId, 1)}`,
       variant,
     });
-    root.experimentalToken3d?.hydrateAvatarHosts?.(host);
   }
 
   async function showJumpHint(text, durationMs = 600) {
@@ -603,6 +602,9 @@
       ? `<span class="item-pickup-summary">${escapeHtml(detail)}</span>`
       : "";
     if (meta.imageSrc) {
+      void preloadImage?.(meta.imageSrc);
+    }
+    if (meta.imageSrc) {
       el.jumpHintBadge.innerHTML = `
         <span class="item-pickup-row">
           <img class="item-pickup-img" src="${escapeHtml(meta.imageSrc)}" alt="${escapeHtml(meta.name)}" loading="eager" decoding="async">
@@ -677,6 +679,9 @@
       ? "กับดักกำลังทำงาน..."
       : summary || "กำลังแสดงพลังไอเท็ม";
     const holdMs = Math.max(380, durationMs);
+    if (meta.imageSrc) {
+      void preloadImage?.(meta.imageSrc);
+    }
     const fxEl = document.createElement("div");
     fxEl.className = `item-cast-fx ${activation.toneClass}`;
     fxEl.innerHTML = `

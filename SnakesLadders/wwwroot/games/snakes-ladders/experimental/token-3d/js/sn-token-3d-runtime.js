@@ -202,6 +202,22 @@ root.experimentalToken3d ??= {
     return PROFILE_BY_AVATAR_ID.get(avatarId) ?? null;
   }
 
+  function primeAvatarId(avatarId) {
+    const profile =
+      PROFILE_BY_AVATAR_ID.get(
+        root.utils?.normalizeAvatarId?.(avatarId, 0) ??
+        (Number.parseInt(String(avatarId ?? 0), 10) || 0),
+      ) ?? null;
+    if (!profile) {
+      return Promise.resolve(null);
+    }
+
+    return ensureAssetBundle(profile).catch((error) => {
+      console.warn("[token-3d] primeAvatarId failed", error);
+      return null;
+    });
+  }
+
   function createView(token, profile, transit) {
     token.replaceChildren();
     token.classList.add("token-3d-loading");
@@ -655,5 +671,6 @@ root.experimentalToken3d ??= {
     unmountAvatarHost,
     hydrateAvatarHosts,
     resolveProfile,
+    primeAvatarId,
   };
 })();

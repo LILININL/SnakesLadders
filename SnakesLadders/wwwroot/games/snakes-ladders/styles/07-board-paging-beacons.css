@@ -38,9 +38,7 @@
 }
 
 .board.monopoly-ring {
-  overflow: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
 }
 
 .board.page-transitioning.page-forward {
