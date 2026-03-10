@@ -1,4 +1,7 @@
-import { Container, getContainer } from "@cloudflare/containers";
+import { Container } from "@cloudflare/containers";
+
+const CONTAINER_NAME = "singleton-apac-v1";
+const CONTAINER_LOCATION_HINT = "apac";
 
 export class SnakesLaddersContainer extends Container {
   defaultPort = 8080;
@@ -11,7 +14,10 @@ export class SnakesLaddersContainer extends Container {
 
 export default {
   async fetch(request, env) {
-    const container = getContainer(env.APP_CONTAINER, "singleton");
+    const id = env.APP_CONTAINER.idFromName(CONTAINER_NAME);
+    const container = env.APP_CONTAINER.get(id, {
+      locationHint: CONTAINER_LOCATION_HINT,
+    });
     await container.startAndWaitForPorts();
     const response = await container.fetch(request);
     return withAssetCaching(request, response);

@@ -102,7 +102,10 @@ app.UseStaticFiles(new StaticFileOptions
 app.MapGet("/health", () => Results.Ok(new
 {
     Status = "ok",
-    Utc = DateTimeOffset.UtcNow
+    Utc = DateTimeOffset.UtcNow,
+    CloudflareLocation = Environment.GetEnvironmentVariable("CLOUDFLARE_LOCATION"),
+    CloudflareRegion = Environment.GetEnvironmentVariable("CLOUDFLARE_REGION"),
+    DurableObjectId = Environment.GetEnvironmentVariable("CLOUDFLARE_DURABLE_OBJECT_ID")
 }));
 
 app.MapGet("/rooms/waiting", (IGameRoomService roomService) =>
