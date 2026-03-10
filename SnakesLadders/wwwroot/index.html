@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Chakra+Petch:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=20260309r13">
+  <link rel="stylesheet" href="/styles.css?v=20260310r2">
   <link rel="stylesheet" href="/games/snakes-ladders/experimental/token-3d/styles/token-3d.css?v=20260309r3">
   <script type="importmap">
     {
@@ -245,6 +245,17 @@
             <div id="boardStage" class="board-stage">
               <div id="board" class="board"></div>
               <div id="boardTokenLayer" class="board-token-layer"></div>
+              <div id="monopolyViewportAssist" class="monopoly-viewport-assist hidden" aria-live="polite">
+                <div class="monopoly-viewport-card">
+                  <strong class="monopoly-viewport-title">โหมดมือถือ</strong>
+                  <p id="monopolyViewportHint" class="monopoly-viewport-copy">กระดานนี้อ่านชัดสุดเมื่อเปิดเต็มจอและหมุนเป็นแนวนอน</p>
+                  <div class="monopoly-viewport-actions">
+                    <button id="monopolyViewportFullscreenBtn" class="btn btn-primary" type="button">เต็มจอ / แนวนอน</button>
+                    <button id="monopolyViewportDismissBtn" class="btn" type="button">เล่นต่อแนวตั้ง</button>
+                  </div>
+                </div>
+              </div>
+              <button id="monopolyViewportFab" class="btn monopoly-viewport-fab hidden" type="button">เต็มจอ</button>
               <button id="monopolyStatusFab" class="btn monopoly-status-fab hidden" type="button">สเตตัสผู้เล่น</button>
               <div id="monopolyStatusPopup" class="monopoly-status-popup hidden">
                 <div id="monopolyStatusPanel" class="monopoly-status-panel"></div>
@@ -392,7 +403,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
-  <script src="/games/snakes-ladders/js/core/sn-state.js?v=20260304r3"></script>
+  <script src="/games/snakes-ladders/js/core/sn-state.js?v=20260310r1"></script>
   <script src="/games/snakes-ladders/js/core/sn-utils.js?v=20260309r5"></script>
   <script src="/games/snakes-ladders/js/core/sn-view-state.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/core/sn-storage.js?v=20260226r6"></script>
@@ -408,10 +419,10 @@
   <script src="/games/monopoly/js/monopoly-action-panel.js?v=20260309r1"></script>
   <script src="/games/monopoly/js/monopoly-status-panel.js?v=20260304r1"></script>
   <script src="/games/snakes-ladders/js/render/boards/sn-board-renderer-snakes.js?v=20260304r1"></script>
-  <script src="/games/monopoly/js/monopoly-board-renderer.js?v=20260309r7"></script>
+  <script src="/games/monopoly/js/monopoly-board-renderer.js?v=20260310r1"></script>
   <script src="/games/snakes-ladders/js/render/sn-render-game.js?v=20260309r3"></script>
   <script src="/games/snakes-ladders/js/ui/sn-rule-summary.js?v=20260226r6"></script>
-  <script src="/games/snakes-ladders/js/ui/sn-room-ui.js?v=20260309r1"></script>
+  <script src="/games/snakes-ladders/js/ui/sn-room-ui.js?v=20260310r1"></script>
   <script src="/games/snakes-ladders/js/ui/sn-ready-ui.js?v=20260309r1"></script>
   <script src="/games/snakes-ladders/js/ui/sn-rule-ui.js?v=20260226r6"></script>
   <script src="/games/snakes-ladders/js/board/sn-board-fx.js?v=20260309r2"></script>

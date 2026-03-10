@@ -3,6 +3,8 @@
   const { state, el, GAME_STATUS } = root;
   const { escapeHtml } = root.utils;
   let resizeTimer = 0;
+  let monopolyViewportDismissed = false;
+  let monopolyViewportStatus = "";
 
   function renderAll() {
     renderRoomShell();
@@ -11,6 +13,7 @@
     renderTurnBanner();
     updateDeadlineAlert();
     updateFloatingRollButton();
+    updateMonopolyViewportMode();
     renderChatBadge();
   }
 
@@ -58,6 +61,11 @@
     el.chatSection.classList.remove("chat-sidebar");
     el.chatSection.classList.toggle("hidden", !inRoom);
     el.eventSection.classList.toggle("hidden", inRoom);
+
+    if (!root.monopolyHelpers?.isMonopolyRoom?.(state.room) || !started) {
+      monopolyViewportDismissed = false;
+      monopolyViewportStatus = "";
+    }
   }
 
   function renderRoomRules() {
@@ -194,6 +202,167 @@
     el.turnDeadlineAlert.className = `turn-deadline-alert show sec-${remainSec}`;
   }
 
+  function updateMonopolyViewportMode() {
+    const isMonopolyRoom = Boolean(
+      root.monopolyHelpers?.isMonopolyRoom?.(state.room),
+    );
+    const started = isStarted();
+    const mobileViewport = window.matchMedia("(max-width: 900px)").matches;
+    const portraitViewport = window.matchMedia("(orientation: portrait)").matches;
+    const fullscreen = isBoardStageFullscreen();
+
+    document.body.classList.toggle(
+      "monopoly-mobile-portrait",
+      isMonopolyRoom && started && mobileViewport && portraitViewport && !fullscreen,
+    );
+    document.body.classList.toggle(
+      "monopoly-mobile-fullscreen",
+      isMonopolyRoom && started && fullscreen,
+    );
+
+    if (!isMonopolyRoom || !started || !mobileViewport) {
+      hideMonopolyViewportAssist();
+      if (el.monopolyViewportFab) {
+        el.monopolyViewportFab.classList.add("hidden");
+      }
+      return;
+    }
+
+    if (fullscreen || !portraitViewport) {
+      monopolyViewportDismissed = false;
+    }
+
+    const canSuggestFullscreen = Boolean(
+      el.boardStage?.requestFullscreen ||
+      document.fullscreenEnabled ||
+      el.boardStage?.webkitRequestFullscreen,
+    );
+    const message = fullscreen
+      ? "แตะออกจากเต็มจอได้ทุกเมื่อ ถ้าหน้าจอยังเป็นแนวตั้งให้หมุนเครื่องเพื่ออ่านรายละเอียดเมืองให้ชัดขึ้น"
+      : monopolyViewportStatus ||
+        (canSuggestFullscreen
+          ? "กระดานนี้อ่านชัดสุดเมื่อเปิดเต็มจอและหมุนเป็นแนวนอน"
+          : "เบราว์เซอร์นี้อาจบังคับแนวนอนไม่ได้ กดดูเต็มจอแล้วหมุนเครื่องเองเพื่อให้ช่องเมืองอ่านง่ายขึ้น");
+
+    if (el.monopolyViewportHint) {
+      el.monopolyViewportHint.textContent = message;
+    }
+
+    const showAssist = portraitViewport && !monopolyViewportDismissed;
+    el.monopolyViewportAssist?.classList.toggle("hidden", !showAssist);
+
+    if (el.monopolyViewportFab) {
+      const showFab = !portraitViewport || fullscreen;
+      el.monopolyViewportFab.classList.toggle("hidden", !showFab);
+      el.monopolyViewportFab.textContent = fullscreen ? "ออกเต็มจอ" : "เต็มจอ";
+    }
+  }
+
+  function hideMonopolyViewportAssist() {
+    el.monopolyViewportAssist?.classList.add("hidden");
+  }
+
+  function isBoardStageFullscreen() {
+    return (
+      document.fullscreenElement === el.boardStage ||
+      document.webkitFullscreenElement === el.boardStage
+    );
+  }
+
+  async function toggleMonopolyViewportMode() {
+    if (!el.boardStage) {
+      return;
+    }
+
+    if (isBoardStageFullscreen()) {
+      await exitFullscreenSafe();
+      monopolyViewportStatus = "";
+      updateMonopolyViewportMode();
+      scheduleBoardRefresh();
+      return;
+    }
+
+    monopolyViewportDismissed = false;
+    monopolyViewportStatus = "";
+
+    const enteredFullscreen = await enterBoardStageFullscreen();
+    if (!enteredFullscreen) {
+      monopolyViewportStatus = "เบราว์เซอร์นี้ไม่ยอมเปิดเต็มจอจากจุดนี้ ลองหมุนเป็นแนวนอนเองหรือเปิดผ่านโหมดแอป";
+      updateMonopolyViewportMode();
+      scheduleBoardRefresh();
+      return;
+    }
+
+    const lockResult = await lockLandscapeOrientation();
+    if (!lockResult) {
+      monopolyViewportStatus = "เปิดเต็มจอแล้ว แต่เบราว์เซอร์นี้อาจไม่ยอมล็อกแนวนอนอัตโนมัติ ให้หมุนเครื่องเองอีกครั้ง";
+    }
+
+    updateMonopolyViewportMode();
+    scheduleBoardRefresh();
+  }
+
+  async function enterBoardStageFullscreen() {
+    if (!el.boardStage) {
+      return false;
+    }
+
+    try {
+      if (typeof el.boardStage.requestFullscreen === "function") {
+        await el.boardStage.requestFullscreen({ navigationUI: "hide" });
+        return true;
+      }
+      if (typeof el.boardStage.webkitRequestFullscreen === "function") {
+        el.boardStage.webkitRequestFullscreen();
+        return true;
+      }
+    } catch {
+      return false;
+    }
+
+    return isBoardStageFullscreen();
+  }
+
+  async function exitFullscreenSafe() {
+    try {
+      if (typeof document.exitFullscreen === "function" && document.fullscreenElement) {
+        await document.exitFullscreen();
+        return;
+      }
+      if (typeof document.webkitExitFullscreen === "function" && document.webkitFullscreenElement) {
+        document.webkitExitFullscreen();
+      }
+    } catch {
+      // Best-effort only.
+    }
+  }
+
+  async function lockLandscapeOrientation() {
+    try {
+      if (typeof screen?.orientation?.lock === "function") {
+        await screen.orientation.lock("landscape");
+        return true;
+      }
+    } catch {
+      return false;
+    }
+
+    return false;
+  }
+
+  function dismissMonopolyViewportAssist() {
+    monopolyViewportDismissed = true;
+    updateMonopolyViewportMode();
+  }
+
+  function scheduleBoardRefresh() {
+    window.setTimeout(() => {
+      root.boardOverlay?.renderFromState?.();
+      root.boardTokens?.updateFromState?.();
+      root.actions?.syncRollInteraction?.();
+    }, 60);
+  }
+
   function hideDeadlineAlert() {
     el.turnDeadlineAlert.className = "turn-deadline-alert hidden";
     el.turnDeadlineAlert.textContent = "";
@@ -315,12 +484,37 @@
     root.boardTokens?.updateFromState?.();
   });
 
+  el.monopolyViewportFullscreenBtn?.addEventListener("click", () => {
+    toggleMonopolyViewportMode();
+  });
+  el.monopolyViewportDismissBtn?.addEventListener("click", dismissMonopolyViewportAssist);
+  el.monopolyViewportFab?.addEventListener("click", () => {
+    toggleMonopolyViewportMode();
+  });
+
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
     resizeTimer = window.setTimeout(() => {
       updateFloatingRollButton();
       updateChatSidebarLayout();
+      updateMonopolyViewportMode();
+      scheduleBoardRefresh();
     }, 80);
+  });
+
+  window.addEventListener("orientationchange", () => {
+    updateMonopolyViewportMode();
+    scheduleBoardRefresh();
+  });
+
+  document.addEventListener("fullscreenchange", () => {
+    updateMonopolyViewportMode();
+    scheduleBoardRefresh();
+  });
+
+  document.addEventListener("webkitfullscreenchange", () => {
+    updateMonopolyViewportMode();
+    scheduleBoardRefresh();
   });
 
   window.addEventListener(
@@ -340,5 +534,6 @@
     toggleChatPanel,
     updateDeadlineAlert,
     renderChatBadge,
+    updateMonopolyViewportMode,
   };
 })();

@@ -161,7 +161,7 @@ hr {
   }
 
   .layout.in-room .board.monopoly-ring {
-    --monopoly-board-size: min(calc(100dvh - 154px), calc(100vw - 30px), 860px);
+    --monopoly-board-size: min(calc(100dvh - 116px), calc(100vw - 16px), 980px);
     grid-template-columns: repeat(11, minmax(0, 1fr));
     grid-template-rows: repeat(11, minmax(0, 1fr));
     width: min(100%, var(--monopoly-board-size));
@@ -295,6 +295,7 @@ hr {
   .layout.in-room .board.monopoly-ring .m-center-player-list {
     grid-template-columns: 1fr;
     gap: 5px;
+    max-height: 178px;
   }
 
   .layout.in-room .board.monopoly-ring .m-center-player {
@@ -450,12 +451,12 @@ hr {
 
 @media (max-width: 900px) and (orientation: portrait) {
   .layout.in-room .board-wrap.monopoly-layout {
-    gap: 8px;
+    gap: 6px;
   }
 
   .layout.in-room .board-stage.monopoly-stage {
-    --monopoly-board-size: min(calc(100dvh - 232px), calc(100vw - 14px), 760px);
-    min-height: max(320px, var(--monopoly-board-size));
+    --monopoly-board-size: min(calc(100dvh - 184px), calc(100vw - 6px), 760px);
+    min-height: max(340px, var(--monopoly-board-size));
   }
 
   .layout.in-room .board.monopoly-ring {
@@ -465,43 +466,100 @@ hr {
     min-height: 0;
     max-height: none;
     overflow: hidden;
-    padding: 10px;
-    gap: 4px;
+    padding: 8px;
+    gap: 3px;
   }
 
   .layout.in-room .board.monopoly-ring .m-cell {
     min-height: 0;
-    padding: 5px 5px 6px;
+    padding: 4px 4px 5px;
   }
 
   .layout.in-room .board.monopoly-ring .m-name {
-    font-size: 0.68rem;
+    font-size: 0.62rem;
+    min-height: 2.2em;
   }
 
   .layout.in-room .board.monopoly-ring .m-meta {
-    gap: 4px;
+    gap: 3px;
+    font-size: 0.54rem;
   }
 
   .layout.in-room .board.monopoly-ring .m-metrics {
-    gap: 4px;
+    gap: 3px;
   }
 
   .layout.in-room .board.monopoly-ring .m-foot {
-    min-height: 28px;
-    gap: 5px;
+    min-height: 24px;
+    gap: 3px;
   }
 
   .layout.in-room .board.monopoly-ring .m-owner {
-    font-size: 0.58rem;
+    font-size: 0.52rem;
+    min-height: 22px;
+    padding-right: 6px;
   }
 
   .layout.in-room .board.monopoly-ring .m-center {
-    padding: 10px 9px;
+    padding: 8px 7px;
+    gap: 6px;
   }
 
   .layout.in-room .board.monopoly-ring .m-center-player-list {
     grid-template-columns: 1fr;
-    max-height: 212px;
+    max-height: 176px;
+    gap: 4px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-center-player {
+    padding: 5px 6px;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-center-player-name,
+  .layout.in-room .board.monopoly-ring .m-center-player-cash {
+    font-size: 0.56rem;
+  }
+
+  .layout.in-room .board.monopoly-ring .m-center-player-meta,
+  .layout.in-room .board.monopoly-ring .m-center-player-badge {
+    font-size: 0.46rem;
+  }
+
+  .layout.in-room .monopoly-viewport-card {
+    width: min(100%, 360px);
+    padding: 10px 12px;
+  }
+
+  .layout.in-room .monopoly-viewport-title {
+    font-size: 0.76rem;
+  }
+
+  .layout.in-room .monopoly-viewport-copy {
+    font-size: 0.78rem;
+  }
+
+  .layout.in-room .monopoly-viewport-actions {
+    gap: 6px;
+  }
+
+  body.monopoly-mobile-fullscreen .layout.in-room .board.monopoly-ring,
+  .layout.in-room .board-stage.monopoly-stage:fullscreen .board.monopoly-ring,
+  .layout.in-room .board-stage.monopoly-stage:-webkit-full-screen .board.monopoly-ring {
+    --monopoly-board-size: min(calc(100dvh - 12px), calc(100dvw - 12px), 920px);
+    padding: 9px;
+    gap: 4px;
+  }
+
+  body.monopoly-mobile-fullscreen .layout.in-room .board.monopoly-ring .m-name,
+  .layout.in-room .board-stage.monopoly-stage:fullscreen .board.monopoly-ring .m-name,
+  .layout.in-room .board-stage.monopoly-stage:-webkit-full-screen .board.monopoly-ring .m-name {
+    font-size: 0.66rem;
+  }
+
+  body.monopoly-mobile-fullscreen .layout.in-room .board.monopoly-ring .m-meta,
+  .layout.in-room .board-stage.monopoly-stage:fullscreen .board.monopoly-ring .m-meta,
+  .layout.in-room .board-stage.monopoly-stage:-webkit-full-screen .board.monopoly-ring .m-meta {
+    font-size: 0.58rem;
   }
 }
 
