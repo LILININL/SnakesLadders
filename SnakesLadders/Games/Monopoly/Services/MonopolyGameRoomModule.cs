@@ -2051,6 +2051,22 @@ public sealed class MonopolyGameRoomModule : IGameRoomModule
         return false;
     }
 
+    private static int ResolveEffectiveConfiguredRoundLimit(int configuredMaxRounds, int playerCount)
+    {
+        var configured = Math.Max(1, configuredMaxRounds);
+        var normalizedPlayerCount = Math.Max(2, playerCount);
+        var recommendedCap = normalizedPlayerCount switch
+        {
+            >= 10 => 20,
+            >= 8 => 24,
+            >= 6 => 28,
+            >= 4 => 34,
+            _ => 42
+        };
+
+        return Math.Max(12, Math.Min(configured, recommendedCap));
+    }
+
     private static int CalculateNetWorth(MonopolyRoomState state, string playerId, int cash, int cityPriceGrowthRounds)
     {
         var assetValue = 0;

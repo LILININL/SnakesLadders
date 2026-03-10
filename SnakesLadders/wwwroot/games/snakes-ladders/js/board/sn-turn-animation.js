@@ -939,15 +939,16 @@
       return "";
     }
 
-    const revision =
-      root.viewState?.resolveRoomSnapshotRevision?.(payload.room) ??
+    const parsedRevision =
       Number.parseInt(
         String(
           payload.room?.snapshotRevision ?? payload.room?.SnapshotRevision ?? 0,
         ),
         10,
-      ) ||
-      0;
+      ) || 0;
+    const revision =
+      root.viewState?.resolveRoomSnapshotRevision?.(payload.room) ??
+      parsedRevision;
     if (revision > 0) {
       const roomCode = String(
         payload.room?.roomCode ?? payload.room?.RoomCode ?? "",
