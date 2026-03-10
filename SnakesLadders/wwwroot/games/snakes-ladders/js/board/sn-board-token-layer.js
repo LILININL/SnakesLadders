@@ -189,15 +189,17 @@
   }
 
   function placeToken(token, cellEl, offset) {
-    const stageEl = el.boardStage ?? el.board.parentElement ?? el.board;
-    const stageRect = stageEl.getBoundingClientRect();
-    const cellRect = cellEl.getBoundingClientRect();
-
-    const left = cellRect.left - stageRect.left + cellRect.width / 2 + offset.x;
-    const top = cellRect.top - stageRect.top + cellRect.height / 2 + offset.y;
+    const boardOffsetX = el.board?.offsetLeft || 0;
+    const boardOffsetY = el.board?.offsetTop || 0;
+    const left =
+      boardOffsetX + cellEl.offsetLeft + cellEl.offsetWidth / 2 + offset.x;
+    const top =
+      boardOffsetY + cellEl.offsetTop + cellEl.offsetHeight / 2 + offset.y;
+    const stageWidth = el.boardStage?.clientWidth || el.board?.parentElement?.clientWidth || el.board?.clientWidth || 0;
+    const stageHeight = el.boardStage?.clientHeight || el.board?.parentElement?.clientHeight || el.board?.clientHeight || 0;
 
     if (
-      ![left, top, stageRect.width, stageRect.height].every(Number.isFinite)
+      ![left, top, stageWidth, stageHeight].every(Number.isFinite)
     ) {
       return false;
     }
@@ -205,8 +207,8 @@
     if (
       left < -40 ||
       top < -40 ||
-      left > stageRect.width + 40 ||
-      top > stageRect.height + 40
+      left > stageWidth + 40 ||
+      top > stageHeight + 40
     ) {
       return false;
     }

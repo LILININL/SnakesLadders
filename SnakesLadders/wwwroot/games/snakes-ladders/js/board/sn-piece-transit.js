@@ -259,12 +259,8 @@
 
   function placeTokenAtPoint(token, point, options = {}) {
     const stageEl = el.boardStage ?? el.board.parentElement ?? el.board;
-    const stageRect = stageEl.getBoundingClientRect();
-
-    const left =
-      point.x + (el.board.getBoundingClientRect().left - stageRect.left);
-    const top =
-      point.y + (el.board.getBoundingClientRect().top - stageRect.top);
+    const left = point.x + (el.board?.offsetLeft || 0);
+    const top = point.y + (el.board?.offsetTop || 0);
 
     if (![left, top].every(Number.isFinite)) {
       return;
@@ -276,12 +272,16 @@
     const scale = Number.isFinite(options.scale) ? options.scale : 1;
     const liftY = Number.isFinite(options.liftY) ? options.liftY : 0;
     const baseTranslate = `translate(-50%, -50%) translateY(${Math.round(liftY)}px)`;
+    const cameraTransform =
+      stageEl?.dataset?.monopolyCameraLayerTransform?.trim() ?? "";
     if (token.classList.contains("avatar")) {
-      token.style.transform = `${baseTranslate} scale(${scale.toFixed(3)})`;
+      token.dataset.baseTransform = `${baseTranslate} scale(${scale.toFixed(3)})`;
+      token.style.transform = `${cameraTransform} ${token.dataset.baseTransform}`.trim();
       return;
     }
 
-    token.style.transform = `${baseTranslate} rotate(${Math.round(angle)}deg) scale(${scale.toFixed(3)})`;
+    token.dataset.baseTransform = `${baseTranslate} rotate(${Math.round(angle)}deg) scale(${scale.toFixed(3)})`;
+    token.style.transform = `${cameraTransform} ${token.dataset.baseTransform}`.trim();
   }
 
   function hideToken() {
@@ -293,7 +293,11 @@
     token.classList.add("hidden");
     token.classList.remove("snake");
     token.classList.remove("relocate");
-    token.style.transform = "translate(-50%, -50%) rotate(0deg)";
+    token.dataset.baseTransform = "translate(-50%, -50%) rotate(0deg)";
+    const stageEl = el.boardStage ?? el.board?.parentElement ?? el.board;
+    const cameraTransform =
+      stageEl?.dataset?.monopolyCameraLayerTransform?.trim() ?? "";
+    token.style.transform = `${cameraTransform} ${token.dataset.baseTransform}`.trim();
   }
 
   function resetTransitState() {

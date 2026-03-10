@@ -3,8 +3,20 @@
   const { state, el, GAME_STATUS } = root;
   const { escapeHtml } = root.utils;
   let resizeTimer = 0;
+  let monopolyCameraRaf = 0;
   let monopolyViewportDismissed = false;
   let monopolyViewportStatus = "";
+  const monopolyCamera = {
+    dragging: false,
+    pointerId: -1,
+    startX: 0,
+    startY: 0,
+    dragBaseX: 0,
+    dragBaseY: 0,
+    tx: 0,
+    ty: 0,
+    scale: 1,
+  };
 
   function renderAll() {
     renderRoomShell();
@@ -14,6 +26,7 @@
     updateDeadlineAlert();
     updateFloatingRollButton();
     updateMonopolyViewportMode();
+    requestMonopolyCameraRefresh();
     renderChatBadge();
   }
 
@@ -65,6 +78,7 @@
     if (!root.monopolyHelpers?.isMonopolyRoom?.(state.room) || !started) {
       monopolyViewportDismissed = false;
       monopolyViewportStatus = "";
+      resetMonopolyCamera();
     }
   }
 
@@ -360,7 +374,305 @@
       root.boardOverlay?.renderFromState?.();
       root.boardTokens?.updateFromState?.();
       root.actions?.syncRollInteraction?.();
+      requestMonopolyCameraRefresh();
     }, 60);
+  }
+
+  function shouldEnableMonopolyCamera() {
+    return Boolean(
+      isStarted() &&
+      root.monopolyHelpers?.isMonopolyRoom?.(state.room) &&
+      el.boardStage &&
+      el.board &&
+      state.playerId,
+    );
+  }
+
+  function requestMonopolyCameraRefresh(options = {}) {
+    cancelAnimationFrame(monopolyCameraRaf);
+    monopolyCameraRaf = requestAnimationFrame(() => {
+      updateMonopolyCamera(options);
+    });
+  }
+
+  function updateMonopolyCamera(options = {}) {
+    if (!shouldEnableMonopolyCamera()) {
+      resetMonopolyCamera();
+      return;
+    }
+
+    const focusPoint = resolveMyMonopolyFocusPoint();
+    const bounds = resolveMonopolyCameraBounds();
+    if (!focusPoint || !bounds) {
+      resetMonopolyCamera();
+      return;
+    }
+
+    const scale = resolveMonopolyCameraScale(bounds);
+    const targetTx = clamp(
+      bounds.stageWidth / 2 - focusPoint.x * scale,
+      bounds.minTxFor(scale),
+      bounds.maxTxFor(scale),
+    );
+    const targetTy = clamp(
+      bounds.stageHeight / 2 - focusPoint.y * scale,
+      bounds.minTyFor(scale),
+      bounds.maxTyFor(scale),
+    );
+
+    monopolyCamera.scale = scale;
+    monopolyCamera.focusTx = targetTx;
+    monopolyCamera.focusTy = targetTy;
+
+    if (monopolyCamera.dragging && !options.force) {
+      return;
+    }
+
+    applyMonopolyCameraTransform(targetTx, targetTy, scale, {
+      animate: options.animate !== false,
+      dragging: false,
+    });
+  }
+
+  function resolveMonopolyCameraScale(bounds = resolveMonopolyCameraBounds()) {
+    if (!bounds) {
+      return 1;
+    }
+
+    const narrowViewport = window.matchMedia("(max-width: 900px)").matches;
+    const portraitViewport = window.matchMedia("(orientation: portrait)").matches;
+    const visibleWidthFraction = portraitViewport
+      ? 0.84
+      : narrowViewport
+        ? 0.74
+        : 0.64;
+    const visibleHeightFraction = portraitViewport
+      ? 0.84
+      : narrowViewport
+        ? 0.76
+        : 0.68;
+    const scaleFromWidth =
+      bounds.stageWidth / Math.max(bounds.boardWidth * visibleWidthFraction, 1);
+    const scaleFromHeight =
+      bounds.stageHeight / Math.max(bounds.boardHeight * visibleHeightFraction, 1);
+    const floor = portraitViewport ? 1.12 : narrowViewport ? 1.25 : 1.7;
+    const ceiling = portraitViewport ? 1.75 : narrowViewport ? 2.2 : 2.9;
+    const scale = Math.max(floor, scaleFromWidth, scaleFromHeight);
+
+    return Math.min(scale, ceiling);
+  }
+
+  function resolveMyMonopolyFocusPoint() {
+    const myToken = el.boardTokenLayer?.querySelector(
+      `.board-token[data-player-id="${String(state.playerId)}"]`,
+    );
+    if (myToken) {
+      const left = Number.parseFloat(myToken.style.left);
+      const top = Number.parseFloat(myToken.style.top);
+      if (Number.isFinite(left) && Number.isFinite(top)) {
+        return { x: left, y: top };
+      }
+    }
+
+    const myPosition = root.viewState?.getPlayerPosition?.(state.playerId);
+    if (!myPosition || !el.board) {
+      return null;
+    }
+
+    const cellEl = el.board.querySelector(`[data-cell="${myPosition}"]`);
+    if (!cellEl) {
+      return null;
+    }
+
+    const boardOffsetX = el.board.offsetLeft || 0;
+    const boardOffsetY = el.board.offsetTop || 0;
+    return {
+      x: boardOffsetX + cellEl.offsetLeft + cellEl.offsetWidth / 2,
+      y: boardOffsetY + cellEl.offsetTop + cellEl.offsetHeight / 2,
+    };
+  }
+
+  function resolveMonopolyCameraBounds() {
+    if (!el.boardStage || !el.board) {
+      return null;
+    }
+
+    const stageWidth = el.boardStage.clientWidth;
+    const stageHeight = el.boardStage.clientHeight;
+    const boardWidth = el.board.offsetWidth;
+    const boardHeight = el.board.offsetHeight;
+    const boardOffsetX = el.board.offsetLeft || 0;
+    const boardOffsetY = el.board.offsetTop || 0;
+    if (
+      ![stageWidth, stageHeight, boardWidth, boardHeight].every(
+        (value) => Number.isFinite(value) && value > 0,
+      )
+    ) {
+      return null;
+    }
+
+    return {
+      stageWidth,
+      stageHeight,
+      boardOffsetX,
+      boardOffsetY,
+      boardWidth,
+      boardHeight,
+      minTxFor(scale) {
+        return stageWidth - (boardOffsetX + boardWidth) * scale;
+      },
+      maxTxFor(scale) {
+        return -boardOffsetX * scale;
+      },
+      minTyFor(scale) {
+        return stageHeight - (boardOffsetY + boardHeight) * scale;
+      },
+      maxTyFor(scale) {
+        return -boardOffsetY * scale;
+      },
+    };
+  }
+
+  function applyMonopolyCameraTransform(tx, ty, scale, options = {}) {
+    if (!el.boardStage || !el.board) {
+      return;
+    }
+
+    const boardOffsetX = el.board.offsetLeft || 0;
+    const boardOffsetY = el.board.offsetTop || 0;
+    const boardTx = tx + boardOffsetX * (scale - 1);
+    const boardTy = ty + boardOffsetY * (scale - 1);
+    const boardTransform = `translate3d(${boardTx}px, ${boardTy}px, 0) scale(${scale})`;
+    const layerTransform = `translate3d(${tx}px, ${ty}px, 0) scale(${scale})`;
+
+    el.boardStage.classList.add("camera-ready");
+    el.boardStage.classList.toggle("camera-dragging", Boolean(options.dragging));
+    el.boardStage.classList.toggle("camera-animating", Boolean(options.animate));
+    el.boardStage.dataset.monopolyCameraLayerTransform = layerTransform;
+
+    el.board.style.transform = boardTransform;
+    if (el.boardTokenLayer) {
+      el.boardTokenLayer.style.transform = layerTransform;
+    }
+
+    monopolyCamera.tx = tx;
+    monopolyCamera.ty = ty;
+  }
+
+  function resetMonopolyCamera() {
+    cancelAnimationFrame(monopolyCameraRaf);
+    monopolyCamera.dragging = false;
+    monopolyCamera.pointerId = -1;
+    monopolyCamera.scale = 1;
+    monopolyCamera.tx = 0;
+    monopolyCamera.ty = 0;
+    if (!el.boardStage) {
+      return;
+    }
+
+    el.boardStage.classList.remove("camera-ready", "camera-dragging", "camera-animating");
+    delete el.boardStage.dataset.monopolyCameraLayerTransform;
+    if (el.board) {
+      el.board.style.transform = "";
+    }
+    if (el.boardTokenLayer) {
+      el.boardTokenLayer.style.transform = "";
+    }
+  }
+
+  function isMonopolyCameraDragTarget(target) {
+    if (!target || !shouldEnableMonopolyCamera()) {
+      return false;
+    }
+
+    if (
+      target.closest(
+        ".monopoly-action-popup, .monopoly-status-popup, .monopoly-status-fab, .roll-fab, .monopoly-viewport-assist, .monopoly-viewport-fab, button, input, textarea, select, details, summary, a",
+      )
+    ) {
+      return false;
+    }
+
+    return Boolean(
+      target.closest("#board, #boardTokenLayer, #transitToken, .board-overlay"),
+    );
+  }
+
+  function onMonopolyCameraPointerDown(event) {
+    if (!isMonopolyCameraDragTarget(event.target)) {
+      return;
+    }
+
+    monopolyCamera.dragging = true;
+    monopolyCamera.pointerId = event.pointerId;
+    monopolyCamera.startX = event.clientX;
+    monopolyCamera.startY = event.clientY;
+    monopolyCamera.dragBaseX = monopolyCamera.tx;
+    monopolyCamera.dragBaseY = monopolyCamera.ty;
+    el.boardStage?.setPointerCapture?.(event.pointerId);
+    applyMonopolyCameraTransform(
+      monopolyCamera.tx,
+      monopolyCamera.ty,
+      monopolyCamera.scale || resolveMonopolyCameraScale(),
+      { animate: false, dragging: true },
+    );
+    event.preventDefault();
+  }
+
+  function onMonopolyCameraPointerMove(event) {
+    if (!monopolyCamera.dragging || event.pointerId !== monopolyCamera.pointerId) {
+      return;
+    }
+
+    const bounds = resolveMonopolyCameraBounds();
+    const scale = monopolyCamera.scale || resolveMonopolyCameraScale();
+    if (!bounds) {
+      return;
+    }
+
+    const deltaX = event.clientX - monopolyCamera.startX;
+    const deltaY = event.clientY - monopolyCamera.startY;
+    const nextTx = clamp(
+      monopolyCamera.dragBaseX + deltaX,
+      bounds.minTxFor(scale),
+      bounds.maxTxFor(scale),
+    );
+    const nextTy = clamp(
+      monopolyCamera.dragBaseY + deltaY,
+      bounds.minTyFor(scale),
+      bounds.maxTyFor(scale),
+    );
+
+    applyMonopolyCameraTransform(nextTx, nextTy, scale, {
+      animate: false,
+      dragging: true,
+    });
+    event.preventDefault();
+  }
+
+  function onMonopolyCameraPointerUp(event) {
+    if (!monopolyCamera.dragging || event.pointerId !== monopolyCamera.pointerId) {
+      return;
+    }
+
+    monopolyCamera.dragging = false;
+    monopolyCamera.pointerId = -1;
+    try {
+      el.boardStage?.releasePointerCapture?.(event.pointerId);
+    } catch {
+      // Ignore release failures.
+    }
+    requestMonopolyCameraRefresh({ animate: true, force: true });
+  }
+
+  function clamp(value, min, max) {
+    if (!Number.isFinite(value)) {
+      return min;
+    }
+    if (min > max) {
+      return (min + max) / 2;
+    }
+    return Math.min(Math.max(value, min), max);
   }
 
   function hideDeadlineAlert() {
@@ -491,6 +803,10 @@
   el.monopolyViewportFab?.addEventListener("click", () => {
     toggleMonopolyViewportMode();
   });
+  el.boardStage?.addEventListener("pointerdown", onMonopolyCameraPointerDown);
+  el.boardStage?.addEventListener("pointermove", onMonopolyCameraPointerMove);
+  el.boardStage?.addEventListener("pointerup", onMonopolyCameraPointerUp);
+  el.boardStage?.addEventListener("pointercancel", onMonopolyCameraPointerUp);
 
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
